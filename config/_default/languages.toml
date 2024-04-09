@@ -2,10 +2,10 @@
 [en]
 languageName = "English"
 languagedirection = "ltr"
-title = "Farb's Blog"
+title = "Welcome to Farb's Blog"
 weight = 1
 [zh-cn]
 languageName = "中文"
 languagedirection = "ltr"
-title = "我的博客"
+title = "欢迎来到我的博客"
 weight = 1
