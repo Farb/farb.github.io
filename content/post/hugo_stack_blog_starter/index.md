@@ -1,7 +1,7 @@
 ---
 title: Hugo+Stack主题环境搭建部署到Github遇到的问题记录
-description: Welcome to Hugo Theme Stack
-slug: hello-world
+description: 
+slug: hugo-stack
 date: 2024-04-09 00:00:00+0000
 image: cover.jpg
 categories:
