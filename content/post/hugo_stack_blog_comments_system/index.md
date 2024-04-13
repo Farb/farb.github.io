@@ -54,3 +54,8 @@ utterance，英文意思是`言论，说话`。它是Github市场的一个应用
 最后，看下我的效果吧
 
 ![](utterance_comment_test.png)
+
+
+可以看到这个评论最终保存到了 farb/blogComment 这个仓库下面的issue。
+每篇帖子都会开一个issue，issue的名字就是博客的slug-name(路径名)，所有的评论都在这个issue下面。
+![](comment_storage.png)
