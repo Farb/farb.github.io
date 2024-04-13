@@ -2,7 +2,7 @@
 title: Hugo+Stack主题快速集成免费的评论系统utterance
 description: utterance 简单、快速、免费、开源、不需要自定义域名，这就够了
 slug: hugo-stack-utterance
-date: 2024-04-13 00:00:00+0000
+date: 2024-04-13 
 image: 
 categories:
     - 杂项
