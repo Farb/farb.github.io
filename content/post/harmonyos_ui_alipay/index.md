@@ -16,7 +16,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 ## 代码
 
-```
+``` ts
 @Entry
 @Component
 struct AliPayIndexPage {

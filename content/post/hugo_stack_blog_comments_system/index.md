@@ -39,7 +39,7 @@ utterance，英文意思是`言论，说话`。它是Github市场的一个应用
 ## Hugo Stack中如何配置
 1. 找到配置文件： config\_default\params.toml
 2. 修改评论系统的provider以及`[comments.utterances]`节点下的`repo`为你自己的仓库名称。代码如下：
-   ```
+   ``` toml
     ## Comments
     [comments]
     enabled = true
