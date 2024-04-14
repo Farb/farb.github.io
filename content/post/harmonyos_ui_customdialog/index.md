@@ -15,6 +15,9 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 效果图：
 
+![](https://s3.bmp.ovh/imgs/2024/04/14/472e8b87e6d4ea5a.gif)
+
+难点主要在于Dialog内部的自定义内容布局。涉及Stack布局及Stack嵌套、Body中使用了Scroll，最主要的是Scroll中的Column中使用了padding，给Header和Footer保留空间的高度。
 
 ## 实现代码
 
@@ -118,20 +121,18 @@ struct MyCustomDialog {
    * 显示主体列表
    */
   @Builder Body() {
-    Column() {
-      Scroll() {
-        Column() {
-          ForEach(this.students, (item: Student) => {
-            StudentCard({ student: item })
-          })
-        }
-        .padding({ // 这里要分别留出header和footer的高度
-          bottom: 50,
-          top: 100
+    Scroll() {
+      Column() {
+        ForEach(this.students, (item: Student) => {
+          StudentCard({ student: item })
         })
       }
-      .scrollBar(BarState.Off)
+      .padding({ // 这里要分别留出header和footer的高度
+        bottom: 50,
+        top: 100
+      })
     }
+    .scrollBar(BarState.Off)
   }
   /**
    * 显示底部按钮
