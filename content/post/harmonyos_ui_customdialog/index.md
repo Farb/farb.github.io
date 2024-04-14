@@ -15,7 +15,6 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 效果图：
 
-![](harmonyos_ui_customdialog_result.gif)
 
 ## 实现代码
 
