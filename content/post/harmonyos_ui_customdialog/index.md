@@ -3,6 +3,7 @@ title: 鸿蒙界面开发--自定义弹窗内置可滚动的单选列表
 description: 
 slug: arkts-customdialog
 date: 2024-04-13 23:00:00+0000
+lastmod: ['lastmod', ':git', 'date', 'publishDate']
 image: 
 categories:
     - HarmonyOS
