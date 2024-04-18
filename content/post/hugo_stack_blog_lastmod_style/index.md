@@ -1,7 +1,7 @@
 ---
 title: Hugo+Stack主题修改最后更新时间位置和时间格式
 description: 
-slug: hugo-stack-lastmod
+slug: test
 date: 2024-04-19 00:00:00+0000
 image: 
 categories:
@@ -23,7 +23,7 @@ https://stack.jimmycai.com/config/header-footer
 ``` toml
 [dateFormat]
 published = "2006-01-02"  # 发布日期格式
-lastUpdated = "2006-01-02 15:04:05" 最后修改时间格式，一定要对应go的日期格式
+lastUpdated = "2006-01-02 15:04:05" # 最后修改时间格式，一定要对应go的日期格式
 ```
 
 ## 位置修改
@@ -31,6 +31,7 @@ lastUpdated = "2006-01-02 15:04:05" 最后修改时间格式，一定要对应go
 参考官方文档，在博客项目下创建一个目录`layouts\partials\article\components`，一定要和stack主题的路径对应上，思想就是hugo生成静态页面时，使用自定义的页面替换stack主题的页面。
 
 details.html页面
+
 ```  html
 <div class="article-details">
     // 略...
@@ -72,6 +73,7 @@ details.html页面
 ```
 
 footer.html页面
+
 ```  html
 <footer class="article-footer">
     // 略...
