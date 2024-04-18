@@ -1,7 +1,7 @@
 ---
 title: Hugo+Stack主题修改最后更新时间位置和时间格式
 description: 
-slug: test
+slug: hugo_stack_lastmod
 date: 2024-04-19 00:00:00+0000
 image: 
 categories:
