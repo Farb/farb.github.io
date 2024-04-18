@@ -16,19 +16,24 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 效果图：
 
-![](https://s3.bmp.ovh/imgs/2024/04/14/472e8b87e6d4ea5a.gif)
+![](https://s3.bmp.ovh/imgs/2024/04/18/53456f1df9e8d441.gif)
 
 难点主要在于Dialog内部的自定义内容布局。涉及Stack布局及Stack嵌套、Body中使用了Scroll，最主要的是Scroll中的Column中使用了padding，给Header和Footer保留空间的高度。
+
+此外还涉及到父子组件双向通信使用@State、@ObjectLink和@Observed，
+涉及父孙组件双向通信使用@Provide和@Consume。
+
+一个小技巧：通过在子组件中定义`closeDialog?:()=>void`,在子组件中关闭父组件中定义的dialog实例。
 
 ## 实现代码
 
 ``` ts
 // 一个内容可以滚动的单选列表
-import promptAction from '@ohos.promptAction'
 
 @Entry
 @Component
 struct CustomDialogPage {
+  @Provide selectedStudent: Student = new Student()
   dialogController: CustomDialogController = new CustomDialogController({
     builder: MyCustomDialog({ cancel: this.onCancel, confirm: this.onConfirm }),
     alignment: DialogAlignment.Bottom,
@@ -53,6 +58,9 @@ struct CustomDialogPage {
         .onClick(() => {
           this.dialogController.open()
         })
+
+      Text('子组件当前选中的学生是：' + this.selectedStudent.name)
+        .fontColor(Color.Red)
     }
     .margin(10)
     .width('100%')
@@ -125,7 +133,9 @@ struct MyCustomDialog {
     Scroll() {
       Column() {
         ForEach(this.students, (item: Student) => {
-          StudentCard({ student: item })
+          StudentCard({ student: item, closeDialogFunc: () => {
+            this.controller.close() // 关闭父组件的弹框
+          } })
         })
       }
       .padding({ // 这里要分别留出header和footer的高度
@@ -161,6 +171,9 @@ struct MyCustomDialog {
 @Component
 struct StudentCard {
   @ObjectLink student: Student
+  @Consume selectedStudent: Student
+  // 关闭父组件的弹框函数
+  closeDialogFunc?: () => void
 
   build() {
     Row() {
@@ -172,7 +185,9 @@ struct StudentCard {
         .onChange(isChecked => {
           // 每个单选按钮状态的变化都要同步到student属性isChecked上
           this.student.isChecked = isChecked
-          promptAction.showToast({ message: `您选择的是${this.student.name}` })
+          if (isChecked) {
+            this.closeDialog()
+          }
         })
     }
     .border({
@@ -185,8 +200,16 @@ struct StudentCard {
     .justifyContent(FlexAlign.Center)
     .onClick(() => {
       this.student.isChecked = true
+      this.closeDialog()
     })
     .width('100%')
+  }
+
+  closeDialog() {
+    if (this.closeDialogFunc) {
+      this.selectedStudent = this.student
+      this.closeDialogFunc()
+    }
   }
 }
 
@@ -197,10 +220,11 @@ class Student {
   name: string
   isChecked: boolean
 
-  constructor(id: number, name: string, isChecked?: boolean) {
+  constructor(id?: number, name: string = '', isChecked: boolean = false) {
     this.id = id
     this.name = name
     this.isChecked = isChecked
   }
 }
+
 ```
