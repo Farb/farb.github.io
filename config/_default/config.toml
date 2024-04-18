@@ -15,5 +15,6 @@ hasCJKLanguage = true
 # Change it to your Disqus shortname before using
 disqusShortname = "hugo-theme-stack"
 
+# 启用git的提交时间作为文章最后修改时间
 enableGitInfo = true
 
