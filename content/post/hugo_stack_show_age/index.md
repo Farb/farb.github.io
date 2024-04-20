@@ -53,6 +53,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 ## 最终效果
 
+![](https://s3.bmp.ovh/imgs/2024/04/20/be553249d59b8d01.gif)
 
 
 
