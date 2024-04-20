@@ -19,8 +19,9 @@ https://stack.jimmycai.com/config/footer
 
 [Vercount官网](https://vercount.one/)
 
+![](https://s3.bmp.ovh/imgs/2024/04/20/cf50449037262da6.png)
 
-**推荐使用Vercount，不推荐使用不蒜子。理由：不蒜子网站太老了，作者没有维护的意思，Vercount官网更现代化，开源，点开看看就知道了。**
+**推荐使用Vercount，不推荐使用不蒜子。理由：不蒜子网站太老了，作者没有维护的意思，Vercount官网更现代化，开源，点开看看就知道了。我集成的时候官网才几百的访客。看GitHub提交记录，也就最近3个月刚成立的项目，很年轻，有活力。**
 
 ## 集成Vercount
 
@@ -58,6 +59,10 @@ since = 2024
     </section>
 </footer>
 ```
+
+## 最终效果
+
+![](https://s3.bmp.ovh/imgs/2024/04/20/7bf7133a95813d68.png)
 
 
 
