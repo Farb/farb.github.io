@@ -17,6 +17,9 @@ https://stack.jimmycai.com/config/header-footer
 
 https://stack.jimmycai.com/config/footer
 
+[umami](https://umami.is)
+
+
 [Vercount官网](https://vercount.one/)
 
 ![](https://s3.bmp.ovh/imgs/2024/04/20/cf50449037262da6.png)
@@ -60,9 +63,27 @@ since = 2024
 </footer>
 ```
 
+## 集成Umami
+https://umami.is/
+
+**Umami是一个网站分析工具，它可以分析出一个网站的详细访问数据，包括请求PV、UV、国家来源、来源于哪个网站、用户的操作系统、浏览器等等。**
+注册账号，添加网站成功后，开启共享URL，然后将这个url放到自己的网站即可。
+参考这个链接启用。 https://umami.is/docs/enable-share-url
+
+``` toml
+[footer]
+customText = """网站总访客数：<span id='busuanzi_value_site_uv' style='margin-right:50px'>Loading</span> 网站总访问量：<span id='busuanzi_value_site_pv' style='margin-right:50px'>Loading</span>
+<a href='https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io' style='color:blue' target='_blank'>网站访问详细统计</a>
+<br/>
+      <span id='span_show_age'  style='margin-right:50px'/>
+     """
+```
+
 ## 最终效果
+
+Vercount集成效果如下：
 
 ![](https://s3.bmp.ovh/imgs/2024/04/20/7bf7133a95813d68.png)
 
-
-
+Umami集成效果如下：
+![](https://s3.bmp.ovh/imgs/2024/04/20/02e70ec3e5aa8aab.png)
