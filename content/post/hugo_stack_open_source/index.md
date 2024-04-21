@@ -17,6 +17,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 |-------|------|
 |Magicodes.IE|https://github.com/dotnetcore/Magicodes.IE/pull/551|
 |WeLinkEmoji(华为内源)|https://www.openx.com/WeLinkEmoji|
+|HandyControl|https://github.com/HandyOrg/HandyControl/pull/1434|
 
 
 
