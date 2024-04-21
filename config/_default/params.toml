@@ -80,7 +80,7 @@ enabled = true
 ## Comments
 [comments]
 enabled = true
-provider = "utterances"
+provider = "waline"
 
 [comments.disqusjs]
 shortname = ""
@@ -108,12 +108,12 @@ clientSecret = ""
 autoCreateIssue = false
 
 [comments.waline]
-serverURL = ""
-lang = ""
+serverURL = "https://blog.comment.farb.top"
+lang = "zh-cn"
 visitor = ""
 avatar = ""
 emoji = ["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"]
-requiredMeta = ["name", "email", "url"]
+requiredMeta = ["name", "email"]
 placeholder = ""
 
 [comments.waline.locale]
