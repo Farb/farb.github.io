@@ -5,10 +5,10 @@ rssFullContent = true
 favicon = "/favicon.png"
 
 [footer]
-customText = """网站总访客数：<span id='busuanzi_value_site_uv' style='margin-right:50px'>Loading</span> 网站总访问量：<span id='busuanzi_value_site_pv' style='margin-right:50px'>Loading</span>
+customText = """总访客数：<span id='busuanzi_value_site_uv' style='margin-right:10px'>Loading</span> 总访问量：<span id='busuanzi_value_site_pv' style='margin-right:10px'>Loading</span>
 <a href='https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io' style='color:blue' target='_blank'>实时统计</a>
 <br/>
-      <span id='span_show_age'  style='margin-right:50px'/>
+      <span id='span_show_age'  style='margin-right:30px'/>
      """
 since = 2024
 
