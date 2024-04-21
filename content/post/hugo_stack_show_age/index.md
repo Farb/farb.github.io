@@ -5,7 +5,7 @@ slug: hugo_stack_show_age
 date: 2024-04-20 00:00:00+0000
 image: 
 categories:
-    - 杂项
+    - Blog
 tags:
     - Hugo Stack
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)

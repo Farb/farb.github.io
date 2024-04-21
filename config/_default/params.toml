@@ -22,8 +22,8 @@ subtitle = "像水一样努力，终会水滴石穿"
 
 [sidebar.avatar]
 enabled = true
-local = true
-src = "img/avatar.png"
+local = false
+src = "https://s3.bmp.ovh/imgs/2024/04/21/a9f85e2d00b13903.png"
 
 [article]
 math = false
