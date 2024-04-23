@@ -71,9 +71,10 @@ comments: false
 
 鸿蒙开发官网： https://developer.huawei.com/consumer/cn/
 
-B站鸿蒙开发教程：https://www.bilibili.com/video/BV1Sa4y1Z7B1
+B站鸿蒙开发教程： https://www.bilibili.com/video/BV1Sa4y1Z7B1
 
-图标网站：https://tabler.io/icons
+图标网站：
+https://tabler.io/icons    https://www.iconfont.cn/
 
 ---
 

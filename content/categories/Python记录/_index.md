@@ -1,10 +1,10 @@
 ---
-title: Python记录
+title: Python
 description: Python技术栈相关记录
 image:
 
 # Badge style
 style:
-    background: "#2a9d8f"
+    background: "#4fb9fc"
     color: "#fff"
 ---

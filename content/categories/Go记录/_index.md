@@ -1,11 +1,11 @@
 ---
-title: Go记录
+title: Go
 description: Go技术栈相关记录
 image:
 
 
 # Badge style
 style:
-    background: "#2a9d8f"
+    background: "#51dacf"
     color: "#fff"
 ---

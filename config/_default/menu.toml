@@ -13,7 +13,7 @@ name = "GitHub"
 url = "https://github.com/farb"
 
 [social.params]
-icon = "brand-github"
+icon = "github"
 
 [[social]]
 identifier = "cnblogs"
@@ -21,4 +21,20 @@ name = "博客园"
 url = "https://www.cnblogs.com/farb"
 
 [social.params]
-icon = ""
+icon = "cnblogs"
+
+[[social]]
+identifier = "leetcode"
+name = "力扣"
+url = "https://leetcode.cn/u/int2147483647"
+
+[social.params]
+icon = "leetcode"
+
+[[social]]
+identifier = "gitee"
+name = "Gitee"
+url = "https://gitee.com/farb"
+
+[social.params]
+icon = "gitee"
