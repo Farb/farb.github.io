@@ -1,3 +1,30 @@
+<script src="https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js">
+</script>
+<script>
+    console.log('test')
+    new tctip({
+        top: '20%',
+        button: {
+            id: 8,
+            type: 'zanzhu',
+        },
+        list: [
+            {
+                type: 'alipay',
+                qrImg: 'https://s3.bmp.ovh/imgs/2024/04/24/8e357364016a7b7d.jpg'
+            }, {
+                type: 'wechat',
+                qrImg: 'https://s3.bmp.ovh/imgs/2024/04/24/89bb039a9e2d2f39.jpg'
+            }, {
+                type: 'weixin',
+                name: '加好友',
+                icon: 'https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png',
+                qrImg: 'https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg',
+                desc: '微信:beingBetterSelf'
+            }
+        ]
+    }).init()
+</script>
 <script defer src="https://cn.vercount.one/js"></script>
 
 <script defer src="https://analytics.eu.umami.is/script.js"
