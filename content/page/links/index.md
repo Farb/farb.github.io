@@ -76,6 +76,8 @@ B站鸿蒙开发教程： https://www.bilibili.com/video/BV1Sa4y1Z7B1
 图标网站：
 https://tabler.io/icons    https://www.iconfont.cn/
 
+js cdn: https://www.jsdelivr.com/
+
 ---
 
 **一些大佬的博客**
