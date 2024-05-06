@@ -11,11 +11,11 @@ tags:
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 
-## 1. Redis 使用场景及常见面试题
+## Redis 使用场景及常见面试题
 
 ![](https://s3.bmp.ovh/imgs/2024/05/02/ea8c494ed0aebc7f.png)
 
-## 2. 缓存穿透及应对措施
+## 缓存穿透及应对措施
 
 **缓存穿透：** 查询一个缓存中不存在的数据，并且数据库中也查询不到，从而无法写入缓存，导致每次查询都直接请求到数据库，给数据库造成巨大压力，这种情况大概率遭到了攻击。
 
@@ -26,7 +26,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 关于布隆过滤器，查看这篇文章，讲解的很细。 
 [布隆(Bloom Filter)过滤器——全面讲解，建议收藏](https://blog.csdn.net/qq_41125219/article/details/119982158)
 
-## 3. 缓存击穿及应对措施
+## 缓存击穿及应对措施
 **缓存击穿：** 对于一个设置了过期时间的热点key,恰好在某个时间点过期，且大量并发请求同时访问这个key，于是所有请求直接访问数据库，可能会瞬间把DB压垮。
 
 **解决方案1：** 互斥锁。当缓存失效时，不立即访问db,先使用redis的setnx设置一个互斥锁，当操作成功返回时再进行db操作并写入缓存，否则重试get缓存的方法。
@@ -41,7 +41,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 如果优先考虑高可用性，性能比较高，建议选择给key添加逻辑过期时间，但是数据同步做不到强一致性。
 
-## 4. 缓存雪崩及应对措施
+## 缓存雪崩及应对措施
 **缓存雪崩：** 在同一时间段大量的缓存key同时失效或者Redis服务宕机，导致大量请求到达数据库，带来巨大压力。
 
 **解决方案：**  
@@ -50,7 +50,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 3. 给缓存业务添加降级限流策略（降级可作为系统的保底策略，适用于穿透、击穿和雪崩）
 4. 给业务添加多级缓存 （Guava和Caffeine）
 
-## 5. 如何对数据库的数据和缓存的数据进行同步？（读写一致性）
+## 如何对数据库的数据和缓存的数据进行同步？（读写一致性）
 主要分为延时一致性和强一致性的同步。
 
 **延时一致性的业务场景：** 比如发表文章、发布商品的场景，不需要实时性很高，像这些场景的业务就可以采用延时一致的解决方案。
@@ -69,7 +69,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 **延时双删**    
 如果是写操作，我们先把缓存中的数据删除，然后更新数据库，最后再延时删除缓存中的数据，其中这个延时多久不太好确定（数据库主节点同步到从节点的时间不确定多久），在延时的过程中可能出现脏数据（如果延时的时间小于数据同步的时间，那么读取的数据可能是旧数据），并不能保证强一致性。
 
-## 6. Redis的持久化
+## Redis的持久化
 Redis中有两种持久化方式：RDB和AOF。  
 RDB（Redis Database Backup file）是一个快照文件，它是把Redis内存中存储的数据保存到磁盘上，方便从RDB的快照文件中恢复数据。
 
@@ -131,6 +131,50 @@ auto-aof-rewrite-min-size 64mb
 |系统资源占用|高，大量CPU和内存消耗|低，主要是IO磁盘资源，但AOF重写时会占用大量CPU和内存|
 |使用场景|可以容忍数分钟的数据丢失，追求更快的启动速度|对数据安全性要求较高|
 
-**这两种存储方式，哪种恢复的更快呢**
+**这两种存储方式，哪种恢复的更快呢**  
 RDB是二进制文件，在保存的时候体积也是比较小的，它恢复的较快，但是它有可能会丢失数据，通常也会使用AOF恢复数据，虽然AOF的恢复速度慢，但是它丢失的数据风险较小，在AOF文件中可以设置刷盘策略，使用较多的是每秒批量写入一次命令。
 
+## Redis的数据过期策略
+
+**惰性删除：** key的过期时间到期后，不会自动删除，而是当再次查询时，先检查key是否过期，如果过期则删除，否则直接返回该key
+
+**定期清理：** 每隔一段时间，对一些key进行检查，删除过期的key。定期清理有两种模式：  
+1. slow模式是定时任务，执行频率默认为10hz,每次不超过25ms,通过修改redis.conf的hz选项调整次数。  
+2. fast模式执行频率不固定，每次事件循环会尝试执行，但每次间隔不低于2ms,每次耗时不超过1ms。
+Redis的过期删除策略，是惰性删除和定期删除两种策略配合使用。
+
+## Redis的数据淘汰策略
+
+**数据的淘汰策略：** 当Redis的内存不够用时，再向redis中添加新的key时，那么redis就会按照某种规则将内存中的数据删除掉，这种规则称为内存的淘汰策略。
+
+1. noeviction: 不淘汰任何key，但是内存满时不允许写入任何数据，直接报错，这是默认策略。
+2. volatile-ttl: 对设置了ttl（Time to live 存活时间）的key，比较key的剩余ttl值，ttl越小越先被淘汰。
+3.  allkeys-random: 全体key随机进行淘汰
+4.  volatile-random: 对设置了ttl的key，随机进行淘汰
+5.  allkeys-lru: 对全体key，按照lru算法淘汰
+6.  volatile-lru: 对设置了ttl的key按照lru算法淘汰
+7.  allkeys-lfu: 对所有key按照lfu算法淘汰
+8.  volatile-lfu: 对设置了ttl的key,按照lfu算法淘汰
+
+``` bash
+# redis.conf中设置
+maxmemory-policy allkeys-lru
+
+# redis实例动态设置
+CONFIG SET maxmemory-policy allkeys-lru
+```
+
+**LRU（Least Recently Used）算法** ：最近最少使用。用当前时间减去最后一次访问时间，这个值越大淘汰优先级越高。
+**LFU（Least Frequently Used）算法** : 最少频率使用。会统计每个key的访问频率，值越小淘汰优先级越高。
+
+**使用建议：**
+1. 优先使用allkeys-lru淘汰策略。充分利用LRU算法的优势，把最常访问的数据保留在缓存中，如果业务有明显的冷热数据区分，建议使用。
+2. 如果业务中数据访问频率差别不大，没有明显的冷热数据区分，建议使用随机淘汰策略allkeys-random。
+3. 如果业务中有置顶的需求，可以使用volatile-lru策略，同时置顶数据不要设置过期时间，那么这些数据就会一直不被删除，会淘汰其他设置过期时间的数据。
+4. 如果业务中有短时高频访问的数据，建议使用allkeys-lfu或volatile-lfu策略。
+
+问：数据库中有1000w数据，Redis只能缓存20w数据，如何保证redis中的数据都是热点数据？  
+答：使用allkeys-lru（最近最少访问的数据优先淘汰）淘汰策略，留下来的都是经常访问的热点数据。
+
+问：Redis的内存使用完了会发生什么？  
+答：主要看设置的数据淘汰策略是什么，如果是默认的noevction,内存满后继续添加key会报错。其他的策略都会淘汰某些key后，继续写入。
