@@ -11,13 +11,13 @@ tags:
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 
-## 1. 需求描述
+##  需求描述
 
 显示一个字符串，**后面紧跟着一个图标**。
 当字符串较短时，正常显示文本，当字符串较长（超过屏幕宽度减去图片宽度和元素的间距总和）时，显示跑马灯效果。
 
 
-## 2. 代码展示
+##  代码展示
 
 ``` ts
 @Entry
@@ -65,6 +65,6 @@ struct MarqueeDemo {
 }
 ```
 
-## 3. 效果呈现
+##  效果呈现
 
 ![](https://s3.bmp.ovh/imgs/2024/05/15/eb5169a9b23fbb09.gif)
