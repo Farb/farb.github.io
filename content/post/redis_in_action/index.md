@@ -114,3 +114,209 @@ redis-server --version
 # 如果要停止redis服务，可以通过exit退出容器，也可以通过redis-cli的shutdown命令关闭服务。
 ```
 
+## 实践Redis的基本数据类型
+基本数据类型包括字符串（string）类型、哈希(hash)类型、列表(list)类型、集合类型(set)和有序集合(sorted set或zset)类型
+
+### 针对字符串的命令
+#### 读写字符串的set和get命令
+``` sh
+ set key value [NX|XX] [GET] [EX seconds|PX milliseconds|EXAT unix-time-seconds|PXAT unix-time-milliseconds|KEEPTTL]
+
+ # key和value分别是待设置字符串的键和值，value需要字符串类型。如果key对应的值已经存在，则再次set时会覆盖旧值。
+ # nx (if not exist)： 如果不存在时再执行
+ # xx ：如果存在则执行
+ # get: 获取旧值，如果旧值不存在则返回nil
+ # ex: 过期时间，单位为秒。必须是整数，不能是表达式。
+ # px: 过期时间，单位为微秒。必须是整数，不能是表达式。
+ # exat: 在某个unix秒的时间点过期
+ # pxat: 在某个unix毫秒的时间点过期
+ # keepttl: 保留key之前旧值的生存时间。
+
+# set之后，可以使用get获取key对应的值。
+
+127.0.0.1:6379> set key val ex 100
+OK
+127.0.0.1:6379> ttl key
+(integer) 96
+127.0.0.1:6379> set key val1 keepttl
+OK
+127.0.0.1:6379> get key
+"val1"
+127.0.0.1:6379> ttl key
+(integer) 78
+127.0.0.1:6379>
+```
+
+#### 设置和获取多个字符串的命令
+``` sh
+ mset key value [key value ...]
+ mget key [key ...]
+
+ # mset mget不能指定ex,px（ex,px不报错但不生效）,nx,xx等参数（报错），
+
+ 127.0.0.1:6379> mset key1 val1 key2 value2 k3 v3
+OK
+127.0.0.1:6379> mget key1 key2 k3
+1) "val1"
+2) "value2"
+3) "v3"
+ ```
+
+ #### 对整数类型的值进行增量和减量操作
+ ``` sh
+ # 增量和减量操作，都需要key对应的值为整数，否则报错。
+
+ incr key 
+ # 对key对应的值+1，如果key不存在，则默认key对应的值为0
+
+ # incrby key increment
+ # 对key对应的值+increment
+
+ decr key
+ decrby key increment
+ #减量操作
+
+127.0.0.1:6379> incr key
+(integer) 1
+127.0.0.1:6379> incrby key 9
+(integer) 10
+127.0.0.1:6379> decr key
+(integer) 9
+127.0.0.1:6379> decrby key 2
+(integer) 7
+127.0.0.1:6379>
+ ```
+
+ #### getset命令获取旧值设置新值
+
+ ``` sh
+ getset key value
+ # 如果key不存在，则返回nil，并设置新值；如果key存在，则返回旧值，并设置新值
+
+127.0.0.1:6379> get key
+"1"
+127.0.0.1:6379> getset key 3
+"1"
+127.0.0.1:6379> get key
+"3"
+ ```
+
+ #### 针对字符串的其他操作
+
+ ``` sh
+getrange key start end
+# 获取key对应值的子字符串，start和end表示起始位置，start从0开始，end也可以从右向左，最右边的索引为-1
+
+127.0.0.1:6379> set key 029-12345678
+OK
+127.0.0.1:6379> getrange key 4 11
+"12345678"
+127.0.0.1:6379> getrange key 4 -1
+"12345678"
+
+setrange key offset value
+# 相当于字符串的替换操作，从offset位置开始，把值替换为value
+
+127.0.0.1:6379> setrange key 4 87654321
+(integer) 12
+127.0.0.1:6379> get key
+"029-87654321"
+
+strlen key
+# 统计字符串长度的命令
+
+ append key value
+ # 将value追加到原值的末尾
+ 127.0.0.1:6379> append key ***
+(integer) 15
+127.0.0.1:6379> get key
+"029-87654321***"
+ ```
+
+ ### 针对哈希类型变量的命令
+#### 设置并获取哈希值
+``` sh
+ hset key field value [field value ...]
+ # field 和value可以理解为对象的属性和属性值,返回值为属性的个数
+
+hget key field
+# hget必须指定key和字段名称
+
+ 127.0.0.1:6379> hset hkey name farb sex male
+(integer) 2
+127.0.0.1:6379> hget hkey name
+"farb"
+127.0.0.1:6379>
+```
+#### hsetnx命令
+
+``` sh
+ hsetnx key field value
+ # 当key不存在或者key和field对应value不存在时，设置value，后面只能跟一对key和value
+
+ 127.0.0.1:6379> hget hkey name
+"farb"
+127.0.0.1:6379> hsetnx hkey name jack
+(integer) 0
+127.0.0.1:6379> hsetnx hkey age 18
+(integer) 1
+127.0.0.1:6379>
+127.0.0.1:6379> hsetnx hNotExistKey name Alice
+(integer) 1
+127.0.0.1:6379> hget hNotExistKey name
+"Alice"
+```
+#### key的相关操作
+``` sh
+hkeys key
+# 查看哈希类型的所有字段field，找不到的话就返回empty array信息
+
+127.0.0.1:6379> hkeys hkey
+1) "name"
+2) "sex"
+3) "age"
+
+hvals key
+# 查看所有field对应的值，找不到的话就返回empty array信息
+127.0.0.1:6379> hvals hkey
+1) "farb"
+2) "male"
+3) "18"
+
+hgetall key
+# 以键值对的形式查看key对应的哈希类型数据，找不到的话就返回empty array信息
+
+127.0.0.1:6379> hgetall hkey
+1) "name"
+2) "farb"
+3) "sex"
+4) "male"
+5) "age"
+6) "18"
+```
+#### hexists命令判断值是否存在
+``` sh
+hexists key field
+# 判断key和field对应的value是否存在,key不存在也返回0
+
+127.0.0.1:6379> hexists hkey name
+(integer) 1
+127.0.0.1:6379> hexists hkey height
+(integer) 0
+127.0.0.1:6379> hexists nonExists name
+(integer) 0
+
+```
+
+#### 哈希类型数据的删除操作
+``` sh
+hdel key field [field ...]
+# 删除key指定的field数据，可以传入多个字段,返回值删除的字段数
+
+127.0.0.1:6379> hdel hkey sex age
+(integer) 2
+127.0.0.1:6379> hgetall hkey
+1) "name"
+2) "farb"
+
+```
