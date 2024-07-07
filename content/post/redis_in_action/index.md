@@ -320,3 +320,238 @@ hdel key field [field ...]
 2) "farb"
 
 ```
+
+### 针对列表类型变量的命令
+#### 读写列表的命令
+``` sh
+ lpush key element [element ...]
+ # 将元素依次插入到名为key的列表左侧
+
+ lindex key index
+ # 从键名为key的列表中从左侧读取第index个元素，下标从0开始
+
+ 127.0.0.1:6379> lpush mylist 1 2 3 4
+(integer) 4
+127.0.0.1:6379> lrange mylist 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+127.0.0.1:6379> lindex mylist 1
+"3"
+
+ rpush key element [element ...]
+ # 将元素依次插入到名为key的列表右侧
+
+127.0.0.1:6379> rpush mylist 2 3 4
+(integer) 7
+127.0.0.1:6379> lrange mylist 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+5) "2"
+6) "3"
+7) "4"
+127.0.0.1:6379>
+```
+
+#### lpushx 和rpushx
+``` sh
+ lpushx key element [element ...]
+ # 当key存在时，在key对应的列表左侧添加元素
+
+127.0.0.1:6379> lpushx mylist 5 6
+(integer) 9
+127.0.0.1:6379> lrange mylist 0 -1
+1) "6"
+2) "5"
+3) "4"
+4) "3"
+5) "2"
+6) "1"
+7) "2"
+8) "3"
+9) "4"
+
+ rpushx key element [element ...]
+ # 当key存在时，在key对应的列表右侧添加元素
+
+127.0.0.1:6379> rpushx mylist 5 6
+(integer) 11
+127.0.0.1:6379> lrange mylist 0 -1
+ 1) "6"
+ 2) "5"
+ 3) "4"
+ 4) "3"
+ 5) "2"
+ 6) "1"
+ 7) "2"
+ 8) "3"
+ 9) "4"
+10) "5"
+11) "6"
+```
+
+#### 用list模拟堆栈和队列
+``` sh
+# 栈：后进先出，所以可以使用lpush、lpop命令或者rpush、rpop命令模拟栈
+127.0.0.1:6379> lpush stack1 1 2
+(integer) 2
+127.0.0.1:6379> lrange stack1 0 -1
+1) "2"
+2) "1"
+127.0.0.1:6379> lpop stack1
+"2"
+
+# 队列：先进先出，所以可以使用lpush、rpop或者rpush、lpop命令来模拟队列
+127.0.0.1:6379> rpush queue 1 2
+(integer) 2
+127.0.0.1:6379> lpop queue
+"1"
+127.0.0.1:6379>
+```
+
+#### 用lrange获取指定区间内的数据
+``` sh
+ lrange key start stop
+ # key为list键名，start为起始位置，从0开始，stop为结束位置，最后一个元素可以为-1
+
+ 127.0.0.1:6379> lrange mylist 0 -1
+ 1) "6"
+ 2) "5"
+ 3) "4"
+ 4) "3"
+ 5) "2"
+ 6) "1"
+ 7) "2"
+ 8) "3"
+ 9) "4"
+10) "5"
+11) "6"
+127.0.0.1:6379> lrange mylist 1 3
+1) "5"
+2) "4"
+3) "3"
+127.0.0.1:6379>
+```
+
+#### 用lset修改列表数据
+``` sh
+ lset key index element
+ # 将名为key的列表的第index个元素修改为element
+
+ 127.0.0.1:6379> lset mylist 0 7
+OK
+127.0.0.1:6379> lset mylist -1 7
+OK
+127.0.0.1:6379> lrange mylist 0 -1
+ 1) "7"
+ 2) "5"
+ 3) "4"
+ 4) "3"
+ 5) "2"
+ 6) "1"
+ 7) "2"
+ 8) "3"
+ 9) "4"
+10) "5"
+11) "7"
+```
+
+#### 删除列表数据
+``` sh
+ rpop key [count]
+ # 从右边弹出count个元素
+
+ lpop key [count]
+ # 从左边弹出count个元素
+
+ lrem key count element
+ # 当count=0时，删除该列表中所有值是element的元素；
+ # 当count>0时，从左到右删除数量为count个、值是element的元素；
+ # 当count<0时，从右往左删除数量为count个、值是element的元素；
+
+ 127.0.0.1:6379> lpop mylist
+"7"
+127.0.0.1:6379> rpop mylist
+"7"
+127.0.0.1:6379> lrem mylist 0 5
+(integer) 2
+127.0.0.1:6379> lrange mylist 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+5) "2"
+6) "3"
+7) "4"
+```
+
+### 针对集合的命令
+#### 读写集合
+``` sh
+ sadd key member [member ...]
+# 给名为key的集合中添加元素，元素会自动去重
+ smembers key
+ # 读取集合key中的所有元素
+
+127.0.0.1:6379> sadd myset 1 2 2 3
+(integer) 3
+127.0.0.1:6379> smembers myset
+1) "1"
+2) "2"
+3) "3"
+```
+
+#### 列表和集合类数据的区别
+1. 列表存储数据时具有有序性，要么从左侧push，要么从右侧push。而集合不具有有序性。
+2. 列表存储的数据可以存在重复元素，而集合会自动去重。
+
+#### 用sismember判断元素是否存在
+``` sh
+sismember key member
+# 判断集合key中是否存在member,存在返回1，不存在返回0
+
+127.0.0.1:6379> sismember myset 2
+(integer) 1
+127.0.0.1:6379> sismember myset 4
+(integer) 0
+
+```
+
+#### 获取集合的交集、并集和差集
+``` sh
+sinter key [key ...]
+# 获取多个key对应集合的交集
+
+127.0.0.1:6379> sadd myset2 2 3 4
+(integer) 3
+127.0.0.1:6379> sinter myset myset2
+1) "2"
+2) "3"
+
+sunion key [key ...]
+# 获取多个集合对应的并集
+127.0.0.1:6379> sunion myset myset2
+1) "1"
+2) "2"
+3) "3"
+4) "4"
+
+sdiff key [key ...]
+# 获取多个key对应的差集
+127.0.0.1:6379> sdiff myset myset2
+1) "1"
+127.0.0.1:6379> sdiff myset2 myset
+1) "4"
+```
+
+#### 用srem命令删除集合数据
+``` sh
+srem key member [member ...]
+# 删除集合key中的元素，并返回删除的元素个数
+
+127.0.0.1:6379> srem myset 1
+(integer) 1
+```
