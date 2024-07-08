@@ -555,3 +555,148 @@ srem key member [member ...]
 127.0.0.1:6379> srem myset 1
 (integer) 1
 ```
+
+### 有序集合的命令
+#### 有序集合的读写
+``` sh
+ zadd key [NX|XX] [GT|LT] [CH] [INCR] score member [score member ...]
+ # 给名为key的集合添加分数和元素
+ # NX 有序集合中的元素不存在时才添加
+ # XX 有序集合中的元素存在时添加
+ # GT 当元素存在，且当分数大于旧分数时执行，不阻止添加元素。
+ # LT 当元素存在，且当分数小于旧分数时执行，不阻止添加元素。
+ # CH 修改返回的值为添加的元素数量+修改分数的元素数量（分数相同的时不更新）
+ # INCR 给分数添加，使用此参数时，只能添加一个元素
+ # score 分数或权重
+ # member 元素
+
+zrange key start stop [BYSCORE|BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
+# 读取名为key的有序集合中score排名区间在start到stop之间的数据
+# ByScore 按分数范围查询
+# Rev 是否反序
+# Limit offset count 和mysql的分页查询一样
+# withScores 返回分数
+
+127.0.0.1:6379> zadd sortedSet 6 farb
+(integer) 1
+127.0.0.1:6379> zadd sortedSet GT 5 farb
+(integer) 0
+127.0.0.1:6379> zadd sortedSet GT 8 farb
+(integer) 0
+127.0.0.1:6379> zrange sortedSet -1 100
+1) "farb"
+127.0.0.1:6379> zrange sortedSet -1 100 WITHScores
+1) "farb"
+2) "8"
+127.0.0.1:6379> zadd sortedSet GT 2 jack 3 lucy
+(integer) 2
+127.0.0.1:6379> zrange sortedSet 0 100 REV WITHSCORES
+1) "farb"
+2) "8"
+3) "lucy"
+4) "3"
+5) "jack"
+6) "2"
+127.0.0.1:6379> zrange sortedSet 0 100 byscore
+1) "jack"
+2) "lucy"
+3) "farb"
+127.0.0.1:6379> zrange sortedSet 0 100 byscore withScores
+1) "jack"
+2) "2"
+3) "lucy"
+4) "3"
+5) "farb"
+6) "8"
+```
+
+#### zincrby修改元素的分数
+```sh
+zincrby key increment member
+# 给名为key的有序集合中的member元素增加分数increment,返回值是最终分数
+
+127.0.0.1:6379> zincrby sortedSet 10 farb
+"18"
+```
+
+#### zscore 获取指定元素的分数
+```sh
+zscore key member
+# 只能返回一个元素的分数，否则报错
+
+127.0.0.1:6379> zscore sortedSet farb
+"18"
+```
+
+#### zrank查看有序集合中的排名
+```sh
+ zrank key member [WITHSCORE]
+# 正序排名，索引从0开始
+zrevrank key member [WITHSCORE]
+# 倒序排名
+
+ 127.0.0.1:6379> zrank sortedSet jack withScore
+1) (integer) 0
+2) "2"
+127.0.0.1:6379> zrank sortedSet farb withScore
+1) (integer) 2
+2) "18"
+127.0.0.1:6379> zrevrank sortedSet farb WithScore
+1) (integer) 0
+2) "18"
+```
+
+#### 删除有序集合中的值
+```sh
+ zrem key member [member ...]
+ # 一次允许删除多个元素
+
+ 127.0.0.1:6379> zrem sortedSet jack lucy
+(integer) 2
+127.0.0.1:6379> zrange sortedSet 0 100
+1) "farb"
+
+ zremrangebyrank key start stop
+ # 删除排名在start和stop之间的元素
+
+127.0.0.1:6379> zadd myzset 1 one 2 two 3 three 4 four
+(integer) 4
+127.0.0.1:6379> zrange myzset 1 4
+1) "two"
+2) "three"
+3) "four"
+127.0.0.1:6379> zrange myzset 0 4
+1) "one"
+2) "two"
+3) "three"
+4) "four"
+127.0.0.1:6379> zrange myzset 0 3
+1) "one"
+2) "two"
+3) "three"
+4) "four"
+127.0.0.1:6379> zremrangebyrank myzset 0 2
+(integer) 3
+127.0.0.1:6379> zrange myzset 0 3
+1) "four"
+
+zremrangebyscore key min max
+# 删除分数在min和max之间的元素
+
+127.0.0.1:6379> zrange myzset 0 100 withScores
+1) "one"
+2) "1.5"
+3) "two"
+4) "2.6"
+5) "three"
+6) "3.7"
+7) "four"
+8) "4.8"
+127.0.0.1:6379> zremrangebyscore myzset 2 4
+(integer) 2
+127.0.0.1:6379> zrange myzset 0 100 withScores
+1) "one"
+2) "1.5"
+3) "four"
+4) "4.8"
+```
