@@ -12,9 +12,10 @@ tags:
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 
-## 构建Redis开发环境
 下载Docker desktop，配置可用镜像地址。
+
 docker 镜像可用地址： https://www.aabcc.top/archives/m7NPfx1D   
+
 Redis客户端AnotherRedisDesktopManager： https://gitee.com/qishibo/AnotherRedisDesktopManager/releases
 
 ### 必要的docker技能

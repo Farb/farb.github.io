@@ -12,8 +12,7 @@ tags:
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 
-## 实践Redis的基本数据类型
-基本数据类型包括字符串（string）类型、哈希(hash)类型、列表(list)类型、集合类型(set)和有序集合(sorted set或zset)类型
+**基本数据类型包括字符串（string）类型、哈希(hash)类型、列表(list)类型、集合类型(set)和有序集合(sorted set或zset)类型**
 
 ### 针对字符串的命令
 #### 读写字符串的set和get命令

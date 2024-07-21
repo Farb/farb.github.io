@@ -17,3 +17,5 @@ weight: 1       # You can add weight to some posts to override the default sorti
 ## [构建Redis开发环境](https://blog.farb.top/p/redis_in_action_01_build_env)
 
 ## [实践Redis的基本数据类型](https://blog.farb.top/p/redis_in_action_02_basic_type)
+
+## [实践Redis的常用命令](https://blog.farb.top/p/redis_in_action_03_common_used_command)
