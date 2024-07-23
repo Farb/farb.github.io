@@ -14,7 +14,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 
 ### Redis服务器管理客户端的命令
-#### 获取或设置客户端的名字ooooooooooooooooooo
+#### 获取或设置客户端的名字
 ```sh
 PS D:\code\blogs\farb.github.io> docker start firstRedis
 firstRedis
