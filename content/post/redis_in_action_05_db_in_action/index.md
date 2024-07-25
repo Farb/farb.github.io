@@ -163,44 +163,242 @@ root@6f245e0ac03b:/data# redis-cli
 OK
 ```
 
+### 地理位置相关操作
+#### 用geoadd命令存储地理位置
+已知上海的经纬度是东经120°52′到122°12′，北纬30°40′到31°53′。
 
+```sh
+geoadd key [NX|XX] [CH] longitude latitude member [longitude latitude member ...]
 
+# 分别将上海区域的四个角的经纬度坐标加到key为shanghai的有序集合中
+127.0.0.1:6379> geoadd shanghai  120.52 31.53 wn
+(integer) 1
+127.0.0.1:6379> geoadd shanghai 120.52 30.40 ws
+(integer) 1
+127.0.0.1:6379> geoadd shanghai 122.12 31.53 en
+(integer) 1
+127.0.0.1:6379> geoadd shanghai 122.12 30.40 es
+```
 
+#### 获取地理位置的经纬度信息
+```sh
+geopos key [member [member ...]]
 
+127.0.0.1:6379> geopos shanghai
+(empty array)
+# 获取上海西北角的经纬度，不传member或者member不存在，都没有返回值
+127.0.0.1:6379> geopos shanghai wn
+1) 1) "120.52000075578689575"
+   2) "31.53000103201371473"
+127.0.0.1:6379> geopos shanghai notexist
+1) (nil)
+```
 
+#### 查询指定范围内的地理信息
 
+```sh
+georadius key longitude latitude radius M|KM|FT|MI [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count [ANY]] [ASC|DESC] [STORE key|STOREDIST key]
+# longitude latitude是中心点
+# radius是半径
+# M|KM|FT|MI是单位
+# [WITHCOORD]加上该参数会把对应地理信息的经纬度一起返回
+# [WITHDIST] 会把和中心点的距离一起返回
+# [WITHHASH] 会返回地理信息的哈希编码
+# [COUNT count [ANY]] 指定返回数据的数量
+# [ASC|DESC] 指定返回的顺序
+# [STORE key|STOREDIST key] 会将返回结果或者返回的距离存储到缓存中
 
+# 下面返回key为shanghai的数据集中，距离中心点（上海西南角）200KM的所有点，同时返回点的坐标，距离，并以升序排列
+127.0.0.1:6379> georadius shanghai 120.52 30.40 200 KM withcoord withDist asc
+1) 1) "ws"
+   2) "0.0001"
+   3) 1) "120.52000075578689575"
+      2) "30.39999952668997452"
+2) 1) "wn"
+   2) "125.6858"
+   3) 1) "120.52000075578689575"
+      2) "31.53000103201371473"
+3) 1) "es"
+   2) "153.4932"
+   3) 1) "122.11999744176864624"
+      2) "30.39999952668997452"
+4) 1) "en"
+   2) "197.6902"
+   3) 1) "122.11999744176864624"
+      2) "31.53000103201371473"
+```
 
+#### 查询地理位置间的距离
+```sh
+ geodist key member1 member2 [M|KM|FT|MI]
 
+# 返回key为shanghai的数据集合中，ws和en的距离，单位为km，
+# 可以看到，上海西南到东北的距离大约是198km
+# 如果有任何一个坐标名称不存在坐标，则返回nil
+ 127.0.0.1:6379> geodist shanghai ws en KM
+"197.6902"
+```
 
+### 位图的应用
+和编程语言中的位操作是一个道理，就是二进制运算。
+### setbit 和 getbit
+```sh
+setbit key offset value
 
+# offset表示偏移量
+# value表示设置的值，为0或1
 
+ 127.0.0.1:6379> setbit myBitmap 0 1
+(integer) 0
+127.0.0.1:6379> setbit myBitmap 1 1
+(integer) 0
+127.0.0.1:6379> setbit myBitmap 2 0
+(integer) 0
+127.0.0.1:6379> setbit myBitmap 3 0
+(integer) 0
+# 2不在0和1的范围，所以报错
+127.0.0.1:6379> setbit myBitmap 5 2
+(error) ERR bit is not an integer or out of range
+127.0.0.1:6379> getbit myBitmap 1
+(integer) 1
+127.0.0.1:6379> getbit myBitmap 2
+(integer) 0
+# 键不存在返回0
+127.0.0.1:6379> getbit notExist 5
+(integer) 0
+```
 
+#### 用bitop对位图进行运算
 
+```sh
+# 支持4种逻辑运算，destkey是结果的存储键
+bitop AND|OR|XOR|NOT destkey key [key ...]
 
+127.0.0.1:6379> setbit b1 0 1
+(integer) 0
+127.0.0.1:6379> setbit b1 1 1
+(integer) 0
+127.0.0.1:6379> setbit b1 3 1
+(integer) 0
+127.0.0.1:6379> setbit b2 2 1
+(integer) 0
 
+# 不小心写错了名字，可以看到结果执行不成功，返回0
+127.0.0.1:6379> bitop and res bit1 bit2
+(integer) 0
+# 1011 & 0100 = 0
+127.0.0.1:6379> bitop and res b1 b2
+(integer) 1
+127.0.0.1:6379> get res
+"\x00"
 
+# 1011 | 0100 = 1111
+127.0.0.1:6379> bitop or res b1 b2
+(integer) 1
+127.0.0.1:6379> getbit res 2
+(integer) 1
 
+# not 1011 = 0100
+127.0.0.1:6379> bitop not res  b1
+(integer) 1
+127.0.0.1:6379> getbit res 1
+(integer) 0
+127.0.0.1:6379> getbit res 2
+(integer) 1
 
+#1011 xor 0100 = 1111
+127.0.0.1:6379> bitop xor res b1 b2
+(integer) 1
+127.0.0.1:6379> getbit res 0
+(integer) 1
+127.0.0.1:6379> getbit res 3
+(integer) 1
+```
 
+#### bitcount操作
+**bitcount统计键key的位图中1出现的次数**
+```sh
+ bitcount key [start end [BYTE|BIT]]
+# start end表示统计的字节组范围
 
+127.0.0.1:6379> setbit user1 0 1
+(integer) 0
+127.0.0.1:6379> setbit user1 3 1
+(integer) 0
+127.0.0.1:6379> setbit user1 7 1
+(integer) 0
+# 这个不难理解，结果存储的格式是10001001，一个字节中有3个1
+127.0.0.1:6379> bitcount user1
+(integer) 3
 
+# 默认单位是BYTE，也就是统计第0到0个字节范围中的1，其实就是第一个字节，结果还是3
+127.0.0.1:6379> bitcount user1 0 0
+(integer) 3
 
+# 如果单位是BIT，则前6位中的1有2个
+127.0.0.1:6379> bitcount user1 0 5 BIT
+(integer) 2
+```
 
+### 慢查询实战
+#### 慢查询相关的配置参数
+- slow-log-slower-than: 单位为微秒。即超过该参数指定时间的查询会记录到日志中。
+- slowlog-max-len: 慢查询日志里记录的日志条数，当超过该条数时，会删除最老的一条日志。
+- 
+```sh
+# 可以直接修改redis.conf配置文件或者通过命令修改
+127.0.0.1:6379> config set slowlog-log-slower-than 1
+OK
+127.0.0.1:6379> config set slowlog-max-len 100
+OK
+127.0.0.1:6379> config rewrite
+```
+#### 用slowlog get命令观察慢查询
 
+```sh
+# 为了演示慢查询，上面设置了 config set slowlog-log-slower-than 1
+# 即超过1毫秒的命令都会记录到慢日志中
+127.0.0.1:6379> slowlog get
+1) 1) (integer) 3
+   2) (integer) 1721923737
+   3) (integer) 3
+   4) 1) "get"
+      2) "name"
+   5) "127.0.0.1:45308"
+   6) ""
+2) 1) (integer) 2
+   2) (integer) 1721923735
+   3) (integer) 5
+   4) 1) "set"
+      2) "name"
+      3) "farb"
+```
+#### 慢查询相关命令
+```sh
+# 获取指定数量的慢查询日志
+slowlog get [count]
 
+127.0.0.1:6379> slowlog get 1
+1) 1) (integer) 5
+   2) (integer) 1721923903
+   3) (integer) 3
+   4) 1) "slowlog"
+      2) "get"
+      3) "3"
+   5) "127.0.0.1:45308"
+   6) ""
 
+# 获取慢查询的长度
+slowlog len
 
+# 清空慢查询日志
+slowlog reset
 
+127.0.0.1:6379> slowlog len
+(integer) 7
 
-
-
-
-
-
-
-
-
-
-
-
+127.0.0.1:6379> slowlog reset
+OK
+127.0.0.1:6379> slowlog len
+(integer) 1
+```
