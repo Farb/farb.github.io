@@ -183,4 +183,110 @@ Mode                 LastWriteTime         Length Name
 REDIS0011�	redis-ver7.2.5�
 redis-bits�@�ctime�2m�f�used-mem°�namelist�alice�bob�candy
 
+# appendonly.aof.manifest文件内容变成：
+file appendonly.aof.2.base.rdb seq 2 type b
+file appendonly.aof.2.incr.aof seq 2 type i
+# 也就是说这个清单文件记录了base和incr两个文件名，并记录了这两个文件的顺序号和类型。当前是第二个序列，且b是base,i是incr。
+```
+
+再次向list中写入一条数据，然后查看aof日志文件
+```sh
+127.0.0.1:6379> rpush namelist hugh
+(integer) 4
+127.0.0.1:6379> bgrewriteaof
+Background append only file rewriting started
+
+# 观察appendonly.aof.manifest文件如下
+file appendonly.aof.3.base.rdb seq 3 type b
+file appendonly.aof.3.incr.aof seq 3 type i
+
+# 观察appendonly.aof.3.incr.aof文件为空
+# 观察appendonly.aof.3.base.rdb文件如下:
+REDIS0011�	redis-ver7.2.5�
+redis-bits�@�ctime�C��f�used-mem��T�aof-base��namelist�alice�bob�candy�hugh
+
+```
+
+**经过上面的实践和观察，发现Redis7之前AOF重写都是在同一个文件名中进行的，而Redis7之后，AOF重写是分离到独立的3个文件，appendonly.aof.manifest文件记录了rdb和incr文件的名称、序列号和类型，incr文件记录了写入的命令，而rdb文件记录了重写的内容，且incr和rdb每次重写后序列号都会自增。**
+
+#### 模拟数据恢复的流程
+上面redis中已经创建了一个namelist，现在模拟一下数据恢复的流程，先通过flushall命令清空redis数据库，模拟宕机，然后在incr的aof文件中删除最后的flushall命令（如果不删除，恢复数据时会执行flushall,把之前恢复的数据再次清空），然后删除旧的容器redis-server,并重新创建启动redis-server，然后查看namelist，发现namelist已经恢复，说明数据已经恢复。
+
+```sh
+# 清空数据库并查看aof文件
+127.0.0.1:6379> flushall
+OK
+127.0.0.1:6379> keys *
+(empty array)
+
+# 观察appendonly.aof.3.incr.aof文件如下：
+*2
+$6
+SELECT
+$1
+0
+*1
+$8
+flushall
+
+# 删除flushall的相关命令并保存文件
+
+# 退出redis-cli
+127.0.0.1:6379> exit
+
+# 退出容器
+root@f501aa313152:/data# exit
+exit
+
+# 强制删除容器
+PS D:\code\blogs\farb.github.io> docker rm -f redis-server  
+
+redis-server
+
+# 创建redis-server容器并运行
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-server -p 6379:6379 -v D:\ArchitectPracticer\Redis\RedisConf:/redisConfig:rw redis:latest redis-server /redisConfig/redis.conf
+2b939fe1c091990c6755770078c45fb37637ce89c7d6baa441d4d818dc17647d
+
+# 进入redis-server容器，运行bash
+PS D:\code\blogs\farb.github.io> docker exec -it redis-server bash
+
+# 进入redis-cli，可以看到之前aof中的数据已经恢复了
+root@2b939fe1c091:/data# redis-cli
+127.0.0.1:6379> lrange namelist 0 -1
+1) "alice"
+2) "bob"
+3) "candy"
+4) "hugh"
+
+```
+
+#### 修复AOF文件
+数据恢复时，如果AOF文件损坏，可以通过以下步骤修复AOF文件：
+```sh
+redis-check-aof [--fix|--truncate-to-timestamp $timestamp] <file.manifest|file.aof>
+
+# redis7之前，直接指定appendonlyfile.aof文件即可；Redis7之后，需要指定appendonly.aof.manifest文件，默认目录为appendonlydir
+root@2b939fe1c091:/data# redis-check-aof --fix /redisConfig/appendonlydir/appendonly.aof.manifest
+Start checking Multi Part AOF
+Start to check BASE AOF (RDB format).
+[offset 0] Checking RDB file /redisConfig/appendonlydir/appendonly.aof.3.base.rdb
+[offset 26] AUX FIELD redis-ver = '7.2.5'
+[offset 40] AUX FIELD redis-bits = '64'
+[offset 52] AUX FIELD ctime = '1722262595'
+[offset 67] AUX FIELD used-mem = '939216'
+[offset 79] AUX FIELD aof-base = '1'
+[offset 81] Selecting DB ID 0
+[offset 138] Checksum OK
+[offset 138] \o/ RDB looks OK! \o/
+[info] 1 keys read
+[info] 0 expires
+[info] 0 already expired
+RDB preamble is OK, proceeding with AOF tail...
+AOF analyzed: filename=appendonly.aof.3.base.rdb, size=138, ok_up_to=138, ok_up_to_line=1, diff=0
+BASE AOF appendonly.aof.3.base.rdb is valid
+Start to check INCR files.
+INCR AOF appendonly.aof.3.incr.aof is empty
+All AOF files and manifest are valid
+
+# 从上面的输出可以看到，先检查rdb是否有效，再检查增量文件是否有效
 ```
