@@ -290,3 +290,183 @@ All AOF files and manifest are valid
 
 # 从上面的输出可以看到，先检查rdb是否有效，再检查增量文件是否有效
 ```
+
+### RDB持久化机制实践
+#### 编写配置文件，生成DRB快照
+```sh
+# 创建配置文件redis.conf，并配置以下内容：
+
+save 600 1
+# 600s内有>=1个键被修改就会生成快照
+
+save 300 100
+# 300s内有>=100个键被修改就会生成快照
+
+save 60 1000
+# 60s内有>=1000个键被修改就会生成快照
+
+# save 600 1 300 100 60 1000  这种写法等同
+# 注意：以上三个条件是或的关系，RDB持久化文件只是当条件满足就生成快照，因此无法即时保存当前状态的内存数据，可能会丢失数据。
+
+dbfilename dump.rdb
+dir /redisConfig
+# 默认的RDB文件保存路径和文件名
+
+stop-writes-on-bgsave-error yes/no
+# 当RDB持久化执行bgsave失败时，是否停止写入操作,默认为yes
+
+rdbcompression yes/no
+# 是否压缩RDB文件，默认为yes
+
+rdbchecksum yes/no
+# 用rdb快照文件恢复数据时是否开启对快照文件的校验。默认是yes,如果是no,就无法确保文件是否正确
+```
+
+**创建并运行容器**
+```sh
+PS D:\code\blogs\farb.github.io> docker rm redis-server
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-server -v D:\ArchitectPracticer\Redis\RedisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+440981babaef495ceae188f98e962d764c5130669bfdaf112538c48391b9a201
+PS D:\code\blogs\farb.github.io> docker exec -it redis-server bash
+root@440981babaef:/data# redis-cli
+127.0.0.1:6379> set name farb
+OK
+```
+
+#### 用快照文件恢复数据
+```sh
+# 删除之前包含数据的redis-server容器
+PS D:\code\blogs\farb.github.io> docker rm redis-server redis-server
+
+# 重新创建并运行容器，配置指向之前包含快照文件的目录
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-server -v D:\ArchitectPracticer\Redis\RedisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+f2221a4c78afaa6e3c122f9cc026b48f89153ffc0e153bc42133fb0f9b33db80
+
+# 进入redis-server容器
+PS D:\code\blogs\farb.github.io> docker exec -it redis-server bash
+                                                                                                              
+# 可以看到有数据存在，说明恢复了数据
+root@f2221a4c78af:/data# redis-cli
+127.0.0.1:6379> get name
+"farb"
+```
+
+#### save 和 bgsave 
+save命令用于立即生成RDB快照，而bgsave命令用于后台生成RDB快照，两者的区别在于，save命令会阻塞Redis服务器，直到快照生成完毕，而bgsave命令不会阻塞Redis服务器，当bgsave命令执行时，Redis服务器仍然可以接受其他命令。
+save命令和bgsave命令的调用方式如下：
+
+```sh
+127.0.0.1:6379> save
+OK
+127.0.0.1:6379> bgsave
+Background saving started
+
+#  lastsave命令用于获取最近一次成功生成RDB快照的时间戳，由此可知bgsave是否执行完成
+127.0.0.1:6379> lastsave
+(integer) 1722355373
+```
+
+> 注意：实际项目中，如果Redis内存数据很多，那么一旦执行save命令，Redis服务器就会长时间暂停执行命令，造成大量连接阻塞，直到快照生成完毕，从而导致线上问题。当用户输入bgsave命令时，Redis会创建一个新的进程，在该进程里把内存里的数据写入快照，在写的过程中，Redis服务器仍然可以接受其他客户端的命令，因此，bgsave命令可以减少Redis服务器的阻塞，从而提高Redis性能。
+
+
+### 如何选用持久化方式
+#### 对比两种持久化方式
+AOF：
+   - 优点： 可采用一秒写一次持久化文件，数据持久化更及时，文件末尾追加的方式性能更好
+   - 缺点：AOF持久化的文件一般比RDB快照体积大，恢复数据比快照慢
+
+RDB：
+  - 优点：快照体积小，恢复数据快，bgsave创建快照可以不阻塞其他客户端命令的执行
+  - 缺点：无法即时持久化数据，需要满足条件或手动创建快照
+
+**一般项目里会同时使用这两种持久化方式。当出现数据误删时，可以使用AOF持久化文件恢复数据，一般情况下，可以使用RDB快照文件恢复数据。**
+
+#### 综合使用两种持久化方式
+一般可以如下设置redis.conf配置文件
+
+```sh
+save 600 1
+# 600s内有>=1个键被修改就会生成快照
+
+save 300 100
+# 300s内有>=100个键被修改就会生成快照
+
+save 60 1000
+# 60s内有>=1000个键被修改就会生成快照
+
+# 注意：以上三个条件是或的关系，RDB持久化文件只是当条件满足就生成快照，因此无法即时保存当前状态的内存数据，可能会丢失数据。
+
+dbfilename dump.rdb
+dir /redisConfig
+# 默认的RDB文件保存路径和文件名
+
+# 开启AOF功能，默认是关闭的
+appendonly yes
+
+# 开启aof功能后，通过appendfsync设置持久化策略
+appendfsync everysec
+```
+
+如上设置redis.conf之后，重新创建并运行容器
+```sh
+PS D:\code\blogs\farb.github.io> docker rm redis-server
+redis-server
+
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-server -v D:\ArchitectPracticer\Redis\RedisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+807be71c3f456b0490c5e50c880d7b3e313e3813fe94ea523b538864d618605c
+
+PS D:\code\blogs\farb.github.io> docker exec -it redis-server bash                  
+
+root@807be71c3f45:/data# redis-cli 
+127.0.0.1:6379> set name farb
+OK
+127.0.0.1:6379> bgsave
+Background saving started
+```
+执行完毕之后，可以看到，redisConfig目录下既生成了dump.db快照文件，也生成了appendonlydir目录，该目录下包含3个aof相关的文件。两种持久化方式都开启的情况下，默认会使用AOF持久化文件恢复数据。
+
+#### 查看持久化状态的命令
+```sh
+127.0.0.1:6379> info persistence
+# Persistence
+loading:0
+async_loading:0
+current_cow_peak:0
+current_cow_size:0
+current_cow_size_age:0
+current_fork_perc:0.00
+current_save_keys_processed:0
+current_save_keys_total:0
+rdb_changes_since_last_save:0
+rdb_bgsave_in_progress:0
+# rdb上次保存时间
+rdb_last_save_time:1722357138
+rdb_last_bgsave_status:ok
+rdb_last_bgsave_time_sec:0
+rdb_current_bgsave_time_sec:-1
+rdb_saves:1
+rdb_last_cow_size:307200
+rdb_last_load_keys_expired:0
+rdb_last_load_keys_loaded:0
+# 启用了aof
+aof_enabled:1
+aof_rewrite_in_progress:0
+aof_rewrite_scheduled:0
+aof_last_rewrite_time_sec:-1
+aof_current_rewrite_time_sec:-1
+# aof上次后台重写状态成功
+aof_last_bgrewrite_status:ok
+aof_rewrites:0
+aof_rewrites_consecutive_failures:0
+# aof上次写入数据成功
+aof_last_write_status:ok
+aof_last_cow_size:0
+module_fork_in_progress:0
+module_fork_last_cow_size:0
+aof_current_size:56
+aof_base_size:0
+aof_pending_rewrite:0
+aof_buffer_length:0
+aof_pending_bio_fsync:0
+aof_delayed_fsync:0
+```
