@@ -194,3 +194,107 @@ slave1:ip=172.17.0.4,port=6381,state=online,offset=14,lag=0
 
 # 此时，在redis-master执行set age 18，redis-slave1和redis-slave2执行get age，都返回18
 ```
+#### 配置读写分离效果
+> 默认搭建好主从复制模式的集群后， 主服务器是可读可写的，而从服务器是只读的。如果对从服务器执行set等写命令，会报错。当然，如果确实需要，也可以将从服务器的只读属性设置为可读可写。
+
+```sh   
+# 进入redis-slave1容器中，通过redis-cli命令进入Redis客户端，通过info replication命令查看Redis服务器的主从模式状态信息
+localhost:6380> info replication
+# Replication
+role:slave
+master_host:172.17.0.2
+master_port:6379
+master_link_status:down
+master_last_io_seconds_ago:-1
+master_sync_in_progress:0
+slave_read_repl_offset:14
+slave_repl_offset:14
+master_link_down_since_seconds:-1
+slave_priority:100
+# 可以看到slave_read_only属性为1，表示从服务器是只读的
+slave_read_only:1
+replica_announced:1
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:0d4ffddabfc229c371de8e1ee4d411424ad14261
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:14
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+
+# 默认为只读模式，所以无法执行写操作
+localhost:6380> set sex male
+(error) READONLY You can't write against a read only replica.
+
+# 通过redis.conf配置文件，将slave-read-only属性设置为no，表示从服务器是可读可写的
+slave-read-only no
+
+#重启redis-slave1容器，通过redis-cli命令进入Redis客户端，并再次执行set sex male
+localhost:6380> get sex
+(nil)
+localhost:6380> set sex male
+OK
+localhost:6380> get sex
+"male"
+
+# 分别进入redis-master和redis-slave2容器中，执行get sex均返回nil,说明写入从服务器的数据不会进行任何同步操作。
+```
+
+#### 用心跳机制提高主从复制的可靠性
+> 主从复制的模式里，从服务器会默认以一秒一次的频率向主服务器发送REPLCONF ACK命令，来确保主服务器和从服务器之间的连接。这种定时交互命令确保连接的机制叫做“心跳”机制。在主服务器中执行info replication命令，可以看到从属于它的从服务器的“心跳”状态
+
+```sh
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.17.0.3,port=6380,state=online,offset=14,lag=0
+slave1:ip=172.17.0.4,port=6381,state=online,offset=14,lag=0
+
+# 通过上面的lag=0，可知主从服务器之间连接畅通，延迟都是0秒
+
+# 创建主服务器的配置文件redisMaster.conf，配置如下：
+min-slaves-to-write 2
+# 连接到主服务器的从服务器最少需要2个，否则主服务器将拒绝同步操作
+
+min-slaves-max-lag 15
+# 从服务器与主服务器之间的最大延迟不能超过15秒
+
+# 以上两个条件是“或”的关系，只要一个条件不满足就停止主从复制的操作。
+
+# 重新创建并启动redis-master容器，并使用-v绑定redisMaster.conf文件到容器中
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-master -v D:\ArchitectPracticer\Redis\RedisConfMasterSlave:/redisConfig:rw -p 6379:6379 redis redis-server /redisConfig/redisMaster.conf 
+24ea09c6e60202c13e04ff52339e397dcc539da6376444e03d9fe66e58be59d3
+
+# 主服务器写入set k1 v1 成功后，redis-slave1和redis-slave2均可读取数据
+127.0.0.1:6379> set k1 v1
+OK
+
+# shutdown redis-slave2服务器后，再次在主服务器执行set命令，发现报错。因为违反了配置中的min-slaves-to-write 2
+127.0.0.1:6379> set k2 v2
+(error) NOREPLICAS Not enough good replicas to write.
+```
+
+#### 用偏移量检查数据是否一致
+**master_repl_offset**：主服务器向从服务器发送的字节数  
+**slave_repl_offset**: 从服务器接收到来来自主服务器发送的字节数 
+
+```sh
+# 进入redis-master容器中，通过redis-cli命令进入Redis客户端，通过info replication命令查看Redis服务器的主从模式状态信息
+# 可以看到主服务器向从服务器发送了字节数906
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:2
+min_slaves_good_slaves:2
+slave0:ip=172.17.0.2,port=6380,state=online,offset=906,lag=1
+slave1:ip=172.17.0.4,port=6381,state=online,offset=906,lag=1
+...
+master_repl_offset:906
+
+# 分别进入redis-slave1容器中，通过redis-cli命令进入Redis客户端，通过info replication命令查看Redis服务器的主从模式状态信息
+# 应该可以看到slave_repl_offset的值也是906（前提是没有对从服务器执行写操作，且主从服务器数据一直同步，否则可能会不一致）
+```
