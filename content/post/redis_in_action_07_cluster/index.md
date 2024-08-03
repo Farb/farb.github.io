@@ -298,3 +298,242 @@ master_repl_offset:906
 # 分别进入redis-slave1容器中，通过redis-cli命令进入Redis客户端，通过info replication命令查看Redis服务器的主从模式状态信息
 # 应该可以看到slave_repl_offset的值也是906（前提是没有对从服务器执行写操作，且主从服务器数据一直同步，否则可能会不一致）
 ```
+### 搭建哨兵模式的集群
+> 基于主从复制+读写分离模式的集群，一旦主服务器发生故障，则需要手动切换到从服务器上，同时需要重新设置主从关系。如果采用哨兵模式，则不需要手动切换，当主服务器发生故障时，哨兵会自动切换到从服务器上，实现“故障自动恢复”的效果，保证集群的高可用性。
+
+#### 哨兵模式概述
+> 哨兵机制一般和主从复制模式整合使用，在基于哨兵的模式里会在一台或多台服务器上引入哨兵进程，这些节点叫哨兵节点。
+> 哨兵节点一般不存储数据，主要作用是监控主从模式里的主服务器节点(哨兵节点之间也相互监控)。当哨兵节点监控的主服务器发生故障时，哨兵节点会主导“故障自动恢复”的过程，具体来讲就是会通过选举模式在该主服务器下属的从服务器中选择一个作为新的主服务器，并完成相应的数据和配置等更改操作。
+> 基于哨兵模式的集群，可以让故障自动恢复，从而提升系统的可用性。实际项目中一般会配置多个主从模式集群，所以需要引入多个哨兵节点。
+
+### 搭建哨兵模式集群实战
+```sh
+# 清理环境，删除所有容器避免影响，使用 docker rm $(docker ps -aq) 或 docker container prune -f 命令
+PS D:\code\blogs\farb.github.io> docker rm $(docker ps -aq)
+2f25343c996e
+aa62f3456cb4
+25bd36e835b9
+
+# 按照上面的实战，再次创建一个一主二从的主从复制模式
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-master -v D:\ArchitectPracticer\Redis\RedisConfSentinel:/redisConfig:rw -p 6379:6379 redis redis-server /redisConfig/redisMaster.conf
+8227be97fad3ca13872c2c304d0f49fd918521ed31ca5ea51914d9bd7ed701a6
+
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-slave1 -v D:\ArchitectPracticer\Redis\RedisConfSentinel:/redisConfig:rw -p 6380:6380 redis redis-server /redisConfig/redisSlave1.conf
+4ce5f884fb26bd3760047e4c93b95356b3b70048f423c2fdff40e8cb8ec76b37
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-slave2 -v D:\ArchitectPracticer\Redis\RedisConfSentinel:/redisConfig:rw -p 6381:6381 redis redis-server /redisConfig/redisSlave2.conf
+6470580ea30f9903aa64b7d54ca5ecbd8777cbef0cea8ecd891cdcd07337793a
+
+# 进入redis-master容器中，通过redis-cli命令进入Redis客户端，通过info replication命令查看Redis服务器的主从模式状态信息,确保主从复制模式已经搭建成功
+PS D:\code\blogs\farb.github.io> docker exec -it redis-master bash
+root@8227be97fad3:/data# redis-cli
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:2
+min_slaves_good_slaves:2
+slave0:ip=172.17.0.3,port=6380,state=online,offset=196,lag=1
+slave1:ip=172.17.0.4,port=6381,state=online,offset=196,lag=0
+master_failover_state:no-failover
+master_replid:65bf7b2a0d40228c859adf93672af1fa88601443
+master_replid2:0000000000000000000000000000000000000000
+
+```
+
+**基础的主从复制模式搭建完成后，下面开始哨兵的搭建**
+
+```sh
+port 16379
+# 哨兵节点的工作端口是16379
+
+sentinel monitor master 172.17.0.2 6379 2
+# 哨兵节点监控主服务器，主机ip是172.17.0.2，端口是6379，集群中至少2个哨兵节点才能确定该主服务器是否故障
+
+dir /
+logfile "sentinel1.log"
+# 哨兵节点日志文件位置和名称
+
+# 创建并启动哨兵节点容器，通过-v挂载了D:\ArchitectPracticer\Redis\RedisConfSentinel目录
+PS D:\code\blogs\farb.github.io> docker run -itd --name sentinel1 -v D:\ArchitectPracticer\Redis\RedisConfSentinel:/redisConfig:rw -p 16379:16379 redis redis-sentinel /redisConfig/sentinel1.conf   
+59caeda82a6111e9e1c324e0c580e2591f4a4c7ba3dcc52d4f5e3cddb9c6e463
+
+# 进入sentinel1容器中，通过redis-cli命令进入Redis客户端，通过info sentinel命令查看Redis服务器的哨兵模式状态信息
+PS D:\code\blogs\farb.github.io> docker exec -it sentinel1 bash
+root@59caeda82a61:/data# redis-cli -h localhost -p 16379
+localhost:16379> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_tilt_since_seconds:-1
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=master,status=ok,address=172.17.0.2:6379,slaves=2,sentinels=1
+# 最后一句可以看到该主服务器的状态是ok，说明哨兵节点已经成功监控到主服务器，并且该主服务器的ip和端口也可看到，该主服务器下有2个从服务器，并且有一个哨兵节点
+
+
+# 同样地，创建sentinel2.conf配置文件
+port 16380
+sentinel resolve-hostnames yes
+sentinel monitor master 172.17.0.2 6379 2
+dir "/"
+logfile "sentinel2.log"
+
+# 创建并启动第二个哨兵节点容器，通过-v挂载了D:\ArchitectPracticer\Redis\RedisConfSentinel目录
+docker run -itd --name sentinel2 -v D:\ArchitectPracticer\Redis\RedisConfSentinel:/redisConfig:rw -p 16380:16380 redis redis-sentinel /redisConfig/sentinel2.conf      
+2a742a70e80989b868a394856e95d97c58be40e1b892025463ab22646f85c759
+PS D:\code\blogs\farb.github.io> docker exec -it sentinel2 bash
+root@2a742a70e809:/data# redis-cli -h localhost -p 16380
+localhost:16380> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_tilt_since_seconds:-1
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=master,status=ok,address=172.17.0.2:6379,slaves=2,sentinels=2
+# 最后一句可以看到该主服务器的状态是ok，说明哨兵节点已经成功监控到主服务器，并且该主服务器的ip和端口也可看到，该主服务器下有2个从服务器，并且有2个哨兵节点
+
+```
+
+**至此，基于哨兵的一主二从的Redis集群已经搭建完成：两个哨兵节点sentinel1和sentinel2同时监控redis-master主服务器，主服务器下挂着两个从服务器redis-slave1和redis-slave2，并且主服务器和两个从服务器之间依然存在“主从复制模式”。实际项目里可以让哨兵节点监控多个集群**
+
+#### 哨兵节点的常用配置
+```sh
+# 哨兵节点监控主服务器后，如果主服务器挂了，需要多久才能确定该主服务器已经故障 ，
+# master是哨兵节点监控的服务器名称，需要和sentinel monitor命令中设置的服务器名称master一致
+# 之前配置了 sentinel monitor master 172.17.0.2 6379 2，因而至少2个哨兵节点都超过60s没有收到master的响应，才能确定该主服务器已经故障
+sentinel down-after-milliseconds master 60000
+
+# 哨兵节点监控主服务器后，如果主服务器故障了，必须在180s内自动切换到其他从服务器，否则认定本次恢复动作失败。
+sentinel failover-timeout master 180000
+```
+
+#### 哨兵模式下的故障自动恢复效果
+**将redis-server容器停止或通过shutdown命令关闭redis-master，通过info sentinel命令观察哨兵节点的日志，通过info replication命令观察主从复制的状态信息，来确认哨兵节点的故障自动恢复效果**
+```sh
+# 关闭redis-master容器
+127.0.0.1:6379> shutdown
+
+# 进入sentinel1容器，通过info sentinel命令观察哨兵节点的日志，发现主服务器已经由之前的主服务器172.17.0.2:6379，变成了新的主服务器172.17.0.3:6380
+localhost:16379> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_tilt_since_seconds:-1
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=master,status=ok,address=172.17.0.3:6380,slaves=2,sentinels=2
+
+#进入sentinel2容器，能够看到相同的信息。
+
+# 进入redis-slave1容器，通过info replication命令观察主从复制的状态信息，发现redis-slave1已经成为主服务，并且之前的redis-slave2已经成为从服务器
+localhost:6380> info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=172.17.0.4,port=6381,state=online,offset=315538,lag=0
+
+# 进入redis-slave2容器，通过info replication命令观察主从复制的状态信息，也发现redis-slave1已经成为主服务器
+redis-cli -h localhost -p 6381
+localhost:6381> info replication
+# Replication
+role:slave
+master_host:172.17.0.3
+master_port:6380
+master_link_status:up
+```
+**通过上述实践，发现故障已经自动恢复**
+
+#### 通过日志观察故障恢复流程
+通过观察哨兵的日志，查看故障自动恢复的流程
+
+关键词：
+- sdown：主观宕机subjective down
+- odown: 客观宕机objective down
+- failover: 故障转移
+- vote-for-leader： 领导选举
+
+```sh
+# 先查看sentinel2.log日志
+root@2a742a70e809:/data# cat /sentinel2.log
+1:X 03 Aug 2024 03:44:13.749 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1:X 03 Aug 2024 03:44:13.749 * Redis version=7.2.5, bits=64, commit=00000000, modified=0, pid=1, just started
+1:X 03 Aug 2024 03:44:13.749 * Configuration loaded
+1:X 03 Aug 2024 03:44:13.749 * monotonic clock: POSIX clock_gettime
+1:X 03 Aug 2024 03:44:13.749 * Running mode=sentinel, port=16380.
+1:X 03 Aug 2024 03:44:13.749 * Sentinel ID is 750555c54a6c4e294749888502b1644dfd0f3ac7
+1:X 03 Aug 2024 03:44:13.749 # +monitor master master 172.17.0.2 6379 quorum 2
+1:X 03 Aug 2024 03:44:13.751 * +slave slave 172.17.0.3:6380 172.17.0.3 6380 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 03:44:13.756 * Sentinel new configuration saved on disk
+1:X 03 Aug 2024 03:44:13.756 * +slave slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 03:44:13.760 * Sentinel new configuration saved on disk
+1:X 03 Aug 2024 03:44:14.780 * +sentinel sentinel fc41e2130b8b8896db18204e1b1ca868161369e2 172.17.0.5 16379 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 03:44:14.784 * Sentinel new configuration saved on disk
+
+# 主服务器redis-master被sentinel2节点主观下线
+1:X 03 Aug 2024 04:18:54.656 # +sdown master master 172.17.0.2 6379
+# 主服务器redis-master被sentinel2节点客观下线，因为此时sentinel1节点也认为主观下线，共有两个节点满足主观下线条件quorum 2/2，从而客观下线
+1:X 03 Aug 2024 04:18:54.727 # +odown master master 172.17.0.2 6379 #quorum 2/2
+1:X 03 Aug 2024 04:18:54.727 # +new-epoch 1
+# 尝试故障转移
+1:X 03 Aug 2024 04:18:54.727 # +try-failover master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.732 * Sentinel new configuration saved on disk
+# 领导选举
+1:X 03 Aug 2024 04:18:54.732 # +vote-for-leader 750555c54a6c4e294749888502b1644dfd0f3ac7 1
+1:X 03 Aug 2024 04:18:54.738 * fc41e2130b8b8896db18204e1b1ca868161369e2 voted for 750555c54a6c4e294749888502b1644dfd0f3ac7 1
+1:X 03 Aug 2024 04:18:54.815 # +elected-leader master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.815 # +failover-state-select-slave master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.887 # +selected-slave slave 172.17.0.3:6380 172.17.0.3 6380 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.887 * +failover-state-send-slaveof-noone slave 172.17.0.3:6380 172.17.0.3 6380 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.958 * +failover-state-wait-promotion slave 172.17.0.3:6380 172.17.0.3 6380 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:55.604 * Sentinel new configuration saved on disk
+1:X 03 Aug 2024 04:18:55.604 # +promoted-slave slave 172.17.0.3:6380 172.17.0.3 6380 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:55.604 # +failover-state-reconf-slaves master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:55.662 * +slave-reconf-sent slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:55.880 # -odown master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:56.656 * +slave-reconf-inprog slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:56.656 * +slave-reconf-done slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:56.739 # +failover-end master master 172.17.0.2 6379
+# 切换主服务器到新的主服务器172.17.0.3:6380
+1:X 03 Aug 2024 04:18:56.739 # +switch-master master 172.17.0.2 6379 172.17.0.3 6380
+1:X 03 Aug 2024 04:18:56.739 * +slave slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.3 6380
+1:X 03 Aug 2024 04:18:56.739 * +slave slave 172.17.0.2:6379 172.17.0.2 6379 @ master 172.17.0.3 6380
+1:X 03 Aug 2024 04:18:56.743 * Sentinel new configuration saved on disk
+1:X 03 Aug 2024 04:19:26.747 # +sdown slave 172.17.0.2:6379 172.17.0.2 6379 @ master 172.17.0.3 6380
+
+
+
+# 查看senttinel1.log日志
+# 主服务器redis-master被sentinel1节点主观下线,可以看到比sentinel2节点快了1毫秒
+1:X 03 Aug 2024 04:18:54.655 # +sdown master master 172.17.0.2 6379
+1:X 03 Aug 2024 04:18:54.735 * Sentinel new configuration saved on disk
+1:X 03 Aug 2024 04:18:54.735 # +new-epoch 1
+1:X 03 Aug 2024 04:18:54.738 * Sentinel new configuration saved on disk
+# 领导选举
+1:X 03 Aug 2024 04:18:54.738 # +vote-for-leader 750555c54a6c4e294749888502b1644dfd0f3ac7 1
+1:X 03 Aug 2024 04:18:55.663 # +config-update-from sentinel 750555c54a6c4e294749888502b1644dfd0f3ac7 172.17.0.6 16380 @ master 172.17.0.2 6379
+# 切换主服务器到新的主服务器172.17.0.3:6380
+1:X 03 Aug 2024 04:18:55.663 # +switch-master master 172.17.0.2 6379 172.17.0.3 6380
+1:X 03 Aug 2024 04:18:55.663 * +slave slave 172.17.0.4:6381 172.17.0.4 6381 @ master 172.17.0.3 6380
+1:X 03 Aug 2024 04:18:55.663 * +slave slave 172.17.0.2:6379 172.17.0.2 6379 @ master 172.17.0.3 6380
+
+# 由于只能由一个哨兵节点完成故障自动恢复，因此如果有多个哨兵节点同时监控到主服务器失效，那么最终只有一个哨兵节点通过竞争得到故障恢复的权力。
+# 从上面的日志中，可以看到故障恢复的权力已经被sentinel2节点竞争得到，sentinel1只能在sdown之后处于停留状态，待sentinel2节点完成故障恢复之后重新切换到新的主服务器节点，继续监控新的主服务器节点和对应的从服务器节点  。
+```
+#### 故障节点恢复后的表现
+从上面的日志中可以看到redis-master服务器处于失效状态，但是在新的主从复制集群里会把该服务器当作从服务器。再重新启动redis-master容器，模拟故障排除后的效果。
+
+```sh
+# 可以看到，redis-master重启后，自动以slave的身份接入。
+redis-cli -h localhost -p 6380
+localhost:6380> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.17.0.4,port=6381,state=online,offset=3096199,lag=1
+slave1:ip=172.17.0.2,port=6379,state=online,offset=3096199,lag=1
+```
+
+**由上可知，哨兵节点不仅能自动恢复故障，而且当故障节点恢复后，会自动把它加入到集群中，而无需人工干预。与简单的主从复制模式集群相比，哨兵模式的集群能更好地提升系统的可靠性。**
