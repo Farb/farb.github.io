@@ -640,7 +640,7 @@ vars currentEpoch 0 lastVoteEpoch 0
 # 可以看到，当前节点属于master节点，只连接到myself自身，没同其他节点关联。其他nodes-*.conf文件类似，都是master节点，没有关联其他节点。稍后将用meet命令关联。
 ```
 
-**3.使用meet命令关联集群中的各个节点**
+**3.使用redis-cli --cluster create命令创建集群**
 **使用 `docker inspect -f '{{.NetworkSettings.IPAddress}}' containerName` 查看容器的IP地址**
 
 ```sh
@@ -667,20 +667,42 @@ PS D:\code\blogs\farb.github.io> docker inspect -f '{{.NetworkSettings.IPAddress
 | clusterSlave2 | 172.17.0.6 | 16380 | docker inspect -f '{{.NetworkSettings.IPAddress}}' clusterSlave2 |
 | clusterSlave3 | 172.17.0.7 | 16381 | docker inspect -f '{{.NetworkSettings.IPAddress}}' clusterSlave3 |
 
-**之后，进入clusterMaster1节点，使用--cluster create命令连接各个节点，这样所有的节点就在一个集群了。这里我也使用过cluster meet命令，但是使用这个**
+**之后，进入clusterMaster1节点，使用--cluster create命令连接各个节点，这样所有的节点就在一个集群了。这里我也使用过cluster meet命令，但是使用这种方式后扩容时，添加的节点一直是从节点，具体原因未知**
 
 ```sh
-# 注意这里meet之后的ip是容器所在的IP地址，不是localhost
-root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.3 6380
-OK
-root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.4 6381
-OK
-root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.5 16379
-OK
-root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.6 16380
-OK
-root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.7 16381
-OK
+# 进入clusterMaster1节点，创建集群，注意此处还没有设置主从关系，这里设置的是--cluster-replicas 0
+# 为的是想要创建6379(主)-16379(从)这样的对应关系，否则如果交给redis-cli自动处理的话，会出现端口端口随机配对的情况
+PS D:\code\blogs\farb.github.io> docker exec -it clusterMaster1 bash
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster create --cluster-replicas 0 172.17.0.2:6379 172.17.0.3:6380 172.17.0.4:6381
+>>> Performing hash slots allocation on 3 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+.
+>>> Performing Cluster Check (using node 172.17.0.2:6379)
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+
+# 从上面可以看出redis-cli会根据你输入的yes，自动给三个主节点平均分配哈希槽
 
 # 然后查看clusterMaster节点的cluster info。
 root@fb368ad5ad39:/data# redis-cli 
@@ -695,120 +717,91 @@ cluster_slots_fail:0
 # 可以看到集群中有6个节点，但是集群状态是fail，说明集群还没有完成初始化。
 # 原因是还没给每个节点分配哈希槽（Hash Slot）
 cluster_known_nodes:6
-```
 
-**4.为三个主节点分配哈希槽**    
-
-```sh
-# 一次只能添加一个哈希槽
-redis-cli -h hostIp -p port Cluster AddSlots N
-
-# 添加哈希槽范围
-ADDSLOTSRANGE <start slot> <end slot> [<start slot> <end slot> ...]
-    Assign slots which are between <start-slot> and <end-slot> to current node.
-```
-
-```sh
-# 给节点hostIp:port分配哈希槽N，其中N是哈希槽的编号，从0到16383  
-# 由于每次只能分配一个编号，所以这里写一个bash脚本，循环执行
-`redis-cli -h hostIp -p port Cluster AddSlots N`
-
-# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster1HashSlots.sh，内容如下：
-# 分配哈希槽[0,5460]给clusterMaster1
-for i in $(seq 0 5460)
-do
-    redis-cli -h 172.17.0.2 -p 6379 Cluster AddSlots $i
-done
-
-# 以上脚本等价于
-root@fb368ad5ad39:/data# redis-cli -h 172.17.0.2 -p 6379                       
-172.17.0.2:6379> cluster addslotsrange 0 5460
-OK
-
-# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster2HashSlots.sh，内容如下：
-# 分配哈希槽[5461,10922]给clusterMaster2
-for i in $(seq 5461 10922)
-do
-    redis-cli -h 172.17.0.3 -p 6380 Cluster AddSlots $i
-done
-# 以上脚本等价于
-root@fb368ad5ad39:/data# redis-cli -h 172.17.0.3 -p 6380 
-172.17.0.3:6380> CLUSTER ADDSLOTSRANGE 5461 10922
-OK
-
-# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster3HashSlots.sh，内容如下：
-# 分配哈希槽[10923,16383]给clusterMaster3
-for i in $(seq 10923 16383)
-do
-    redis-cli -h 172.17.0.4 -p 6381 Cluster AddSlots $i
-done
-# 以上脚本等价于
-root@fb368ad5ad39:/data# redis-cli -h 172.17.0.4 -p 6381
-172.17.0.4:6381> cluster addslotsrange 10923 16383
-OK
-
-# 通过exit退出redis-cli，进入容器，然后依次执行脚本，会看到一直打印ok
-/redisConfig/SetMaster1HashSlots.sh 
-/redisConfig/SetMaster21HashSlots.sh 
-/redisConfig/SetMaster3HashSlots.sh 
-
-# 运行完毕后，此时已经给clusterMaster1、clusterMaster2、clusterMaster3分别分配了哈希槽，进入clusterMaster1容器，查看cluster info如下：
-
-127.0.0.1:6379> cluster info
-# 集群状态是ok，说明集群已经完成初始化
-cluster_state:ok
-# 分配的哈希槽的个数为16384
-cluster_slots_assigned:16384
-cluster_slots_ok:16384
-cluster_slots_pfail:0
-cluster_slots_fail:0
-# 可以看到集群中有6个节点
-cluster_known_nodes:6
-# 集群中主节点个数为3
-cluster_size:3
-
-```
-
-**5. 关联主节点和从节点**   
-设置从节点的方式是用redis-cli命令进入redis服务器从节点，然后运行`cluster replicate masterNodeId`.
-masterNodeId是master节点的节点id，可以通过`cluster nodes`命令查看。
-```sh
-# 进入clusterMaster1容器,连接到redis-cli，然后查看集群节点id,很明显，第一列就是节点Id
+# cluster nodes查看节点信息，可以看到三个主节点
 127.0.0.1:6379> cluster nodes
-94c321bf8580621f267e7a0b502f6c1bd120f203 172.17.0.5:16379@26379 master - 0 1722779543000 3 connected
-8b9e6e09898be857fcd33e4a2611c42268ce7b1c 172.17.0.2:6379@16379 myself,master - 0 1722779542000 2 connected 0-5460
-207623a24974859ede6b1a59a046cb10fdfb7d54 172.17.0.7:16381@26381 master - 0 1722779544247 5 connected
-8794e2d834a7591630dced8cbaa073c1216de978 172.17.0.6:16380@26380 master - 0 1722779544000 4 connected
-fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 1722779544000 0 connected 10923-16383
-8192cc1bb0de71879b1f7174676260d3d5510a7f 172.17.0.3:6380@16380 master - 0 1722779543244 1 connected 5461-10922
-
-# 设置clusterMaster1为clusterSlave1的主节点
-PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave1 bash
-root@5d2ecf9131f7:/data# redis-cli -p 16379
-127.0.0.1:16379> cluster replicate 8b9e6e09898be857fcd33e4a2611c42268ce7b1c
-OK
-
-# 设置clusterMaster2为clusterSlave2的主节点
-PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave2 bash
-root@44e2e24b798a:/data# redis-cli -p 16380
-127.0.0.1:16380> cluster replicate 8192cc1bb0de71879b1f7174676260d3d5510a7f
-OK
-
-# 设置clusterMaster3为clusterSlave3的主节点
-PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave3 bash
-root@ef29a379b557:/data# redis-cli -p 16381
-127.0.0.1:16381> cluster replicate fbb526d37ce8ef0067387d7810677200b5ed5d89
-OK
-
-# 至此，cluster集群三主三从节点已经搭建完成。可以进入任意一台服务器进行验证。
-127.0.0.1:16381> cluster nodes
-8794e2d834a7591630dced8cbaa073c1216de978 172.17.0.6:16380@26380 slave 8192cc1bb0de71879b1f7174676260d3d5510a7f 0 1722780289575 1 connected
-fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 1722780291000 0 connected 10923-16383
-207623a24974859ede6b1a59a046cb10fdfb7d54 172.17.0.7:16381@26381 myself,slave fbb526d37ce8ef0067387d7810677200b5ed5d89 0 1722780289000 0 connected
-8192cc1bb0de71879b1f7174676260d3d5510a7f 172.17.0.3:6380@16380 master - 0 1722780290586 1 connected 5461-10922
-94c321bf8580621f267e7a0b502f6c1bd120f203 172.17.0.5:16379@26379 slave 8b9e6e09898be857fcd33e4a2611c42268ce7b1c 0 1722780291589 2 connected
-8b9e6e09898be857fcd33e4a2611c42268ce7b1c 172.17.0.2:6379@16379 master - 0 1722780290000 2 connected 0-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723297213811 2 connected 5461-10922
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723297212809 3 connected 10923-16383
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723297211000 1 connected 0-5460
 ```
+
+**4.为三个主节点分配从节点**    
+```sh
+# 为主节点172.17.0.2:6379配置从节点172.17.0.5:16379
+# 172.17.0.5:16379为要添加的从节点IP和端口
+# 172.17.0.2:6379为要添加的从节点所属集群的任意一个节点的IP和端口
+# --cluster-master-id b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c为要添加的从节点对应的主节点ID
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster add-node 172.17.0.5:16379 172.17.0.2:6379 --cluster-slave --cluster-master-id b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+>>> Adding node 172.17.0.5:16379 to cluster 172.17.0.2:6379
+>>> Performing Cluster Check (using node 172.17.0.2:6379)
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 172.17.0.5:16379 to make it join the cluster.
+Waiting for the cluster to join
+.
+>>> Configure node as replica of 172.17.0.2:6379.
+[OK] New node added correctly.
+
+# 通过输出信息，可以看到添加从节点成功，也可以通过cluster nodes验证
+127.0.0.1:6379> cluster nodes
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723297831286 2 connected 5461-10922
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723297830283 3 connected 10923-16383
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723297828000 1 connected 0-5460
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723297832289 1 connected
+
+# 按照如上步骤，依次添加另外两个从节点172.17.0.6:16380和172.17.0.7:16381
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster add-node 172.17.0.6:16380 172.17.0.2:6379 --cluster-slave --cluster-master-id 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster add-node 172.17.0.7:16381 172.17.0.2:6379 --cluster-slave --cluster-master-id e2737cdc7073c3750ffb670bc618dc28cc939877 
+
+# 执行成功后，可以看到三主三从的集群搭建成功
+127.0.0.1:6379> cluster nodes
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723298034325 3 connected 10923-16383
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723298033323 1 connected
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723298035332 2 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723298033000 3 connected
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723298033000 1 connected 0-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723298035000 2 connected 5461-10922
+
+# 也可以这样查看 redis-cli --cluster check nodeHost:nodePort
+root@fb368ad5ad39:/data# redis-cli --cluster check 172.17.0.2:6379
+172.17.0.2:6379 (b6d4a069...) -> 0 keys | 5461 slots | 1 slaves.
+172.17.0.4:6381 (e2737cdc...) -> 0 keys | 5461 slots | 1 slaves.
+172.17.0.3:6380 (8ba84e5b...) -> 0 keys | 5462 slots | 1 slaves.
+[OK] 0 keys in 3 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 172.17.0.2:6379)
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379
+   slots: (0 slots) slave
+   replicates b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+S: 808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380
+   slots: (0 slots) slave
+   replicates 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c
+S: fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381
+   slots: (0 slots) slave
+   replicates e2737cdc7073c3750ffb670bc618dc28cc939877
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+
 
 #### 在cluster中读写数据
 ```sh
@@ -980,3 +973,131 @@ fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 172286
 5. cluster-node-timeout：cluster集群节点之间的超时时间，默认为5秒，如果超过该时间，则认为节点已经离线，会向对应的从节点进行故障转移操作。
 6. cluster-require-full-coverage：默认为yes。表示cluster集群中有节点失效时该集群是否继续对外提供写服务，出于容错性考虑，建议设置为no,如果设置为yes,那么集群中有节点失效时，该集群只提供只读服务。
 7. cluster-migration-barrier：用来设置主节点的最小从节点数量。假设该值为1，当某主节点的从节点数量小于1时，就会从其他从节点个数大于1的主节点那边调剂1个从节点过来，这样做的目的是避免出现不包含从节点的主节点，因为一旦出现这种情况，当主节点失效时，就无法再用从节点进行故障恢复的动作。
+
+#### 补充：使用cluster meet 
+**我也实践了下cluster meet命令，但是没有得到预期的结果，不知道是Redis版本（7.2.5）问题还是啥原因。出现的问题是：三主三从的集群可以搭建成功，但是在扩容时，新加入的节点始终是从节点，下面是我的原始命令**
+
+```sh
+# 注意这里meet之后的ip是容器所在的IP地址，不是localhost
+root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.3 6380
+OK
+root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.4 6381
+OK
+root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.5 16379
+OK
+root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.6 16380
+OK
+root@fb368ad5ad39:/data# redis-cli -p 6379 cluster meet 172.17.0.7 16381
+OK
+
+# 一次只能添加一个哈希槽
+redis-cli -h hostIp -p port Cluster AddSlots N
+
+# 添加哈希槽范围，依次可以添加多个哈希槽
+redis-cli -h hostIp -p port Cluster ADDSLOTSRANGE <start slot> <end slot> [<start slot> <end slot> ...]
+    Assign slots which are between <start-slot> and <end-slot> to current node.
+```
+
+```sh
+# 给节点hostIp:port分配哈希槽N，其中N是哈希槽的编号，从0到16383  
+# 由于每次只能分配一个编号，所以这里写一个bash脚本，循环执行
+`redis-cli -h hostIp -p port Cluster AddSlots N`
+
+# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster1HashSlots.sh，内容如下：
+# 分配哈希槽[0,5460]给clusterMaster1
+for i in $(seq 0 5460)
+do
+    redis-cli -h 172.17.0.2 -p 6379 Cluster AddSlots $i
+done
+
+# 以上脚本等价于
+root@fb368ad5ad39:/data# redis-cli -h 172.17.0.2 -p 6379                       
+172.17.0.2:6379> cluster addslotsrange 0 5460
+OK
+
+# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster2HashSlots.sh，内容如下：
+# 分配哈希槽[5461,10922]给clusterMaster2
+for i in $(seq 5461 10922)
+do
+    redis-cli -h 172.17.0.3 -p 6380 Cluster AddSlots $i
+done
+# 以上脚本等价于
+root@fb368ad5ad39:/data# redis-cli -h 172.17.0.3 -p 6380 
+172.17.0.3:6380> CLUSTER ADDSLOTSRANGE 5461 10922
+OK
+
+# D:\ArchitectPracticer\Redis\RedisConfCluster目录下新建SetMaster3HashSlots.sh，内容如下：
+# 分配哈希槽[10923,16383]给clusterMaster3
+for i in $(seq 10923 16383)
+do
+    redis-cli -h 172.17.0.4 -p 6381 Cluster AddSlots $i
+done
+# 以上脚本等价于
+root@fb368ad5ad39:/data# redis-cli -h 172.17.0.4 -p 6381
+172.17.0.4:6381> cluster addslotsrange 10923 16383
+OK
+
+# 通过exit退出redis-cli，进入容器，然后依次执行脚本，会看到一直打印ok
+/redisConfig/SetMaster1HashSlots.sh 
+/redisConfig/SetMaster21HashSlots.sh 
+/redisConfig/SetMaster3HashSlots.sh 
+
+# 运行完毕后，此时已经给clusterMaster1、clusterMaster2、clusterMaster3分别分配了哈希槽，进入clusterMaster1容器，查看cluster info如下：
+
+127.0.0.1:6379> cluster info
+# 集群状态是ok，说明集群已经完成初始化
+cluster_state:ok
+# 分配的哈希槽的个数为16384
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+# 可以看到集群中有6个节点
+cluster_known_nodes:6
+# 集群中主节点个数为3
+cluster_size:3
+
+```
+
+**关联主节点和从节点**      
+设置从节点的方式是用redis-cli命令进入redis服务器从节点，然后运行`cluster replicate masterNodeId`.
+masterNodeId是master节点的节点id，可以通过`cluster nodes`命令查看。
+```sh
+# 进入clusterMaster1容器,连接到redis-cli，然后查看集群节点id,很明显，第一列就是节点Id
+127.0.0.1:6379> cluster nodes
+94c321bf8580621f267e7a0b502f6c1bd120f203 172.17.0.5:16379@26379 master - 0 1722779543000 3 connected
+8b9e6e09898be857fcd33e4a2611c42268ce7b1c 172.17.0.2:6379@16379 myself,master - 0 1722779542000 2 connected 0-5460
+207623a24974859ede6b1a59a046cb10fdfb7d54 172.17.0.7:16381@26381 master - 0 1722779544247 5 connected
+8794e2d834a7591630dced8cbaa073c1216de978 172.17.0.6:16380@26380 master - 0 1722779544000 4 connected
+fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 1722779544000 0 connected 10923-16383
+8192cc1bb0de71879b1f7174676260d3d5510a7f 172.17.0.3:6380@16380 master - 0 1722779543244 1 connected 5461-10922
+
+# 设置clusterMaster1为clusterSlave1的主节点
+PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave1 bash
+root@5d2ecf9131f7:/data# redis-cli -p 16379
+127.0.0.1:16379> cluster replicate 8b9e6e09898be857fcd33e4a2611c42268ce7b1c
+OK
+
+# 设置clusterMaster2为clusterSlave2的主节点
+PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave2 bash
+root@44e2e24b798a:/data# redis-cli -p 16380
+127.0.0.1:16380> cluster replicate 8192cc1bb0de71879b1f7174676260d3d5510a7f
+OK
+
+# 设置clusterMaster3为clusterSlave3的主节点
+PS D:\code\blogs\farb.github.io> docker exec -it clusterSlave3 bash
+root@ef29a379b557:/data# redis-cli -p 16381
+127.0.0.1:16381> cluster replicate fbb526d37ce8ef0067387d7810677200b5ed5d89
+OK
+
+# 至此，cluster集群三主三从节点已经搭建完成。可以进入任意一台服务器进行验证。
+127.0.0.1:16381> cluster nodes
+8794e2d834a7591630dced8cbaa073c1216de978 172.17.0.6:16380@26380 slave 8192cc1bb0de71879b1f7174676260d3d5510a7f 0 1722780289575 1 connected
+fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 1722780291000 0 connected 10923-16383
+207623a24974859ede6b1a59a046cb10fdfb7d54 172.17.0.7:16381@26381 myself,slave fbb526d37ce8ef0067387d7810677200b5ed5d89 0 1722780289000 0 connected
+8192cc1bb0de71879b1f7174676260d3d5510a7f 172.17.0.3:6380@16380 master - 0 1722780290586 1 connected 5461-10922
+94c321bf8580621f267e7a0b502f6c1bd120f203 172.17.0.5:16379@26379 slave 8b9e6e09898be857fcd33e4a2611c42268ce7b1c 0 1722780291589 2 connected
+8b9e6e09898be857fcd33e4a2611c42268ce7b1c 172.17.0.2:6379@16379 master - 0 1722780290000 2 connected 0-5460
+
+```
+**使用cluster meet命令创建集群之后，不论是使用cluster meet还是redis-cli --cluster add-node添加的节点都是从节点。具体原因待以后继续调查。**
