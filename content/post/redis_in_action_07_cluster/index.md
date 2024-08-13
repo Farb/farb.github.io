@@ -802,7 +802,6 @@ M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
 [OK] All 16384 slots covered.
 ```
 
-
 #### 在cluster中读写数据
 ```sh
 # 进入clusterSlave1容器，然后执行redis-cli -p 16379 
@@ -835,6 +834,10 @@ dir /redisConfig
 logfile clusterMaster4.log
 cluster-enabled yes
 cluster-config-file nodes-clusterMaster4.conf
+cluster-require-full-coverage no
+appendonly yes
+appendfsync everysec
+cluster-slave-validity-factor 0
 
 # 创建并运行容器
 docker run -itd -p 6382:6382 --name clusterMaster4 -v D:\ArchitectPracticer\Redis\RedisConfCluster:/redisConfig:rw redis redis-server /redisConfig/clusterMaster4.conf
@@ -853,6 +856,10 @@ dir /redisConfig
 logfile clusterSlave4.log
 cluster-enabled yes
 cluster-config-file nodes-clusterSlave4.conf
+cluster-require-full-coverage no
+appendonly yes
+appendfsync everysec
+cluster-slave-validity-factor 0
 
 # 创建并运行容器
 PS D:\code\blogs\farb.github.io> docker run -itd -p 16382:16382 --name clusterSlave4 -v D:\ArchitectPracticer\Redis\RedisConfCluster:/redisConfig:rw redis redis-server /redisConfig/clusterSlave4.conf
@@ -893,7 +900,7 @@ Cluster Manager Commands:
                  --cluster-replace
 
 # 添加新节点，如果是添加主节点，只需指定新节点的IP和端口，后面跟上集群中的一个节点的IP和端口即可。
-# 如果是添加从节点，需要指定新节点的IP和端口，后面跟上集群中的一个节点的IP和端口，并且指定新节点是slave节点，并且指定新节点的master节点的ID。            
+# 如果是添加从节点，需要指定新节点的IP和端口，后面跟上集群中的一个节点的IP和端口，并且指定--cluster-slave和--cluster-master-id 两个参数            
   add-node       new_host:new_port existing_host:existing_port
                  --cluster-slave
                  --cluster-master-id <arg>
@@ -918,7 +925,7 @@ Cluster Manager Options:
   --cluster-yes  Automatic yes to cluster commands prompts
 ```
 ```sh
-# 进入集群中的一个节点容器，连接redis-cli,将扩容的两个节点加入集群中
+# 进入集群中的一个节点容器，连接redis-cli,将扩容的主节点加入集群中
 root@fb368ad5ad39:/data# redis-cli --cluster add-node 172.17.0.8:6382 172.17.0.2:6379
 >>> Adding node 172.17.0.8:6382 to cluster 172.17.0.2:6379
 >>> Performing Cluster Check (using node 172.17.0.2:6379)
@@ -949,30 +956,298 @@ S: ea1fec8d29809b8b68d2e38c300d9fc667fb7204 172.17.0.7:16381
 >>> Send FUNCTION RESTORE to 172.17.0.8:6382
 >>> Send CLUSTER MEET to node 172.17.0.8:6382 to make it join the cluster.
 [OK] New node added correctly.
-
-# 可以看到新增的两个节点已经加入到集群中了
+root@fb368ad5ad39:/data# redis-cli 
 127.0.0.1:6379> cluster nodes
-0a0e8d947deb01a2aa1696157826052fa3925218 172.17.0.8:6382@16382 slave 8192cc1bb0de71879b1f7174676260d3d5510a7f 0 1722865148000 1 connected
-fbb526d37ce8ef0067387d7810677200b5ed5d89 172.17.0.4:6381@16381 master - 0 1722865149000 0 connected 10923-16383
-207623a24974859ede6b1a59a046cb10fdfb7d54 172.17.0.7:16381@26381 slave fbb526d37ce8ef0067387d7810677200b5ed5d89 0 1722865149986 0 connected
-94c321bf8580621f267e7a0b502f6c1bd120f203 172.17.0.5:16379@26379 slave 8b9e6e09898be857fcd33e4a2611c42268ce7b1c 0 1722865148000 2 connected
-8794e2d834a7591630dced8cbaa073c1216de978 172.17.0.6:16380@26380 slave 8192cc1bb0de71879b1f7174676260d3d5510a7f 0 1722865145000 1 connected
-8b9e6e09898be857fcd33e4a2611c42268ce7b1c 172.17.0.2:6379@16379 myself,master - 0 1722865148000 2 connected 0-5460 [5798-<-8192cc1bb0de71879b1f7174676260d3d5510a7f] 
-7e1d461476f9500ea7365b70bfd052e594eaa460 172.17.0.9:16382@26382 slave 8192cc1bb0de71879b1f7174676260d3d5510a7f 0 1722865148983 1 connected
-8192cc1bb0de71879b1f7174676260d3d5510a7f 172.17.0.3:6380@16380 master - 0 1722865147000 1 connected 5461-10922
-```
-##### 5.设置扩容节点的主从关系
-```sh
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723300014894 3 connected 10923-16383
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723300013891 1 connected
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723300012887 2 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723300012000 3 connected
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723300011000 1 connected 0-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723300014000 2 connected 5461-10922
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 master - 0 1723300015897 0 connected
 
-```   
+# 可以看到新增的主节点已经加入到集群中了
+127.0.0.1:6379> cluster nodes
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723300014894 3 connected 10923-16383
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723300013891 1 connected
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723300012887 2 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723300012000 3 connected
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723300011000 1 connected 0-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723300014000 2 connected 5461-10922
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 master - 0 1723300015897 0 connected
+
+# 继续添加从节点
+root@fb368ad5ad39:/data# redis-cli --cluster add-node 172.17.0.9:16382 172.17.0.2:6379 --cluster-slave --cluster-master-id 8ae631285a8532aaeb324b404ab48352a25658ff
+root@fb368ad5ad39:/data# redis-cli --cluster add-node 172.17.0.9:16382 172.17.0.2:6379 --cluster-slave --cluster-master-id 8ae631285a8532aaeb324b404ab48352a25658ff
+>>> Adding node 172.17.0.9:16382 to cluster 172.17.0.2:6379
+>>> Performing Cluster Check (using node 172.17.0.2:6379)
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379
+   slots: (0 slots) slave
+   replicates b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+S: 808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380
+   slots: (0 slots) slave
+   replicates 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c
+S: fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381
+   slots: (0 slots) slave
+   replicates e2737cdc7073c3750ffb670bc618dc28cc939877
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+M: 8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382
+   slots: (0 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 172.17.0.9:16382 to make it join the cluster.
+Waiting for the cluster to join
+
+>>> Configure node as replica of 172.17.0.8:6382.
+[OK] New node added correctly.
+# 从节点添加到集群成功
+
+127.0.0.1:6379> cluster nodes
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723300184000 3 connected 10923-16383
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723300185865 1 connected
+25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382@26382 slave 8ae631285a8532aaeb324b404ab48352a25658ff 0 1723300186869 0 connected
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723300184863 2 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723300184000 3 connected
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723300185000 1 connected 0-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723300186000 2 connected 5461-10922
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 master - 0 1723300183000 0 connected
+
+# 可以看到新增的主从节点都已经加入到集群中了，但是扩容的主节点现在还并没有分配哈希槽,因而不能保存数据
+# 下面进行重新分片,有两种方法，一种是使用交互式命令窗口按照提示操作，第二种是指定redis-cli reshard 命令的其他多个参数 --cluster-from --cluster-to --cluster-slots。这里使用第一种
+
+root@fb368ad5ad39:/data# redis-cli --cluster reshard 172.17.0.8:6382
+>>> Performing Cluster Check (using node 172.17.0.8:6382)
+M: 8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382
+   slots: (0 slots) master
+   1 additional replica(s)
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380
+   slots: (0 slots) slave
+   replicates 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379
+   slots: (0 slots) slave
+   replicates b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+S: fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381
+   slots: (0 slots) slave
+   replicates e2737cdc7073c3750ffb670bc618dc28cc939877
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: 25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382
+   slots: (0 slots) slave
+   replicates 8ae631285a8532aaeb324b404ab48352a25658ff
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+# 这里询问要移动多少哈希槽？为了平均分配，这里输入4096(16384/4=4096)后回车。
+How many slots do you want to move (from 1 to 16384)?4096
+# 这里询问接收的节点Id是什么？（也就是要给哪个节点分配哈希槽，可以通过cluster nodes命令查看）
+What is the receiving node ID?8ae631285a8532aaeb324b404ab48352a25658ff
+# 这一步需要确认要从哪个节点移动哈希槽，输入all，要从所有节点移动哈希槽，目的是保证平均分配，当然你也可以自己指定节点的Id
+Please enter all the source node IDs.
+  Type 'all' to use all the nodes as source nodes for the hash slots.
+  Type 'done' once you entered all the source nodes IDs.
+Source node #1: all
+    ...
+    Moving slot 351 from b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+    ...
+    Moving slot 1361 from b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+    Moving slot 1362 from b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+    Moving slot 1363 from b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+    Moving slot 1364 from b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+# 上面会显示从哪些节点移动哪些哈希槽，问你要不要继续提议的分片计划，输入yes回车 
+Do you want to proceed with the proposed reshard plan (yes/no)?yes
+
+# 然后会输出大量日志，且耗时较长，如果redis中的数据量更大，耗时会更长
+# 因此生产环境应该在专门的维护时间段进行扩容升级
+...
+Moving slot 1364 from 172.17.0.2:6379 to 172.17.0.8:6382: 
+
+# 然后使用redis-cli --cluster check 172.17.0.8:6382命令检查集群状态，发现4个主节点都分配了4096个哈希槽
+root@fb368ad5ad39:/data# redis-cli --cluster check 172.17.0.8:6382
+172.17.0.8:6382 (8ae63128...) -> 0 keys | 4096 slots | 1 slaves.
+172.17.0.4:6381 (e2737cdc...) -> 0 keys | 4096 slots | 1 slaves.
+172.17.0.3:6380 (8ba84e5b...) -> 0 keys | 4096 slots | 1 slaves.
+172.17.0.2:6379 (b6d4a069...) -> 0 keys | 4096 slots | 1 slaves.
+[OK] 0 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 172.17.0.8:6382)
+M: 8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+   1 additional replica(s)
+M: e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+S: 808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380
+   slots: (0 slots) slave
+   replicates 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c
+M: 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+S: 30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379
+   slots: (0 slots) slave
+   replicates b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c
+S: fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381
+   slots: (0 slots) slave
+   replicates e2737cdc7073c3750ffb670bc618dc28cc939877
+M: b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+S: 25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382
+   slots: (0 slots) slave
+   replicates 8ae631285a8532aaeb324b404ab48352a25658ff
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+
+# 第二种方法，172.17.0.8:6382指执行分配命令的节点， --cluster-slots N 指从每个from节点分配N个哈希槽
+redis-cli --cluster reshard 172.17.0.8:6382 --cluster-from e2737cdc7073c3750ffb670bc618dc28cc939877,8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c,b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c --cluster-to 8ae631285a8532aaeb324b404ab48352a25658ff --cluster-slots 1024
+```
+#### 故障自动恢复
+```sh
+root@fb368ad5ad39:/data# redis-cli -c
+127.0.0.1:6379> get name
+-> Redirected to slot [5798] located at 172.17.0.8:6382
+(nil)
+172.17.0.8:6382> set name farb
+OK
+172.17.0.8:6382> get name
+"farb"
+# 这里模拟节点故障，关闭节点172.17.0.8:6382
+172.17.0.8:6382> shutdown
+(10.02s)
+not connected> exit
+root@fb368ad5ad39:/data# redis-cli -p 6379
+127.0.0.1:6379> get name
+(error) CLUSTERDOWN The cluster is down
+127.0.0.1:6379> exit
+root@fb368ad5ad39:/data# redis-cli
+127.0.0.1:6379> cluster info
+cluster_state:fail
+cluster_slots_assigned:16384
+cluster_slots_ok:12288
+
+# 经过本人大量实验，需要设置clusterMaster4和clusterSlave4配置 cluster-slave-validity-factor 0 ，才可以将从节点提升为主节点
+# 可以看到172.17.0.8:6382@16382 master,fail，之前的从节点提升为主节点172.17.0.9:16382@26382 master
+127.0.0.1:6379> cluster nodes
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723389975343 2 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723389977352 3 connected
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723389976348 3 connected 12288-16383
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723389974000 1 connected
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 master,fail - 1723389941225 1723389935203 7 connected
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723389975000 2 connected 6827-10922
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723389975000 1 connected 1365-5460
+25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382@26382 master - 0 1723389974340 9 connected 0-1364 5461-6826 10923-12287
+
+# 此时再次get name，可以看到成功从新的主节点172.17.0.9:16382得到数据
+127.0.0.1:6379> get name
+-> Redirected to slot [5798] located at 172.17.0.9:16382
+"farb"
+
+
+# 再次重启旧的主节点，发现旧的主节点已经变成新的主节点的从节点
+172.17.0.9:16382> cluster nodes
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723478740183 2 connected
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 master - 0 1723478739000 1 connected 1365-5460
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723478742189 2 connected 6827-10922
+25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382@26382 myself,master - 0 1723478738000 13 connected 0-1364 5461-6826 10923-12287
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 slave 25a08774618e7964f9324e386ce21a2af61bbb9a 0 1723478738119 13 connected
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723478741186 3 connected
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723478741000 1 connected
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723478738000 3 connected 12288-16383
+```
+
+#### 从节点重新恢复为主节点
+**原先的主节点宕机后，变成从节点，现在重新恢复为主节点**
+```sh
+# 进入该从节点的容器，连接redis-cli,执行cluster failover
+root@83fd72d8d210:/data# redis-cli -p 6382 -h 172.17.0.8
+172.17.0.8:6382> cluster failover takeover
+OK
+``` 
+
+#### 缩容：删除节点
+**只允许删除从节点和空的主节点，如果主节点分配了哈希槽，则需要先将哈希槽转移到其他节点，再进行删除**
+
+```sh
+# 如果直接删除分配有哈希槽的主节点，则会报错，提示需要先重新分片
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster del-node 172.17.0.9:16382  25a08774618e7964f9324e386ce21a2af61bbb9a
+>>> Removing node 25a08774618e7964f9324e386ce21a2af61bbb9a from cluster 172.17.0.9:16382
+[ERR] Node 172.17.0.9:16382 is not empty! Reshard data away and try again.
+
+redis-cli --cluster reshard 172.17.0.2:6379 --cluster-from 8ae631285a8532aaeb324b404ab48352a25658ff --cluster-to b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c --cluster-slots 4096
+......
+    Moving slot 12286 from 8ae631285a8532aaeb324b404ab48352a25658ff
+    Moving slot 12287 from 8ae631285a8532aaeb324b404ab48352a25658ff
+Do you want to proceed with the proposed reshard plan (yes/no)? yes
+......
+Moving slot 12286 from 172.17.0.8:6382 to 172.17.0.2:6379: 
+Moving slot 12287 from 172.17.0.8:6382 to 172.17.0.2:6379: 
+
+# 可以看到172.17.0.8:6382和172.17.0.9:16382都是从节点了
+127.0.0.1:6379> cluster nodes
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723562047844 3 connected
+25a08774618e7964f9324e386ce21a2af61bbb9a 172.17.0.9:16382@26382 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723562045834 17 connected
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723562046000 17 connected
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723562049853 2 connected 6827-10922
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723562046000 2 connected
+8ae631285a8532aaeb324b404ab48352a25658ff 172.17.0.8:6382@16382 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723562048848 17 connected
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723562048000 3 connected 12288-16383
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723562049000 17 connected 0-6826 10923-12287
+
+# 执行删除节点操作
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster del-node 172.17.0.9:16382  25a08774618e7964f9324e386ce21a2af61bbb9a
+>>> Removing node 25a08774618e7964f9324e386ce21a2af61bbb9a from cluster 172.17.0.9:16382
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> Sending CLUSTER RESET SOFT to the deleted node.
+root@fb368ad5ad39:/data# redis-cli -p 6379 --cluster del-node 172.17.0.2:6379 8ae631285a8532aaeb324b404ab48352a25658ff 
+>>> Removing node 8ae631285a8532aaeb324b404ab48352a25658ff from cluster 172.17.0.2:6379
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> Sending CLUSTER RESET SOFT to the deleted node.
+
+# 此时集群中又是三主三从了。
+127.0.0.1:6379> cluster nodes
+fc156444e5af0817468c95f8a86ec55310e06aed 172.17.0.7:16381@26381 slave e2737cdc7073c3750ffb670bc618dc28cc939877 0 1723562354046 3 connected
+30e652ae7137b28a304a6954acc7dd99a070be08 172.17.0.5:16379@26379 slave b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 0 1723562356053 17 connected
+8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 172.17.0.3:6380@16380 master - 0 1723562353000 2 connected 6827-10922
+808b97759fd358611f94edca21836c4d68d63467 172.17.0.6:16380@26380 slave 8ba84e5b7c76e8530529b41d8c6ee59f3d3edf0c 0 1723562354000 2 connected
+e2737cdc7073c3750ffb670bc618dc28cc939877 172.17.0.4:6381@16381 master - 0 1723562355050 3 connected 12288-16383
+b6d4a069fdd4acf4d46133e56bfa79cb6d03b77c 172.17.0.2:6379@16379 myself,master - 0 1723562354000 17 connected 0-6826 10923-12287
+```
+
 #### cluster集群中的常用配置
 1. cluster-enabled yes：开启cluster集群模式
 2. cluster-config-file：cluster集群节点配置文件，Redis服务器第一次以cluster节点身份启动时自动生成，保存了cluster集群里本节点和其他节点之间的关联方式
 3. dir: 指定cluster-config-file文件和日志文件保存的路径
 4. logfile: 指定当前节点的日志文件名
-5. cluster-node-timeout：cluster集群节点之间的超时时间，默认为5秒，如果超过该时间，则认为节点已经离线，会向对应的从节点进行故障转移操作。
+5. cluster-node-timeout：cluster集群节点之间的超时时间，单位为毫秒，如果超过该时间，则认为节点已经离线，会向对应的从节点进行故障转移操作。
 6. cluster-require-full-coverage：默认为yes。表示cluster集群中有节点失效时该集群是否继续对外提供写服务，出于容错性考虑，建议设置为no,如果设置为yes,那么集群中有节点失效时，该集群只提供只读服务。
 7. cluster-migration-barrier：用来设置主节点的最小从节点数量。假设该值为1，当某主节点的从节点数量小于1时，就会从其他从节点个数大于1的主节点那边调剂1个从节点过来，这样做的目的是避免出现不包含从节点的主节点，因为一旦出现这种情况，当主节点失效时，就无法再用从节点进行故障恢复的动作。
+8. cluster-slave-validity-factor: 如果设置成０，则无论从节点与主节点失联多久，从节点都会尝试升级成主节点。如果设置成正数，则cluster-node-timeout乘以cluster-slave-validity-factor得到的时间，是从节点与主节点失联后，此从节点数据有效的最长时间，超过这个时间，从节点不会启动故障迁移。假设cluster-node-timeout=5，cluster-slave-validity-factor=10，则如果从节点跟主节点失联超过50秒，此从节点不能成为主节点。注意，如果此参数配置为非0，将可能出现由于某主节点失联却没有从节点能顶上的情况，从而导致集群不能正常工作，在这种情况下，只有等到原来的主节点重新回归到集群，集群才恢复运作。
+9. repl-diskless-load : mastar 节点有两种方式传输 RDB，slave 节点也有两种方式加载 master 传输过来的 RDB 数据。
+传统方式：接受到数据后，先持久化到磁盘，再从磁盘加载 RDB 文件恢复数据到内存中，这是传统方式。
+diskless-load：从 Socket 中一边接受数据，一边解析，实现无盘化。
+一共有三个取值可配置：
+disabled：不使用 diskless-load 方式，即采用磁盘化的传统方式。
+on-empty-db：安全模式下使用 diskless-load（也就 slave 节点数据库为空的时候使用 diskless-load）。
+swapdb：使用 diskless-load 方式加载，slave 节点会缓存一份当前数据库的数据，再清空数据库，接着进行 Socket 读取实现加载。缓存一份数据的目的是防止读取 Socket 失败。
 
 #### 补充：使用cluster meet 
 **我也实践了下cluster meet命令，但是没有得到预期的结果，不知道是Redis版本（7.2.5）问题还是啥原因。出现的问题是：三主三从的集群可以搭建成功，但是在扩容时，新加入的节点始终是从节点，下面是我的原始命令**
