@@ -1,13 +1,13 @@
 ---
-title: Java代码报错记录集
+title: Python代码报错记录集
 description:
-slug: java_error_notes
+slug: python_error_notes
 date: 2024-08-14
 image: 
 categories:
-    - java
+    - Python
 tags:
-    - java
+    - Python
     - error_notes
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
