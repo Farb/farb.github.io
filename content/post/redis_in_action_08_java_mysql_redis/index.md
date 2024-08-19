@@ -1,7 +1,7 @@
 ---
 title: 基于Docker的Redis实战--Java整合Mysql和Redis
 description:
-slug: redis_in_action _08_java_mysql_redis
+slug: redis_in_action_08_java_mysql_redis
 date: 2024-08-14
 image: 
 categories:
