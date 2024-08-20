@@ -425,3 +425,134 @@ public class LimitRequestDemo {
 请求过于频繁，请稍后再试
 请求过于频繁，请稍后再试
 ```
+
+#### 4.Redis压力测试实战
+
+```sh
+ redis-benchmark [option] [optiion value]
+ # option是参数项，option value是参数值
+ # -h 指定redis服务器地址
+ # -p 指定redis服务器端口
+ # -c 指定并发连接数
+ # -n 指定请求次数  
+ # -q 强制退出Redis,显示时只给出“每秒能处理的请求数”这个值
+ # -t 指定测试的命令，默认执行所有命令
+
+PS D:\code\blogs\farb.github.io> docker exec -it redisDemo bash
+
+# 对本机6379端口的redis服务器进行压测，执行set和get命令各2000次
+root@563f5a099d06:/data# redis-benchmark -h 127.0.0.1 -p 6379 -t set,get -n 2000
+
+# 2000次请求set的压测结果，0.01s处理完成
+====== SET ======
+  2000 requests completed in 0.01 seconds
+  50 parallel clients
+  3 bytes payload
+  keep alive: 1
+  host configuration "save": 3600 1 300 100 60 10000
+  host configuration "appendonly": no
+  multi-thread: no
+
+# 显示了n%的请求处理时间
+Latency by percentile distribution:
+0.000% <= 0.039 milliseconds (cumulative count 1)
+50.000% <= 0.095 milliseconds (cumulative count 1043)
+75.000% <= 0.111 milliseconds (cumulative count 1677)
+87.500% <= 0.119 milliseconds (cumulative count 1775)
+93.750% <= 0.167 milliseconds (cumulative count 1887)
+96.875% <= 0.207 milliseconds (cumulative count 1942)
+98.438% <= 0.247 milliseconds (cumulative count 1976)
+99.219% <= 0.271 milliseconds (cumulative count 1986)
+99.609% <= 0.295 milliseconds (cumulative count 1994)
+99.805% <= 0.303 milliseconds (cumulative count 1997)
+99.902% <= 0.319 milliseconds (cumulative count 1999)
+99.951% <= 0.327 milliseconds (cumulative count 2000)
+100.000% <= 0.327 milliseconds (cumulative count 2000)
+
+Cumulative distribution of latencies:
+73.050% <= 0.103 milliseconds (cumulative count 1461)
+97.100% <= 0.207 milliseconds (cumulative count 1942)
+99.850% <= 0.303 milliseconds (cumulative count 1997)
+100.000% <= 0.407 milliseconds (cumulative count 2000)
+
+# 汇总信息，吞吐量：每秒28.6万次请求
+Summary:
+  throughput summary: 285714.28 requests per second
+  latency summary (msec):
+          avg       min       p50       p95       p99       max
+        0.103     0.032     0.095     0.175     0.255     0.327
+
+#以下时get的压测结果，与上面类似
+====== GET ======
+  2000 requests completed in 0.01 seconds
+  50 parallel clients
+  3 bytes payload
+  keep alive: 1
+  host configuration "save": 3600 1 300 100 60 10000
+  host configuration "appendonly": no
+  multi-thread: no
+
+Latency by percentile distribution:
+0.000% <= 0.039 milliseconds (cumulative count 2)
+50.000% <= 0.103 milliseconds (cumulative count 1211)
+75.000% <= 0.119 milliseconds (cumulative count 1512)
+87.500% <= 0.159 milliseconds (cumulative count 1751)
+93.750% <= 0.223 milliseconds (cumulative count 1878)
+96.875% <= 0.407 milliseconds (cumulative count 1938)
+98.438% <= 0.759 milliseconds (cumulative count 1969)
+99.219% <= 0.935 milliseconds (cumulative count 1985)
+99.609% <= 0.967 milliseconds (cumulative count 1993)
+99.805% <= 0.999 milliseconds (cumulative count 1997)
+99.902% <= 1.071 milliseconds (cumulative count 1999)
+99.951% <= 1.079 milliseconds (cumulative count 2000)
+100.000% <= 1.079 milliseconds (cumulative count 2000)
+
+Cumulative distribution of latencies:
+60.550% <= 0.103 milliseconds (cumulative count 1211)
+92.650% <= 0.207 milliseconds (cumulative count 1853)
+96.450% <= 0.303 milliseconds (cumulative count 1929)
+96.900% <= 0.407 milliseconds (cumulative count 1938)
+97.250% <= 0.503 milliseconds (cumulative count 1945)
+97.650% <= 0.607 milliseconds (cumulative count 1953)
+98.000% <= 0.703 milliseconds (cumulative count 1960)
+98.600% <= 0.807 milliseconds (cumulative count 1972)
+98.950% <= 0.903 milliseconds (cumulative count 1979)
+99.900% <= 1.007 milliseconds (cumulative count 1998)
+100.000% <= 1.103 milliseconds (cumulative count 2000)
+
+Summary:
+  throughput summary: 249999.98 requests per second
+  latency summary (msec):
+          avg       min       p50       p95       p99       max
+        0.131     0.032     0.103     0.247     0.919     1.079
+```
+
+再执行一个压测命令查看一下：
+
+```sh
+# 20个并发连接，2000次请求，没有指定-t参数，默认执行所有命令，使用-q参数，只显示每秒处理的请求数，如果去掉-q，则会显示每条命令的详细信息。
+root@563f5a099d06:/data# redis-benchmark -h localhost -p 6379 -c 20 -n 2000 -q
+
+# 显示每秒处理的请求数，以及50%的请求处理耗时
+PING_INLINE: 285714.28 requests per second, p50=0.047 msec
+PING_MBULK: 285714.28 requests per second, p50=0.047 msec
+SET: 249999.98 requests per second, p50=0.047 msec
+GET: 249999.98 requests per second, p50=0.047 msec
+INCR: 249999.98 requests per second, p50=0.047 msec
+LPUSH: 285714.28 requests per second, p50=0.039 msec
+RPUSH: 249999.98 requests per second, p50=0.047 msec
+LPOP: 222222.23 requests per second, p50=0.039 msec
+RPOP: 285714.28 requests per second, p50=0.047 msec
+SADD: 249999.98 requests per second, p50=0.047 msec
+HSET: 249999.98 requests per second, p50=0.047 msec
+SPOP: 222222.23 requests per second, p50=0.047 msec
+ZADD: 222222.23 requests per second, p50=0.047 msec
+ZPOPMIN: 222222.23 requests per second, p50=0.047 msec
+LPUSH (needed to benchmark LRANGE): 249999.98 requests per second, p50=0.047 msec
+LRANGE_100 (first 100 elements): 90909.09 requests per second, p50=0.119 msec
+LRANGE_300 (first 300 elements): 35714.29 requests per second, p50=0.279 msec
+LRANGE_500 (first 500 elements): 25000.00 requests per second, p50=0.391 msec
+LRANGE_600 (first 600 elements): 21505.38 requests per second, p50=0.455 msec
+MSET (10 keys): 333333.34 requests per second, p50=0.039 msec
+XADD: 285714.28 requests per second, p50=0.039 msec
+```
