@@ -1,5 +1,5 @@
 ---
-title: 基于Docker的Redis实战-Redis综合实践案例
+title: 基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例
 description:
 slug: redis_in_action_09_redis_practical_cases
 date: 2024-08-18
@@ -123,6 +123,7 @@ punsubscribe [pattern [pattern ...]]
 创建一个Publisher类，用于发布消息。
 
 ```java
+
 public class Publisher {
     /**
      * 主函数入口
@@ -147,9 +148,11 @@ public class Publisher {
         jedis.publish("MQChannel", jsonString);
     }
 }
+
 ```
 
 创建一个Subscriber类，该类继承JedisPubSub抽象类，用于订阅消息、接收消息、取消订阅。
+
 ```java
 public class Subscriber extends JedisPubSub {
     /**
@@ -426,7 +429,7 @@ public class LimitRequestDemo {
 请求过于频繁，请稍后再试
 ```
 
-#### 4.Redis压力测试实战
+### 四.Redis压力测试实战
 
 ```sh
  redis-benchmark [option] [optiion value]
