@@ -33,4 +33,4 @@ ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that 
 
 ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'master to master_host='172.17.0.2',master_port=3306,master_user='root',master_pa' at line 1
 
-经查阅，也是版本问题，`change master to`已经在MySql8.4中被`CHANGE REPLICATION SOURCE TO`取代，https://dev.mysql.com/doc/refman/8.4/en/replication-howto-slaveinit.html。
+经查阅，也是版本问题，`change master to`已经在MySql8中被`CHANGE REPLICATION SOURCE TO`取代，https://dev.mysql.com/doc/refman/8.4/en/replication-howto-slaveinit.html。
