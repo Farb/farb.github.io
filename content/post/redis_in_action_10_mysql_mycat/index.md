@@ -14,7 +14,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 源码链接： https://gitee.com/farb/architect-practicer-code 
 
 # Redis整合MySql主从集群
-**这里将搭建基于Docker的MySql一主一从集群**
+## 用docker搭建MySql一主一从集群
 1. 在主Mysql服务器的操作会自动同步到从Mysql服务器，比如插入数据，删除数据，更新数据和新建数据库等都会同步到从服务器，通过这种同步的动作，主从服务器之间可以保持数据一致性。
 2. 一般项目都是向主服务器写数据，从“从服务器”读数据，这种读写分离的方式可以提升数据库的性能。
    
@@ -189,3 +189,37 @@ mysql> show databases;
 +--------------------+
 5 rows in set (0.00 sec)
 ```
+
+## 准备数据
+```sh
+# 创建数据库
+mysql> create database redisDemo;
+Query OK, 1 row affected (0.01 sec)
+
+# 切换到数据库
+mysql> use redisDemo;
+Database changed
+
+# 创建表
+mysql> create table student (
+    -> id int not null primary key auto_increment,
+    -> name varchar(20),
+    -> age int,
+    -> score float
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+# 插入数据
+mysql> insert into student (name,age,score) values('Peter',18,100);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into student (name,age,score) values('Tom',17,98),('John',17,99);
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+```
+
+## 创建java项目，用java读写mysql集群和redis
+
+## mysql主从集群整合redis主从集群
+
+# Redis整合MySql和MyCat分库组件
