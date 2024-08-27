@@ -113,3 +113,13 @@ Source_SSL_Verify_Server_Cert: No
 ```
 
 # 7. MySql主从集群，从服务器同步报错: Coordinator stopped because there were error(s) in the worker(s). The most recent failure being: Worker 1 failed executing transaction 'ANONYMOUS' at source log mysql-master-bin.000004, end_log_pos 35
+**当前我的分析及解决步骤如下：**
+1. 查看从节点的日志文件，发现报错信息如下：
+```log
+2024-08-27 22:46:06 2024-08-27T14:46:06.499064Z 7 [ERROR] [MY-010584] [Repl] Replica SQL for channel '': Worker 1 failed executing transaction 'ANONYMOUS' at source log mysql-master-bin.000004, end_log_pos 354; Error 'Can't drop database 'redisdemo'; database doesn't exist' on query. Default database: 'redisdemo'. Query: 'drop database redisDemo', Error_code: MY-001008
+2024-08-27 22:46:06 2024-08-27T14:46:06.499234Z 6 [ERROR] [MY-010586] [Repl] Error running query, replica SQL thread aborted. Fix the problem, and restart the replica SQL thread with "START REPLICA". We stopped at log 'mysql-master-bin.000004' position 158
+```
+2. 观察到报错信息，发现报错信息提示，删除数据库数据库不存在。因为第一次实践时，创建数据库redisDemo时没有同步成功，所以在主节点执行了`drop database redisDemo`。
+3. 为了保持数据操作同步，需要将之前创建的语句手动在从节点执行一下`create database redisDemo;`。
+4. 创建数据库之后，`stop replica;`关闭主从同步，然后再`start replica;`开启主从同步，即可解决从节点同步报错的问题。`show replica status\G;`查看从节点正常。
+

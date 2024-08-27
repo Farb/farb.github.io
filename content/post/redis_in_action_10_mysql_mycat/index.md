@@ -216,9 +216,30 @@ Query OK, 1 row affected (0.01 sec)
 mysql> insert into student (name,age,score) values('Tom',17,98),('John',17,99);
 Query OK, 2 rows affected (0.01 sec)
 Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> insert into student(name,age,score) values('farb',26,96);
+Query OK, 1 row affected (0.01 sec)
 ```
 
 ## 创建java项目，用java读写mysql集群和redis
+
+1. 确保pom.xml中添加了redis和mysql的依赖
+
+```xml
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+```
+
+2. 高并发的场景里，至少会用到MySql的主从复制集群，无论是性能还是可用性都比单机版MySql好。在此基础上再引入Redis作为缓存服务器，能进一步提升数据库服务的性能。
+![](https://s3.bmp.ovh/imgs/2024/08/27/5b1966ecfb31229c.png)
 
 ## mysql主从集群整合redis主从集群
 
