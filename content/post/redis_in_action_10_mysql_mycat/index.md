@@ -222,6 +222,9 @@ Query OK, 1 row affected (0.01 sec)
 ```
 
 ## 创建java项目，用java读写mysql集群和redis
+> 向主数据库写数据，这些数据会自动同步到从数据库。
+> 读数据时，先从redis中读，可以提升性能。如果redis中没有，再从从数据库中读，最后再写redis。
+> 读写分离方式也可以提升性能。
 
 1. 确保pom.xml中添加了redis和mysql的依赖
 
@@ -241,6 +244,302 @@ Query OK, 1 row affected (0.01 sec)
 2. 高并发的场景里，至少会用到MySql的主从复制集群，无论是性能还是可用性都比单机版MySql好。在此基础上再引入Redis作为缓存服务器，能进一步提升数据库服务的性能。
 ![](https://s3.bmp.ovh/imgs/2024/08/27/5b1966ecfb31229c.png)
 
-## mysql主从集群整合redis主从集群
+3. Java代码示例
+```java
+public class MySqlClusterDemo {
+    PreparedStatement masterPreparedStatement;
+    PreparedStatement slavePreparedStatement;
+    private Jedis jedis;
+    private Connection masterConnection;
+    private Connection slaveConnection;
 
+    /**
+     * 程序入口
+     * @param args 命令行参数
+     */
+    public static void main(String[] args) {
+        // 创建示例对象
+        MySqlClusterDemo demo = new MySqlClusterDemo();
+        // 初始化数据库连接
+        demo.init();
+        // 插入示例数据
+        demo.insert();
+        // 场景1：从数据库查询ID为1的名称并打印
+        System.out.println(demo.getNameById(1));
+        // 场景2：从redis缓存再次查询并打印，用于验证数据一致性
+        System.out.println(demo.getNameById(1));
+    }
+
+    /**
+     * 初始化数据库和Redis连接
+     * 该方法在类初始化时调用，负责建立到MySQL主从数据库的连接以及到Redis服务器的连接
+     */
+    private void init() {
+        // MySQL主库连接URL
+        String mysqlMasterUrl = "jdbc:mysql://127.0.0.1:3306/redisDemo";
+        // MySQL从库连接URL
+        String mysqlSlaveUrl = "jdbc:mysql://127.0.0.1:3316/redisDemo";
+        // 数据库用户名
+        String user = "root";
+        // 数据库密码
+        String password = "123456";
+        try {
+            // 建立到MySQL主库的连接
+            masterConnection = DriverManager.getConnection(mysqlMasterUrl, user, password);
+            // 建立到MySQL从库的连接
+            slaveConnection = DriverManager.getConnection(mysqlSlaveUrl, user, password);
+        } catch (SQLException e) {
+            // 如果发生SQL异常，则抛出运行时异常
+            throw new RuntimeException(e);
+        }
+        // 建立到Redis服务器的连接
+        jedis = new Jedis("127.0.0.1", 6379);
+    }
+
+    /**
+     * 插入学生数据的方法
+     * 该方法用于向学生表中插入一条新的学生记录，包括姓名、年龄和分数
+     * 由于数据库操作可能存在异常，故在此方法中进行了异常捕获和处理
+     */
+    private void insert() {
+        try {
+            // 准备插入语句，将预设的学生数据插入到主数据库中
+            masterPreparedStatement = masterConnection.prepareStatement("insert into student(name,age,score) values ('Frank',18,95)");
+            // 执行插入操作
+            masterPreparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            // 捕获SQL异常，避免程序因未处理的异常而中断
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * 根据学生ID获取学生姓名
+     * 首先检查Redis中是否存在该数据，如果存在，则直接返回，以提高查询效率
+     * 如果Redis中不存在，则从数据库中查询，并将结果存储到Redis中，以便后续查询
+     *
+     * @param id 学生ID
+     * @return 学生姓名，如果找不到则返回空字符串
+     */
+    private String getNameById(int id) {
+        // 构造Redis的键
+        String key = "student:" + id;
+        // 初始化姓名为空字符串
+        String name = "";
+        // 检查Redis中是否存在该键
+        if (jedis.exists(key)) {
+            // 如果存在，则打印消息并从Redis中获取姓名
+            System.out.println("从redis中获取数据:id=" + id + "存在于数据库");
+            name = jedis.get(key);
+            // 打印获取到的姓名
+            System.out.println("Name is " + name);
+            // 返回获取到的姓名
+            return name;
+        }
+        // 尝试从数据库中获取姓名
+        try {
+            // 准备数据库查询语句
+            slavePreparedStatement = slaveConnection.prepareStatement("select name from student where id = ?");
+            // 设置查询参数为学生ID
+            slavePreparedStatement.setInt(1, id);
+            // 执行查询并获取结果集
+            ResultSet resultSet = slavePreparedStatement.executeQuery();
+            // 如果结果集中有数据
+            if (resultSet.next()) {
+                // 获取姓名
+                name = resultSet.getString("name");
+                // 打印从数据库中获取数据的消息
+                System.out.println("从数据库中获取数据:id=" + id + "存在于数据库");
+            }
+            // 将姓名存储到Redis中,并设置300s过期时间，如果没有找到数据，缓存为空值，防止缓存穿透
+            SetParams params = SetParams.setParams().ex(300);
+            jedis.set(key, name, params);
+            // 返回获取到的姓名
+            return name;
+        } catch (SQLException e) {
+            // 如果发生SQL异常，则抛出运行时异常
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+```
+## mysql主从集群整合redis主从集群
+1. 搭建一主一从的mysql集群，一主一从的Redis集群，如下图：
+![](https://s3.bmp.ovh/imgs/2024/08/28/f8fe6efa299a0b80.png)
+
+2. 主从模式的MySQL集群上面已经配置，接下来重新复习一下配置一主一从的Redis集群，最终配置一览表如下：
+| docker容器名  | IP地址和端口   | 说明        |
+| ------------- | -------------- | ----------- |
+| myMasterMysql | 127.0.0.1:3306 | MySQL主节点 |
+| mySlaveMysql  | 127.0.0.1:3316 | MySQL从节点 |
+| redis-master  | 127.0.0.1:6379 | Redis主节点 |
+| redis-slave   | 127.0.0.1:6380 | Redis从节点 |
+
+```sh
+# 启动redis主服务器容器
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-master -p 6379:6379 redis
+7766df2403d2da7852380710245441da684a5aa19b040995dbd1606e78b6855f
+
+# 启动redis从服务器容器
+PS D:\code\blogs\farb.github.io> docker run -itd --name redis-slave -p 6380:6379 redis 
+9ee23465b5a829d440821014d30998b2b4d76cd10e10d0a01bcfd8081bd5d626
+
+# 获取redis主服务器的IP地址
+PS D:\code\blogs\farb.github.io>  docker inspect -f "{{.NetworkSettings.IPAddress}}" redis-master
+172.17.0.4
+
+# 配置redis从服务器为从节点
+PS D:\code\blogs\farb.github.io> docker exec -it redis-slave bash
+root@9ee23465b5a8:/data# redis-cli -h localhost -p 6379
+# 这里为了方便，通过命令slaveof设置redis从服务器为从节点
+localhost:6379> slaveof 172.17.0.4 6379
+OK
+
+# 查看主从关系状态正常
+localhost:6379> info replication
+# Replication
+role:slave
+master_host:172.17.0.4
+master_port:6379
+master_link_status:up
+```
+
+3. java代码改进点：
+   1. 读取数据时，优先从“从redis缓存”中读取；
+   2. 从数据库查询到数据后，将数据写入“主Redis缓存”中，通过redis的主从复制自动同步到从Redis中；
+
+```java
+public class MySqlClusterDemoV2 {
+    // 主mysql预编译sql语句对象
+    PreparedStatement masterPreparedStatement;
+    // 从mysql预编译sql语句对象
+    PreparedStatement slavePreparedStatement;
+    // 主Redis客户端对象
+    private Jedis masterJedis;
+    // 从Redis客户端对象
+    private Jedis slaveJedis;
+    // 主数据库连接对象
+    private Connection masterConnection;
+    // 从数据库连接对象
+    private Connection slaveConnection;
+
+    /**
+     * 程序入口
+     *
+     * @param args 命令行参数
+     */
+    public static void main(String[] args) {
+        // 创建示例对象
+        MySqlClusterDemoV2 demo = new MySqlClusterDemoV2();
+        // 初始化数据库连接
+        demo.init();
+        // 插入示例数据
+        demo.insert();
+        // 场景1：从数据库查询ID为1的名称并打印
+        System.out.println(demo.getNameById(1));
+        // 场景2：从redis缓存再次查询并打印，用于验证数据一致性
+        System.out.println(demo.getNameById(1));
+    }
+
+    /**
+     * 初始化数据库和Redis连接
+     * 该方法在类初始化时调用，负责建立到MySQL主从数据库的连接以及到Redis服务器的连接
+     */
+    private void init() {
+        // MySQL主库连接URL
+        String mysqlMasterUrl = "jdbc:mysql://127.0.0.1:3306/redisDemo";
+        // MySQL从库连接URL
+        String mysqlSlaveUrl = "jdbc:mysql://127.0.0.1:3316/redisDemo";
+        // 数据库用户名
+        String user = "root";
+        // 数据库密码
+        String password = "123456";
+        try {
+            // 建立到MySQL主库的连接
+            masterConnection = DriverManager.getConnection(mysqlMasterUrl, user, password);
+            // 建立到MySQL从库的连接
+            slaveConnection = DriverManager.getConnection(mysqlSlaveUrl, user, password);
+        } catch (SQLException e) {
+            // 如果发生SQL异常，则抛出运行时异常
+            throw new RuntimeException(e);
+        }
+        // 建立到主Redis服务器的连接
+        masterJedis = new Jedis("127.0.0.1", 6379);
+        // 建立到从Redis服务器的连接
+        slaveJedis = new Jedis("127.0.0.1", 6380);
+    }
+
+    /**
+     * 插入学生数据的方法
+     * 该方法用于向学生表中插入一条新的学生记录，包括姓名、年龄和分数
+     * 由于数据库操作可能存在异常，故在此方法中进行了异常捕获和处理
+     */
+    private void insert() {
+        try {
+            // 准备插入语句，将预设的学生数据插入到主数据库中
+            masterPreparedStatement = masterConnection.prepareStatement("insert into student(name,age,score) values ('Frank',18,95)");
+            // 执行插入操作
+            masterPreparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            // 捕获SQL异常，避免程序因未处理的异常而中断
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * 根据学生ID获取学生姓名
+     * 首先检查Redis中是否存在该数据，如果存在，则直接返回，以提高查询效率
+     * 如果Redis中不存在，则从数据库中查询，并将结果存储到Redis中，以便后续查询
+     *
+     * @param id 学生ID
+     * @return 学生姓名，如果找不到则返回空字符串
+     */
+    private String getNameById(int id) {
+        // 构造Redis的键
+        String key = "student:" + id;
+        // 初始化姓名为空字符串
+        String name = "";
+        // 检查Redis中是否存在该键
+        if (slaveJedis.exists(key)) {
+            // 如果存在，则打印消息并从Redis中获取姓名
+            System.out.println("从redis中获取数据:id=" + id + "存在于数据库");
+            name = slaveJedis.get(key);
+            // 打印获取到的姓名
+            System.out.println("Name is " + name);
+            // 返回获取到的姓名
+            return name;
+        }
+        // 尝试从数据库中获取姓名
+        try {
+            // 准备数据库查询语句
+            slavePreparedStatement = slaveConnection.prepareStatement("select name from student where id = ?");
+            // 设置查询参数为学生ID
+            slavePreparedStatement.setInt(1, id);
+            // 执行查询并获取结果集
+            ResultSet resultSet = slavePreparedStatement.executeQuery();
+            // 如果结果集中有数据
+            if (resultSet.next()) {
+                // 获取姓名
+                name = resultSet.getString("name");
+                // 打印从数据库中获取数据的消息
+                System.out.println("从数据库中获取数据:id=" + id + "存在于数据库");
+            }
+            // 将姓名存储到Redis中,并设置300s过期时间，如果没有找到数据，缓存为空值，防止缓存穿透
+            SetParams params = SetParams.setParams().ex(300);
+            masterJedis.set(key, name, params);
+            // 返回获取到的姓名
+            return name;
+        } catch (SQLException e) {
+            // 如果发生SQL异常，则抛出运行时异常
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+```
 # Redis整合MySql和MyCat分库组件
