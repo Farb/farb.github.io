@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>MySql on Farb的博客</title><link>https://farb.github.io/tags/mysql/</link><description>Recent content in MySql on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Wed, 21 Aug 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://farb.github.io/tags/mysql/index.xml" rel="self" type="application/rss+xml"/><item><title>MySql报错记录集</title><link>https://farb.github.io/p/mysql_error_notes/</link><pubDate>Wed, 21 Aug 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/mysql_error_notes/</guid><description>&lt;h3 id="1-warning-world-writable-config-file-etcmysqlconfdmycnf-is-ignored">1. [Warning] World-writable config file &amp;lsquo;/etc/mysql/conf.d/my.cnf&amp;rsquo; is ignored.
+&lt;/h3>&lt;p>&lt;strong>警告任何用户都可以修改配置文件，太不安全，所以Mysql把这个配置文件忽略了。 文件权限太高，需要降低文件权限。本错误是在docker容器中出现的，所以需要进入docke容器中执行以下命令。&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">PS D:&lt;span class="se">\c&lt;/span>ode&lt;span class="se">\b&lt;/span>logs&lt;span class="se">\f&lt;/span>arb.github.io&amp;gt; docker &lt;span class="nb">exec&lt;/span> -it myMasterMysql bash
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bash-5.1# chmod &lt;span class="m">644&lt;/span> /etc/mysql/conf.d/my.cnf
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h1 id="2-mysql-show-master-status-命令报错语法错误">2. mysql&amp;gt; show master status; 命令报错语法错误
+&lt;/h1>&lt;p>报错如下：&lt;/p>
+&lt;p>ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near &amp;lsquo;master status&amp;rsquo; at line 1&lt;/p>
+&lt;p>困扰了很久，最终找到了原因，是mysql版本问题，我使用的是mysql 8.4，&lt;code>show master status;&lt;/code>已经被废弃，使用&lt;code>SHOW BINARY LOG STATUS;&lt;/code>代替
+具体查看官方说明，https://dev.mysql.com/doc/refman/8.4/en/show-master-status.html&lt;/p>
+&lt;h1 id="3-mysql-change-master-to-master_host1721702master_port3306master_userrootmaster_password123456master_log_pos158master_log_filemysql-master-bin000002-设置主从关系时报语法错误">3. mysql&amp;gt; change master to master_host=&amp;lsquo;172.17.0.2&amp;rsquo;,master_port=3306,master_user=&amp;lsquo;root&amp;rsquo;,master_password=&amp;lsquo;123456&amp;rsquo;,master_log_pos=158,master_log_file=&amp;lsquo;mysql-master-bin.000002&amp;rsquo;; 设置主从关系时报语法错误
+&lt;/h1>&lt;p>错误提示如下：&lt;/p>
+&lt;p>ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near &amp;lsquo;master to master_host=&amp;lsquo;172.17.0.2&amp;rsquo;,master_port=3306,master_user=&amp;lsquo;root&amp;rsquo;,master_pa&amp;rsquo; at line 1&lt;/p>
+&lt;p>经查阅，也是版本问题，&lt;code>change master to&lt;/code>已经在MySql8中被&lt;code>CHANGE REPLICATION SOURCE TO&lt;/code>取代，https://dev.mysql.com/doc/refman/8.4/en/replication-howto-slaveinit.html。&lt;/p>
+&lt;h1 id="4-http-code-500-server-error---ports-are-not-available-exposing-port-tcp-00003316---00000-listen-tcp-00003316-bind-an-attempt-was-made-to-access-a-socket-in-a-way-forbidden-by-its-access-permissions">4. (HTTP code 500) server error - Ports are not available: exposing port TCP 0.0.0.0:3316 -&amp;gt; 0.0.0.0:0: listen tcp 0.0.0.0:3316: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+&lt;/h1>&lt;h1 id="5-public-key-retrieval-is-not-allowed">5. Public Key Retrieval is not allowed
+&lt;/h1>&lt;p>&lt;strong>使用数据库客户端DBeaver连接mysql时，报错如下：&lt;code>Public Key Retrieval is not allowed&lt;/code>。&lt;/strong>&lt;/p>
+&lt;p>“Public Key Retrieval is not allowed” 错误是由于 MySQL 连接驱动程序的默认行为更改所引起的。在 MySQL 8.0 版本及更新版本中，默认情况下禁用了通过公钥检索用户密码的功能。&lt;/p>
+&lt;p>在旧版本的 MySQL 中，客户端连接到服务器时，可以使用公钥来检索用户密码。这种机制称为 “public key retrieval”，它允许客户端使用公钥来解密在服务器端加密的密码。&lt;/p>
+&lt;p>然而，为了提高安全性，MySQL 开发团队在较新的版本中禁用了这个功能。禁用公钥检索可以防止恶意用户通过获取公钥来获取用户密码。相反，客户端必须使用其他安全的方法来进行身份验证，例如使用预共享密钥或使用 SSL/TLS 连接。&lt;/p>
+&lt;p>解决方式1. 修改DBeaver中的驱动属性的参数为&lt;code>allowPublicKeyRetrieval=true&lt;/code> 参考https://blog.csdn.net/qq_33472553/article/details/139107958：。但是这种方式会导致主从模式的数据库集群同步失败，报错见第6点，也即是认证需要安全连接。&lt;/p>
+&lt;h1 id="6-从数据库没有同步主数据库的数据通过show-replica-statusg发现报错-last_io_error-error-connecting-to-source-root17217023306-this-was-attempt-1010-with-a-delay-of-60-seconds-between-attempts-message-authentication-plugin-caching_sha2_password-reported-error-authentication-requires-secure-connection">6. 从数据库没有同步主数据库的数据，通过&lt;code>show replica status\G&lt;/code>发现报错： Last_IO_Error: Error connecting to source &amp;lsquo;&lt;a class="link" href="mailto:root@172.17.0.2" >root@172.17.0.2&lt;/a>:3306&amp;rsquo;. This was attempt 10/10, with a delay of 60 seconds between attempts. Message: Authentication plugin &amp;lsquo;caching_sha2_password&amp;rsquo; reported error: Authentication requires secure connection.
+&lt;/h1>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;span class="lnt">40
+&lt;/span>&lt;span class="lnt">41
+&lt;/span>&lt;span class="lnt">42
+&lt;/span>&lt;span class="lnt">43
+&lt;/span>&lt;span class="lnt">44
+&lt;/span>&lt;span class="lnt">45
+&lt;/span>&lt;span class="lnt">46
+&lt;/span>&lt;span class="lnt">47
+&lt;/span>&lt;span class="lnt">48
+&lt;/span>&lt;span class="lnt">49
+&lt;/span>&lt;span class="lnt">50
+&lt;/span>&lt;span class="lnt">51
+&lt;/span>&lt;span class="lnt">52
+&lt;/span>&lt;span class="lnt">53
+&lt;/span>&lt;span class="lnt">54
+&lt;/span>&lt;span class="lnt">55
+&lt;/span>&lt;span class="lnt">56
+&lt;/span>&lt;span class="lnt">57
+&lt;/span>&lt;span class="lnt">58
+&lt;/span>&lt;span class="lnt">59
+&lt;/span>&lt;span class="lnt">60
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 停止从节点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; stop replica&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Query OK, &lt;span class="m">0&lt;/span> rows affected &lt;span class="o">(&lt;/span>0.00 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 重置从库配置&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; reset replica all&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Query OK, &lt;span class="m">0&lt;/span> rows affected &lt;span class="o">(&lt;/span>0.02 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 重新配置主从配置关系，主要是最后一句GET_SOURCE_PUBLIC_KEY=1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; CHANGE REPLICATION SOURCE TO &lt;span class="nv">SOURCE_host&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;172.17.0.2&amp;#39;&lt;/span>,SOURCE_port&lt;span class="o">=&lt;/span>3306,SOURCE_user&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;root&amp;#39;&lt;/span>,SOURCE_password&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;123456&amp;#39;&lt;/span>,SOURCE_log_pos&lt;span class="o">=&lt;/span>158,SOURCE_log_file&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;mysql-master-bin.000004&amp;#39;&lt;/span>,GET_SOURCE_PUBLIC_KEY&lt;span class="o">=&lt;/span>1&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Query OK, &lt;span class="m">0&lt;/span> rows affected, &lt;span class="m">2&lt;/span> warnings &lt;span class="o">(&lt;/span>0.04 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 启动从节点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; start replica&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Query OK, &lt;span class="m">0&lt;/span> rows affected &lt;span class="o">(&lt;/span>0.01 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 再次查看从节点状态，发现没有错误了&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; show replica status&lt;span class="se">\G&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">*************************** 1. row ***************************
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replica_IO_State: Waiting &lt;span class="k">for&lt;/span> &lt;span class="nb">source&lt;/span> to send event
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Host: 172.17.0.2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_User: root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Port: &lt;span class="m">3306&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Connect_Retry: &lt;span class="m">60&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Log_File: mysql-master-bin.000004
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Read_Source_Log_Pos: &lt;span class="m">158&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Relay_Log_File: 0f827dad7de8-relay-bin.000002
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Relay_Log_Pos: &lt;span class="m">335&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Relay_Source_Log_File: mysql-master-bin.000004
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replica_IO_Running: Yes
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replica_SQL_Running: Yes
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Do_DB:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Ignore_DB:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Do_Table:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Ignore_Table:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Wild_Do_Table:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Wild_Ignore_Table:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_Errno: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_Error:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Skip_Counter: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Exec_Source_Log_Pos: &lt;span class="m">158&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Relay_Log_Space: &lt;span class="m">553&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Until_Condition: None
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Until_Log_File:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Until_Log_Pos: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_SSL_Allowed: No
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Seconds_Behind_Source: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Source_SSL_Verify_Server_Cert: No
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_IO_Errno: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_IO_Error:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_SQL_Errno: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Last_SQL_Error:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replicate_Ignore_Server_Ids:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Server_Id: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_UUID: 8e3f2ec2-5fbf-11ef-a070-0242ac110002
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Info_File: mysql.slave_master_info
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> SQL_Delay: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> SQL_Remaining_Delay: NULL
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Replica_SQL_Running_State: Replica has &lt;span class="nb">read&lt;/span> all relay log&lt;span class="p">;&lt;/span> waiting &lt;span class="k">for&lt;/span> more updates
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Source_Retry_Count: &lt;span class="m">10&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h1 id="7-mysql主从集群从服务器同步报错-coordinator-stopped-because-there-were-errors-in-the-workers-the-most-recent-failure-being-worker-1-failed-executing-transaction-anonymous-at-source-log-mysql-master-bin000004-end_log_pos-35">7. MySql主从集群，从服务器同步报错: Coordinator stopped because there were error(s) in the worker(s). The most recent failure being: Worker 1 failed executing transaction &amp;lsquo;ANONYMOUS&amp;rsquo; at source log mysql-master-bin.000004, end_log_pos 35
+&lt;/h1>&lt;p>&lt;strong>当前我的分析及解决步骤如下：&lt;/strong>&lt;/p>
+&lt;ol>
+&lt;li>查看从节点的日志文件，发现报错信息如下：&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">2024-08-27 22:46:06 2024-08-27T14:46:06.499064Z 7 [ERROR] [MY-010584] [Repl] Replica SQL for channel &amp;#39;&amp;#39;: Worker 1 failed executing transaction &amp;#39;ANONYMOUS&amp;#39; at source log mysql-master-bin.000004, end_log_pos 354; Error &amp;#39;Can&amp;#39;t drop database &amp;#39;redisdemo&amp;#39;; database doesn&amp;#39;t exist&amp;#39; on query. Default database: &amp;#39;redisdemo&amp;#39;. Query: &amp;#39;drop database redisDemo&amp;#39;, Error_code: MY-001008
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2024-08-27 22:46:06 2024-08-27T14:46:06.499234Z 6 [ERROR] [MY-010586] [Repl] Error running query, replica SQL thread aborted. Fix the problem, and restart the replica SQL thread with &amp;#34;START REPLICA&amp;#34;. We stopped at log &amp;#39;mysql-master-bin.000004&amp;#39; position 158
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ol start="2">
+&lt;li>观察到报错信息，发现报错信息提示，删除数据库数据库不存在。因为第一次实践时，创建数据库redisDemo时没有同步成功，所以在主节点执行了&lt;code>drop database redisDemo&lt;/code>。&lt;/li>
+&lt;li>为了保持数据操作同步，需要将之前创建的语句手动在从节点执行一下&lt;code>create database redisDemo;&lt;/code>。&lt;/li>
+&lt;li>创建数据库之后，&lt;code>stop replica;&lt;/code>关闭主从同步，然后再&lt;code>start replica;&lt;/code>开启主从同步，即可解决从节点同步报错的问题。&lt;code>show replica status\G;&lt;/code>查看从节点正常。&lt;/li>
+&lt;/ol></description></item></channel></rss>

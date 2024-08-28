@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Hugo Stack on Farb的博客</title><link>https://farb.github.io/tags/hugo-stack/</link><description>Recent content in Hugo Stack on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 21 Apr 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://farb.github.io/tags/hugo-stack/index.xml" rel="self" type="application/rss+xml"/><item><title>Hugo+Stack主题快速集成评论系统Waline</title><link>https://farb.github.io/p/hugo_stack_waline/</link><pubDate>Sun, 21 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack_waline/</guid><description>&lt;h2 id="实验经历">实验经历
+&lt;/h2>&lt;p>之前集成了utterance，但是它必须登录才能发布评论，而且博客发布到国内的gitee上的话，无法展示。所以今天换成了Waline。&lt;/p>
+&lt;p>&lt;strong>&lt;a class="link" href="https://waline.js.org/" target="_blank" rel="noopener"
+>Waline官网&lt;/a>&lt;/strong>&lt;/p>
+&lt;h2 id="参考文档">参考文档
+&lt;/h2>&lt;p>&lt;a class="link" href="https://waline.js.org/guide/get-started/" target="_blank" rel="noopener"
+>https://waline.js.org/guide/get-started/&lt;/a>&lt;/p>
+&lt;p>跟着Waline官方这个文档一步步来，就可以。主要思想就是部署一个数据库和nodejs的服务端。数据库部署在LeanCloud,服务端部署在Vercel上。
+&lt;strong>需要注意的是，Vercel上部署的应用，需要绑定自己的域名才可以，据说是DNS污染，因此买了个域名farb.top。&lt;/strong>&lt;/p>
+&lt;h2 id="hugo-stack中如何配置">Hugo Stack中如何配置
+&lt;/h2>&lt;ol>
+&lt;li>找到配置文件： config_default\params.toml&lt;/li>
+&lt;li>修改评论系统的provider以及&lt;code>[comments.waline]&lt;/code>节点下的&lt;code>serverURL&lt;/code>为你自己的后端服务地址。代码如下：
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-toml" data-lang="toml">&lt;span class="line">&lt;span class="cl"> &lt;span class="c">## Comments&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">[&lt;/span>&lt;span class="nx">comments&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">enabled&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kc">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">provider&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;waline&amp;#34;&lt;/span> &lt;span class="c">## 修改点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>&lt;span class="nx">comments&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">waline&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">serverURL&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;https://blog.comment.farb.top&amp;#34;&lt;/span> &lt;span class="c">## 修改点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">lang&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;zh-cn&amp;#34;&lt;/span> &lt;span class="c">## 修改点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">visitor&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">avatar&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">emoji&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">requiredMeta&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;email&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">placeholder&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h2 id="效果展示">效果展示
+&lt;/h2>&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/04/21/4532be3fa12f4f52.png"
+loading="lazy"
+>&lt;/p></description></item><item><title>Hugo+Stack主题集成Vercount统计网站访问信息</title><link>https://farb.github.io/p/hugo_stack_vercount/</link><pubDate>Sat, 20 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack_vercount/</guid><description>&lt;h2 id="参考文章">参考文章
+&lt;/h2>&lt;p>&lt;a class="link" href="https://stack.jimmycai.com/config/header-footer" target="_blank" rel="noopener"
+>https://stack.jimmycai.com/config/header-footer&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://stack.jimmycai.com/config/footer" target="_blank" rel="noopener"
+>https://stack.jimmycai.com/config/footer&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://umami.is" target="_blank" rel="noopener"
+>umami&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://vercount.one/" target="_blank" rel="noopener"
+>Vercount官网&lt;/a>&lt;/p>
+&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/04/20/cf50449037262da6.png"
+loading="lazy"
+>&lt;/p>
+&lt;p>&lt;strong>推荐使用Vercount，不推荐使用不蒜子。理由：不蒜子网站太老了，作者没有维护的意思，Vercount官网更现代化，开源，点开看看就知道了。我集成的时候官网才几百的访客。看GitHub提交记录，也就最近3个月刚成立的项目，很年轻，有活力。&lt;/strong>&lt;/p>
+&lt;h2 id="集成vercount">集成Vercount
+&lt;/h2>&lt;p>我使用的是Hugo+Stack主题，根据Stack官方文档，在主题根目录下，新建一个自定义文件&lt;code>layouts\partials\footer\custom.html&lt;/code>。&lt;/p>
+&lt;h3 id="网站引入vercount的js">网站引入vercount的js
+&lt;/h3>&lt;p>然后将Vercount的js添加到该文件中。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">script&lt;/span> &lt;span class="nx">defer&lt;/span> &lt;span class="nx">src&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;https://cn.vercount.one/js&amp;#34;&lt;/span>&lt;span class="o">&amp;gt;&amp;lt;&lt;/span>&lt;span class="err">/script&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="网站底部加入统计整个站的信息">网站底部加入统计整个站的信息
+&lt;/h3>&lt;p>根据Stack文档，自定义网站的footer信息。在&lt;code>param.toml&lt;/code>文件中的&lt;code>customText&lt;/code>加入以下标签。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-toml" data-lang="toml">&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>&lt;span class="nx">footer&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">customText&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;网站总访客数：&amp;lt;span id=&amp;#39;busuanzi_value_site_uv&amp;#39;&amp;gt;Loading&amp;lt;/span&amp;gt;&amp;lt;br/&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2"> 网站总访问量：&amp;lt;span id=&amp;#39;busuanzi_value_site_pv&amp;#39;&amp;gt;Loading&amp;lt;/span&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">since&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="mi">2024&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="博客页面加入统计当前博客的信息">博客页面加入统计当前博客的信息
+&lt;/h3>&lt;p>在博客详情页面&lt;code>layouts\partials\article\components\footer.html&lt;/code>,添加统计博客的访问情况。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-html" data-lang="html">&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">footer&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-footer&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 略
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">section&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 页面浏览量&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">span&lt;/span> &lt;span class="na">id&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;busuanzi_value_page_pv&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>Loading&lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">span&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">section&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">footer&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="集成umami">集成Umami
+&lt;/h2>&lt;p>&lt;a class="link" href="https://umami.is/" target="_blank" rel="noopener"
+>https://umami.is/&lt;/a>&lt;/p>
+&lt;p>&lt;strong>Umami是一个网站分析工具，它可以分析出一个网站的详细访问数据，包括请求PV、UV、国家来源、来源于哪个网站、用户的操作系统、浏览器等等。&lt;/strong>
+注册账号，添加网站成功后，开启共享URL，然后将这个url放到自己的网站即可。
+参考这个链接启用。 &lt;a class="link" href="https://umami.is/docs/enable-share-url" target="_blank" rel="noopener"
+>https://umami.is/docs/enable-share-url&lt;/a>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-toml" data-lang="toml">&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>&lt;span class="nx">footer&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">customText&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;网站总访客数：&amp;lt;span id=&amp;#39;busuanzi_value_site_uv&amp;#39; style=&amp;#39;margin-right:50px&amp;#39;&amp;gt;Loading&amp;lt;/span&amp;gt; 网站总访问量：&amp;lt;span id=&amp;#39;busuanzi_value_site_pv&amp;#39; style=&amp;#39;margin-right:50px&amp;#39;&amp;gt;Loading&amp;lt;/span&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;lt;a href=&amp;#39;https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io&amp;#39; style=&amp;#39;color:blue&amp;#39; target=&amp;#39;_blank&amp;#39;&amp;gt;网站访问详细统计&amp;lt;/a&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;lt;br/&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2"> &amp;lt;span id=&amp;#39;span_show_age&amp;#39; style=&amp;#39;margin-right:50px&amp;#39;/&amp;gt;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="最终效果">最终效果
+&lt;/h2>&lt;p>Vercount集成效果如下：&lt;/p>
+&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/04/20/7bf7133a95813d68.png"
+loading="lazy"
+>&lt;/p>
+&lt;p>Umami集成效果如下：
+&lt;img src="https://s3.bmp.ovh/imgs/2024/04/20/02e70ec3e5aa8aab.png"
+loading="lazy"
+>&lt;/p></description></item><item><title>Hugo+Stack主题显示博客运行时间</title><link>https://farb.github.io/p/hugo_stack_show_age/</link><pubDate>Sat, 20 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack_show_age/</guid><description>&lt;h2 id="参考博客">参考博客
+&lt;/h2>&lt;p>大神博客底部js: &lt;a class="link" href="https://icloudnative.io/" target="_blank" rel="noopener"
+>https://icloudnative.io/&lt;/a>&lt;/p>
+&lt;h2 id="网站引入js">网站引入js
+&lt;/h2>&lt;p>将js添加到文件&lt;code>layouts\partials\footer\custom.html&lt;/code>中。
+原理就是计算当前时间-博客的生日，然后将计算结果渲染到对应的标签中。函数每隔1s执行一次。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">script&lt;/span> &lt;span class="nx">defer&lt;/span> &lt;span class="nx">language&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;javascript&amp;#34;&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">uptime_1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;本站已经开心运行 &amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">uptime_2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34; 天 &amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">uptime_3&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34; 小时 &amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">uptime_4&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34; 分 &amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">uptime_5&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34; 秒&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">function&lt;/span> &lt;span class="nx">show_date_time&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">window&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">setTimeout&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">show_date_time&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mf">1e3&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">BirthDay&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nb">Date&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;8/4/2024 22:54:23&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">today&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nb">Date&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">timeold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">today&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">getTime&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">BirthDay&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">getTime&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">sectimeold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">timeold&lt;/span> &lt;span class="o">/&lt;/span> &lt;span class="mf">1e3&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">secondsold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">floor&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">sectimeold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">msPerDay&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">24&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">60&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">60&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mf">1e3&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">e_daysold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">timeold&lt;/span> &lt;span class="o">/&lt;/span> &lt;span class="nx">msPerDay&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">daysold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">floor&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">e_daysold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">e_hrsold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">e_daysold&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">daysold&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">24&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">hrsold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">floor&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">e_hrsold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">e_minsold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">e_hrsold&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">hrsold&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">60&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">minsold&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">floor&lt;/span>&lt;span class="p">((&lt;/span>&lt;span class="nx">e_hrsold&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">hrsold&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">60&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">seconds&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">floor&lt;/span>&lt;span class="p">((&lt;/span>&lt;span class="nx">e_minsold&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">minsold&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">60&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">document&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">getElementById&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;span_show_age&amp;#39;&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="nx">innerHTML&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">uptime_1&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">daysold&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">uptime_2&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">hrsold&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">uptime_3&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">minsold&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">uptime_4&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">seconds&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">uptime_5&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">show_date_time&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="err">/script&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="最终效果">最终效果
+&lt;/h2>&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/04/20/be553249d59b8d01.gif"
+loading="lazy"
+>&lt;/p></description></item><item><title>Hugo+Stack主题修改最后更新时间位置和时间格式</title><link>https://farb.github.io/p/hugo_stack_lastmod/</link><pubDate>Fri, 19 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack_lastmod/</guid><description>&lt;h2 id="参考文章">参考文章
+&lt;/h2>&lt;p>&lt;a class="link" href="https://shitao5.org/posts/hugo-stack/" target="_blank" rel="noopener"
+>https://shitao5.org/posts/hugo-stack/&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://stack.jimmycai.com/config/header-footer" target="_blank" rel="noopener"
+>https://stack.jimmycai.com/config/header-footer&lt;/a>&lt;/p>
+&lt;h2 id="时间格式修改">时间格式修改
+&lt;/h2>&lt;p>在 param.toml文件中修改格式如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-toml" data-lang="toml">&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>&lt;span class="nx">dateFormat&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">published&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;2006-01-02&amp;#34;&lt;/span> &lt;span class="c"># 发布日期格式&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">lastUpdated&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;2006-01-02 15:04:05&amp;#34;&lt;/span> &lt;span class="c"># 最后修改时间格式，一定要对应go的日期格式&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="位置修改">位置修改
+&lt;/h2>&lt;p>参考官方文档，在博客项目下创建一个目录&lt;code>layouts\partials\article\components&lt;/code>，一定要和stack主题的路径对应上，思想就是hugo生成静态页面时，使用自定义的页面替换stack主题的页面。&lt;/p>
+&lt;p>details.html页面&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-html" data-lang="html">&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">div&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-details&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 略...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">footer&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-time&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 发布日期代码块
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ if $showDate }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ partial &amp;#34;helper/icon&amp;#34; &amp;#34;date&amp;#34; }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">time&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-time--published&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{- .Date.Format (or .Site.Params.dateFormat.published &amp;#34;Jan 02, 2006&amp;#34;) -}}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">time&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ end }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 阅读时间代码块
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ if $showReadingTime }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ partial &amp;#34;helper/icon&amp;#34; &amp;#34;clock&amp;#34; }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">time&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-time--reading&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ T &amp;#34;article.readingTime&amp;#34; .ReadingTime }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">time&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ end }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 剪切到这里，并修改标签和上面的代码块一致
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ if ne .Lastmod .Date }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">div&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-lastmod&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ partial &amp;#34;helper/icon&amp;#34; &amp;#34;clock&amp;#34; }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">time&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ T &amp;#34;article.lastUpdatedOn&amp;#34; }} {{ .Lastmod.Format ( or .Site.Params.dateFormat.lastUpdated &amp;#34;Jan 02, 2006 15:04 MST&amp;#34; ) }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">time&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{- end -}}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">footer&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ end }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 略...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">div&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>footer.html页面&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-html" data-lang="html">&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">footer&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-footer&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 略...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> // 这一块是默认的最后更新时间代码块，将这块代码剪切到details.html的正确位置
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{- if ne .Lastmod .Date -}}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">section&lt;/span> &lt;span class="na">class&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">&amp;#34;article-lastmod&amp;#34;&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ partial &amp;#34;helper/icon&amp;#34; &amp;#34;clock&amp;#34; }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;&lt;/span>&lt;span class="nt">span&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{ T &amp;#34;article.lastUpdatedOn&amp;#34; }} {{ .Lastmod.Format ( or .Site.Params.dateFormat.lastUpdated &amp;#34;Jan 02, 2006 15:04 MST&amp;#34; ) }}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">span&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">section&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> {{- end -}}
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">&amp;lt;/&lt;/span>&lt;span class="nt">footer&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item><item><title>Hugo+Stack主题快速集成免费的评论系统utterance</title><link>https://farb.github.io/p/hugo_stack_utterance/</link><pubDate>Sat, 13 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack_utterance/</guid><description>&lt;h2 id="实验经历">实验经历
+&lt;/h2>&lt;p>在网上看了很多方案，最终选择了utterance，因为utterance 简单、快速、免费、开源、不需要自定义域名，这就够了。&lt;/p>
+&lt;p>了解了静态博客的评论系统基本都是依赖一个动态的第三方后端系统，因为涉及到保存用户评论数据。&lt;/p>
+&lt;p>我梳理了下，主要有这么几个概念：&lt;/p>
+&lt;ol>
+&lt;li>云服务提供方： 提供最终对博客页面暴露的接口，在你的静态博客中嵌入一段JavaScript代码就可以显示评论系统。&lt;/li>
+&lt;li>博客系统提供方：负责开发评论对话框的人（一般都是nodejs开发），主要就是评论的样式不同，可以以不同的社交方式登录。&lt;/li>
+&lt;li>数据库提供方：最终的评论内容要保存到哪里。&lt;/li>
+&lt;/ol>
+&lt;p>比较流行的云服务提供方包括：&lt;strong>&lt;a class="link" href="https://vercel.com/" target="_blank" rel="noopener"
+>Vercel&lt;/a>、&lt;a class="link" href="https://app.netlify.com/" target="_blank" rel="noopener"
+>Netlify&lt;/a>&lt;/strong> 等等，当然还有国内的云服务提供商，基本都收费，也可以自己部署，说白了，就是部署一个nodejs服务对外提供接口。&lt;/p>
+&lt;p>比较流行的博客系统提供方包括：&lt;strong>&lt;a class="link" href="https://waline.js.org/" target="_blank" rel="noopener"
+>Waline&lt;/a>、&lt;a class="link" href="https://twikoo.js.org/" target="_blank" rel="noopener"
+>Twikoo&lt;/a>&lt;/strong> 等等&lt;/p>
+&lt;p>比较流行的免费的数据库提供方包括：&lt;strong>&lt;a class="link" href="https://leancloud.app/" target="_blank" rel="noopener"
+>LeanCloud&lt;/a>,&lt;a class="link" href="https://mongodb.com" target="_blank" rel="noopener"
+>Mongodb&lt;/a>&lt;/strong> 等等&lt;/p>
+&lt;p>&lt;strong>LeanCloud和Mongodb都可以免费部署好服务，Waline和Vercel文档也都很友好，一看就知道怎么部署。我也在Vercel上部署成功了，但是最后发现部署的应用打不开，网上的解决办法是使用自己的域名就可以解决问题，但考虑到国内申请域名还要备案，免费且不用备案的域名&lt;a class="link" href="https://www.freenom.com/" target="_blank" rel="noopener"
+>Freenom&lt;/a>半天打不开，于是就不考虑了。最终选择了utterance&lt;/strong>&lt;/p>
+&lt;p>utterance，英文意思是&lt;code>言论，说话&lt;/code>。它是Github市场的一个应用，可以直接安装，然后关联自己的一个公开仓库即可，后面评论的内容都会保存到这个仓库的issue里面。
+对比上面的3个概念，你可以理解为Github的东家就是这三个提供方。只不过，utterance的开发者将上面的三个概念对应的服务给打包好了，方便博主直接使用。&lt;/p>
+&lt;p>&lt;strong>&lt;a class="link" href="https://utteranc.es/" target="_blank" rel="noopener"
+>utterance官方文档&lt;/a>&lt;/strong>&lt;/p>
+&lt;h2 id="hugo-stack中如何配置">Hugo Stack中如何配置
+&lt;/h2>&lt;ol>
+&lt;li>找到配置文件： config_default\params.toml&lt;/li>
+&lt;li>修改评论系统的provider以及&lt;code>[comments.utterances]&lt;/code>节点下的&lt;code>repo&lt;/code>为你自己的仓库名称。代码如下：
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-toml" data-lang="toml">&lt;span class="line">&lt;span class="cl"> &lt;span class="c">## Comments&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">[&lt;/span>&lt;span class="nx">comments&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">enabled&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kc">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">provider&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;utterances&amp;#34;&lt;/span> &lt;span class="c">## 修改点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">[&lt;/span>&lt;span class="nx">comments&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">utterances&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">repo&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;farb/blogComment&amp;#34;&lt;/span> &lt;span class="c">## 修改点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">issueTerm&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s2">&amp;#34;pathname&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">label&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="err">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;p>最后，看下我的效果吧&lt;/p>
+&lt;p>&lt;img src="https://farb.github.io/p/hugo_stack_utterance/utterance_comment_test.png"
+width="883"
+height="379"
+srcset="https://farb.github.io/p/hugo_stack_utterance/utterance_comment_test_hu15354756330409938104.png 480w, https://farb.github.io/p/hugo_stack_utterance/utterance_comment_test_hu1334270581465630996.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="232"
+data-flex-basis="559px"
+>&lt;/p>
+&lt;p>可以看到这个评论最终保存到了 farb/blogComment 这个仓库下面的issue。
+每篇帖子都会开一个issue，issue的名字就是博客的slug-name(路径名)，所有的评论都在这个issue下面。
+&lt;img src="https://farb.github.io/p/hugo_stack_utterance/comment_storage.png"
+width="1511"
+height="867"
+srcset="https://farb.github.io/p/hugo_stack_utterance/comment_storage_hu17318931180933865685.png 480w, https://farb.github.io/p/hugo_stack_utterance/comment_storage_hu6603654578278747143.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="174"
+data-flex-basis="418px"
+>&lt;/p></description></item><item><title>Hugo+Stack主题环境搭建部署到Github遇到的问题记录</title><link>https://farb.github.io/p/hugo_stack/</link><pubDate>Tue, 09 Apr 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/hugo_stack/</guid><description>&lt;img src="https://farb.github.io/p/hugo_stack/cover.jpg" alt="Featured image of post Hugo+Stack主题环境搭建部署到Github遇到的问题记录" />&lt;h2 id="参考文档">参考文档
+&lt;/h2>&lt;p>&lt;a class="link" href="https://gohugo.io/" target="_blank" rel="noopener"
+>Hugo 官方文档&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://stack.jimmycai.com/" target="_blank" rel="noopener"
+>Stack 官方文档&lt;/a>&lt;/p>
+&lt;p>&lt;strong>一开始按照上面两个官方文档搞好了本地环境，本地 &lt;code>http://localhost:1313/&lt;/code>可以正常打开访问。但是代码提交到Github之后，并没有效果，显示的readme.md的内容，于是各种查找答案，终于通过下面这个帖子解决了。特此记录。&lt;/strong>&lt;/p>
+&lt;p>&lt;a class="link" href="https://zhuanlan.zhihu.com/p/597460995" target="_blank" rel="noopener"
+>参考这个帖子解决了问题&lt;/a>&lt;/p>
+&lt;h2 id="问题的原因">问题的原因
+&lt;/h2>&lt;p>上面知乎那个帖子也提到了，主要有两点：
+&lt;img src="https://farb.github.io/p/hugo_stack/github_pages_settings.png"
+width="1107"
+height="577"
+srcset="https://farb.github.io/p/hugo_stack/github_pages_settings_hu2713272352660519082.png 480w, https://farb.github.io/p/hugo_stack/github_pages_settings_hu8862743219032760332.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="191"
+data-flex-basis="460px"
+>&lt;/p>
+&lt;ol>
+&lt;li>Source 要选择 &lt;code>Deploy from a branch&lt;/code>&lt;/li>
+&lt;li>注意分支，Git仓库会触发Github Action自动新建一个gh-page的分支，会自动把content文件夹里面的内容编译到一个public文件夹，一个纯前端文件的项目，这个gh-page分支的内容就是public文件夹的内容。&lt;/li>
+&lt;/ol>
+&lt;p>修改上面的两处之后，点击图上方的&lt;strong>Visit site&lt;/strong> 成功看到博客主页。&lt;/p>
+&lt;h2 id="github同步到gitee">Github同步到Gitee
+&lt;/h2>&lt;p>该指导可以提交一次代码到Github，然后同时同步到Gitee并部署。&lt;/p>
+&lt;p>&lt;a class="link" href="https://github.com/marketplace/actions/gitee-pages-action" target="_blank" rel="noopener"
+>https://github.com/marketplace/actions/gitee-pages-action&lt;/a>&lt;/p></description></item></channel></rss>

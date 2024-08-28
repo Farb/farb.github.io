@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Python on Farb的博客</title><link>https://farb.github.io/categories/python/</link><description>Recent content in Python on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><atom:link href="https://farb.github.io/categories/python/index.xml" rel="self" type="application/rss+xml"/><item><title>Python代码报错记录集</title><link>https://farb.github.io/p/python_error_notes/</link><pubDate>Wed, 14 Aug 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/python_error_notes/</guid><description>&lt;h3 id="1-modulenotfounderror-no-module-named-xxx">1. ModuleNotFoundError: No module named &amp;lsquo;xxx&amp;rsquo;
+&lt;/h3>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="line">&lt;span class="cl"> &lt;span class="kn">from&lt;/span> &lt;span class="nn">PIL&lt;/span> &lt;span class="kn">import&lt;/span> &lt;span class="n">Image&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ImageFilter&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="ne">ModuleNotFoundError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">No&lt;/span> &lt;span class="n">module&lt;/span> &lt;span class="n">named&lt;/span> &lt;span class="s1">&amp;#39;PIL&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># 缺少依赖PIL，PIL已被Pillow替代,安装&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">pip&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">Pillow&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="line">&lt;span class="cl"> &lt;span class="kn">import&lt;/span> &lt;span class="nn">pytesseract&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="ne">ModuleNotFoundError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">No&lt;/span> &lt;span class="n">module&lt;/span> &lt;span class="n">named&lt;/span> &lt;span class="s1">&amp;#39;pytesseract&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 缺少依赖pytesseract,安装&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">pip&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">pytesseract&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="2-pytesseractpytesseracttesseractnotfounderror-tesseract-is-not-installed-or-its-not-in-your-path">2. pytesseract.pytesseract.TesseractNotFoundError: tesseract is not installed or it&amp;rsquo;s not in your PATH
+&lt;/h3>&lt;p>&lt;strong>没有安装tesseract-ocr,可以到这里 &lt;a class="link" href="https://github.com/UB-Mannheim/tesseract/wiki" target="_blank" rel="noopener"
+>https://github.com/UB-Mannheim/tesseract/wiki&lt;/a> 下载安装，并自行配置环境变量指向安装目录&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Traceback&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">most&lt;/span> &lt;span class="n">recent&lt;/span> &lt;span class="n">call&lt;/span> &lt;span class="n">last&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">275&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">run_tesseract&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">proc&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">subprocess&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">Popen&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">cmd_args&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">**&lt;/span>&lt;span class="n">subprocess_args&lt;/span>&lt;span class="p">())&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\subprocess.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">1026&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="fm">__init__&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">_execute_child&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">executable&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">preexec_fn&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">close_fds&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\subprocess.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">1538&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">_execute_child&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">hp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ht&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">pid&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">tid&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">_winapi&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">CreateProcess&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">executable&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="ne">FileNotFoundError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="n">WinError&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">系统找不到指定的文件&lt;/span>&lt;span class="err">。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">During&lt;/span> &lt;span class="n">handling&lt;/span> &lt;span class="n">of&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">above&lt;/span> &lt;span class="n">exception&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">another&lt;/span> &lt;span class="n">exception&lt;/span> &lt;span class="n">occurred&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">486&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">image_to_string&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">489&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="k">lambda&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Output&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">STRING&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="k">lambda&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">run_and_get_output&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="p">),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">352&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">run_and_get_output&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">run_tesseract&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">**&lt;/span>&lt;span class="n">kwargs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">280&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">run_tesseract&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">raise&lt;/span> &lt;span class="n">TesseractNotFoundError&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">pytesseract&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">pytesseract&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">TesseractNotFoundError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">tesseract&lt;/span> &lt;span class="ow">is&lt;/span> &lt;span class="ow">not&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="ow">or&lt;/span> &lt;span class="n">it&lt;/span>&lt;span class="s1">&amp;#39;s not in your PATH. See README file for more information.&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="3-please-make-sure-the-tessdata_prefix-environment-variable-is-set-to-your-tessdata-directory-failed-loading-language-chi_sim-tesseract-couldnt-load-any-languages-could-not-initialize-tesseract">3. Please make sure the TESSDATA_PREFIX environment variable is set to your &amp;ldquo;tessdata&amp;rdquo; directory. Failed loading language 'chi_sim' Tesseract couldn't load any languages! Could not initialize tesseract.
+&lt;/h3>&lt;p>&lt;strong>到这里下载各种语言的训练数据。 &lt;a class="link" href="https://github.com/tesseract-ocr/tessdata" target="_blank" rel="noopener"
+>https://github.com/tesseract-ocr/tessdata&lt;/a>&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">486&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">image_to_string&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">489&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="k">lambda&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Output&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">STRING&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="k">lambda&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">run_and_get_output&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="p">),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">352&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">run_and_get_output&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">run_tesseract&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">**&lt;/span>&lt;span class="n">kwargs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">File&lt;/span> &lt;span class="s2">&amp;#34;D:\Python\Python312\Lib\site-packages\pytesseract\pytesseract.py&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="mi">284&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="ow">in&lt;/span> &lt;span class="n">run_tesseract&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">raise&lt;/span> &lt;span class="n">TesseractError&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">proc&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">returncode&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">get_errors&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">error_string&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">pytesseract&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">pytesseract&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">TesseractError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s1">&amp;#39;Error opening data file D:&lt;/span>&lt;span class="se">\\&lt;/span>&lt;span class="s1">Program Files&lt;/span>&lt;span class="se">\\&lt;/span>&lt;span class="s1">Tesseract-OCR/tessdata/chi_sim.traineddata Please make sure the TESSDATA_PREFIX environment variable is set to your &amp;#34;tessdata&amp;#34; directory. Failed loading language &lt;/span>&lt;span class="se">\&amp;#39;&lt;/span>&lt;span class="s1">chi_sim&lt;/span>&lt;span class="se">\&amp;#39;&lt;/span>&lt;span class="s1"> Tesseract couldn&lt;/span>&lt;span class="se">\&amp;#39;&lt;/span>&lt;span class="s1">t load any languages! Could not initialize tesseract.&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="4-exception-redisclientsjedisexceptionsjedisdataexception-value-sent-to-redis-cannot-be-null">4. Exception redis.clients.jedis.exceptions.JedisDataException: value sent to redis cannot be null
+&lt;/h3>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 原始代码这样写的&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">jedis&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">rpush&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">key&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">null&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>原因是尝试向 Redis 中写入了空值（null）。根据 Redis 的设计，它不允许存储 null 值。
+在代码中，当没有查询到数据时，会尝试向 Redis 写入 null, &amp;ldquo;0&amp;rdquo;, &amp;ldquo;0&amp;rdquo; 这三个值。其中 null 是不允许的，因此触发了异常。
+要解决这个问题，可以考虑以下几种方法：
+不写入任何值：如果查询不到数据，则不向 Redis 写入任何内容。
+写入特殊值：用一个特殊值代替 null，比如空字符串 &amp;quot;&amp;quot; 或者 -1 表示无效或未找到的数据。
+这里提供一种修改方案，即使用空字符串替换 null:&lt;/p></description></item></channel></rss>
