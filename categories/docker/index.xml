@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Docker on Farb的博客</title><link>https://farb.github.io/categories/docker/</link><description>Recent content in Docker on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Mon, 04 Nov 2024 19:52:43 +0800</lastBuildDate><atom:link href="https://farb.github.io/categories/docker/index.xml" rel="self" type="application/rss+xml"/><item><title>Docker报错记录集</title><link>https://farb.github.io/p/docker_error_notes/</link><pubDate>Sun, 08 Sep 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/docker_error_notes/</guid><description>&lt;h3 id="1-docker-error-response-from-daemon-ports-are-not-available">1. docker: Error response from daemon: Ports are not available
+&lt;/h3>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">D:&lt;span class="se">\D&lt;/span>evTools&lt;span class="se">\j&lt;/span>ava&lt;span class="se">\M&lt;/span>ycat-Server-1.6.76-release-2020-11-2&lt;span class="se">\t&lt;/span>arget&amp;gt;docker run --name mycat -p 8066:8066 -p 9066:9066 -v /usr/local/mycat/conf/:/usr/local/mycat/conf/ -v /usr/local/mycat/logs/:/usr/local/mycat/logs/ -d mycat:1.6.7.6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">0d1c9dad51d7147e31ec0fdf42480bd5bf2c0d798507ee20f41b130184ff9a66
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker: Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:8066 -&amp;gt; 0.0.0.0:0: listen tcp 0.0.0.0:8066: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>解决方法：使用netstat -aon | findstr 查看并没有占用&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">net stop winnat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">net start winnat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 然后重新创建并运行容器即可&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item></channel></rss>

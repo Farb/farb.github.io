@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Java on Farb的博客</title><link>https://farb.github.io/tags/java/</link><description>Recent content in Java on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 18 Aug 2024 00:03:20 +0800</lastBuildDate><atom:link href="https://farb.github.io/tags/java/index.xml" rel="self" type="application/rss+xml"/><item><title>Java代码报错记录集</title><link>https://farb.github.io/p/java_error_notes/</link><pubDate>Wed, 14 Aug 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/java_error_notes/</guid><description>&lt;h3 id="1-getinputstream-must-not-be-called-against-a-directory-fileddevtoolsjavaapache-maven-395conf">1. getInputStream() must not be called against a directory: file://D:/DevTools/java/apache-maven-3.9.5/conf
+&lt;/h3>&lt;blockquote>
+&lt;p>这个错误是在IDEA中配置Maven的时候出现的，在配置Maven的setting文件路径的时候，如果配置的是一个conf目录或其他目录，就会报错，正确做法是指定setting.xml的全路径。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="2-slf4j-failed-to-load-class-orgslf4jimplstaticloggerbinder">2. SLF4J: Failed to load class &amp;ldquo;org.slf4j.impl.StaticLoggerBinder
+&lt;/h3>&lt;p>通常意味着 Simple Logging Facade for Java (SLF4J) 在启动时未能找到一个合适的日志实现。这可能是由于以下几个原因造成的：&lt;/p>
+&lt;ol>
+&lt;li>缺少日志实现库：项目中没有包含任何 SLF4J 的绑定实现，如 Logback 或 Log4j。&lt;/li>
+&lt;li>多个日志实现库冲突：项目中包含了多个 SLF4J 绑定实现，导致 SLF4J 不确定使用哪一个。&lt;/li>
+&lt;li>错误的日志实现库版本：项目中包含的日志实现库与 SLF4J 版本不兼容。**&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- SLF4J API --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.slf4j&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>slf4j-api&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>1.7.36&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- Logback as the logging implementation --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>ch.qos.logback&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>logback-classic&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>1.2.11&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="3-loading-class-commysqljdbcdriver-this-is-deprecated-the-new-driver-class-is-commysqlcjjdbcdriver-the-driver-is-automatically-registered-via-the-spi-and-manual-loading-of-the-driver-class-is-generally-unnecessary">3. Loading class &lt;code>com.mysql.jdbc.Driver'. This is deprecated. The new driver class is &lt;/code>com.mysql.cj.jdbc.Driver&amp;rsquo;. The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.
+&lt;/h3>&lt;p>&lt;strong>当你看到这条警告信息时，说明你在使用 MySQL 的 JDBC 驱动时正在加载旧版的驱动类 com.mysql.jdbc.Driver，而新版的驱动类应该是 com.mysql.cj.jdbc.Driver。这通常发生在使用 MySQL 8.0 及更高版本时。&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 不要这样写&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Class&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">forName&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;com.mysql.jdbc.Driver&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">// 按照提示，驱动会自动注册，所以不写也没问题&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">// 如果你需要显式指定驱动类，使用新版的驱动类&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Class&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">forName&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;com.mysql.cj.jdbc.Driver&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item></channel></rss>
