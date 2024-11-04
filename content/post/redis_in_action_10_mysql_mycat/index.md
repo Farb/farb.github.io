@@ -542,4 +542,157 @@ public class MySqlClusterDemoV2 {
 }
 
 ```
+----
+**MyCAT不维护了，建议不要使用了，不过可以看下它的原理。建议直接使用分布式数据库TiDB** 
+----
 # Redis整合MySql和MyCat分库组件
+> MyCAT是一个开源的分布式数据库组件，一般用它实现对数据库的分库分表功能，从而提升对数据库（尤其是大数据库表）的访问性能。
+> [MyCAT官方文档](http://www.mycat.org.cn/)
+
+## 分库分表概述
+假设一电商系统业务量非常大，流水表（假设主键id）可能达到“亿”级规模，甚至更大。如果需要查询数据，即使使用索引等数据库优化的手段，也会成为性能上的瓶颈。此时可以考虑如下思路。
+
+1. 在不同的10个数据库中，同时创建10张流水表，这些表的结构完全一致。
+2. 在1号数据库中只存放id%10=1的数据，比如存放id=1、11、21等的数据，2号数据库存放id%10=2的数据，以此类推。
+
+这样就将一个大的流水表分成10张子表，而MyCAT组件能把应用程序对流水表的请求分散到这10张子表上，实际业务中子表的个数可以根据业务需求来定。由于把大表的数据分散到若干子表中，因此每次请求所面对的数据总量有效降低，从而能感受到“分表”对提升数据库访问性能的帮助。实际项目中，尽量将子表分散创建到不同的机器上，这样子表之间就具有更高的并发能力，不推荐在同一台机器上的同一个数据库进行分表操作。
+
+基于成本的考虑，或许无法为每个子表分配一台机器，但可以将不同的子表分散地创建在同一主机不同的数据库上，因而得出下面结论。
+
+**子表创建在不同的机器上的性能 > 子表创建在同一台机器上的不同数据库的性能 > 子表创建在同一台机器上的同一个数据库的性能**
+
+## 用MyCAT组件实现分库分表
+> MyCAT组件默认工作在8066端口，Java程序不是直接和MySQL等数据库直连，而是和MyCAT组件交互，再由MyCAT组件和数据库交互，MyCAT根据配置好的分库分表规则把请求发送到对应的数据库上，得到请求再返回给应用程序。
+
+![](https://s3.bmp.ovh/imgs/2024/08/29/8108fcf768f00f2f.png)
+
+为了实现分库分表效果，一般需要配置MyCAT组件的三个文件。
+
+| 文件名     | 说明                                                                             |
+| ---------- | -------------------------------------------------------------------------------- |
+| server.xml | MyCAT组件的配置文件，一般用于配置MyCAT组件的端口号、用户名和密码、编码、字符集等 |
+| schema.xml | MyCAT组件的分库分表配置文件，一般用于配置各分库的连接信息                        |
+| rule.xml   | MyCAT规则配置文件，一般用于配置分库分表规则                                      |
+
+1. server.xml配置如下：
+**配置了MyCAT组件的工作端口8066和管理端口9066，配置连接到MyCAT组件的用户名和密码，这里是MyCAT的用户名密码和数据库，而不是MySQL的，实践过程中一般和MySQL保持一致。**
+``` xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:server SYSTEM "server.dtd">
+<mycat:server xmlns:mycat="http://io.mycat/">
+    <system>
+        <property name="serverPort">8066</property>
+        <property name="managePort">9066</property>
+    </system>
+    <user name="root">
+        <property name="password">123456</property>
+        <property name="schemas">redisDemo</property>
+    </user>
+</mycat:server>
+```
+
+2. schema.xml配置如下：
+**定义了redisDemo数据库的student表，按照mod-long规则分布到dn1,dn2,dn3这3个数据节点上,然后给出了dn1,dn2,dn3这3个数据节点的定义，分别指向host1,host2,host3这3个MySQL数据库。随后又定义了host1,host2,host3。**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://io.mycat/">
+    <schema name="redisDemo">
+        <table name="student" dataNode="dn1,dn2,dn3" rule="mod-long" />
+    </schema>
+    <dataNode name="dn1" dataHost="host1" database="redisDemo" />
+    <dataNode name="dn2" dataHost="host2" database="redisDemo" />
+    <dataNode name="dn3" dataHost="host3" database="redisDemo" />
+    <dataHost name="host1" maxCon="100" minCon="10" balance="0" writeType="0" dbType="mysql"
+        dbDriver="native">
+        <heartbeat>select user()</heartbeat>
+        <writeHost host="hostM1" url="172.17.0.2:3306" user="root" password="123456" />
+    </dataHost>
+    <dataHost name="host2" maxCon="100" minCon="10" balance="0" writeType="0" dbType="mysql"
+        dbDriver="native">
+        <heartbeat>select user()</heartbeat>
+        <writeHost host="hostM2" url="172.17.0.3:3306" user="root" password="123456" />
+    </dataHost>
+    <dataHost name="host3" maxCon="100" minCon="10" balance="0" writeType="0" dbType="mysql"
+        dbDriver="native">
+        <heartbeat>select user()</heartbeat>
+        <writeHost host="hostM3" url="172.17.0.4:3306" user="root" password="123456" />
+    </dataHost>
+</mycat:schema>
+```
+
+3. rule.xml配置如下：
+**定义mod-long规则，用于将id字段按照模3规则分配到dn1,dn2,dn3这3个数据节点上。**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:rule SYSTEM "rule.dtd">
+<mycat:rule xmlns:mycat="http://io.mycat/">
+    <tableRule name="mod-long">
+        <rule>
+            <columns>id</columns>
+            <algorithm>mod-long</algorithm>
+        </rule>
+    </tableRule>
+    <function name="mod-long" class="io.mycat.route.function.PartitionByMod">
+        <property name="count" value="3" />
+    </function>
+</mycat:rule>
+```
+
+**综上，给出如下针对分库分表相关动作的定义：**
+> 1. 应用程序如果要使用MyCAT,就需要用户名root和密码123456连接到MyCAT组件。
+> 2. 假设要插入id为1的student的数据，根据schema.xml配置，会先根据mod-long规则对id进行模3处理，结果是1，所以会插入到host2所定义的172.17.0.3:3306的数据库的student表，如果要进行读取、删除和修改，就会先对id模3，再把请求发送到对应的数据库上。
+
+## Java、MySQL和MyCAT组件的整合
+**使用上面的配置文件，继续实践**
+1. 通过三个命令，准备三个包含mysql的docke容器：
+```bash
+PS D:\code\blogs\farb.github.io> docker run -itd -p 3306:3306 --name mysqlHost1 -e MYSQL_ROOT_PASSWORD=123456 mysql
+8f4d6474e3e45aca4d037b696a8a0d3bf98c620e3222681c06c4f0e5951c8a4a
+PS D:\code\blogs\farb.github.io> docker run -itd -p 3316:3306 --name mysqlHost2 -e MYSQL_ROOT_PASSWORD=123456 mysql 
+e0b0a0691740cc8f6959ff16f0cc54306519fe63c32b6393d33a0d999b19cb41
+PS D:\code\blogs\farb.github.io> docker run -itd -p 3326:3306 --name mysqlHost3 -e MYSQL_ROOT_PASSWORD=123456 mysql
+f18e144b62b4897d7fd61ec6aa3d3d532535ea61917c2d1a7bdaea034f48d275
+
+# 创建完成后，查看每个容器对应的IP
+PS D:\code\blogs\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" mysqlHost1
+172.17.0.2
+PS D:\code\blogs\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" mysqlHost2
+172.17.0.3
+PS D:\code\blogs\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" mysqlHost3
+172.17.0.4
+```
+**整理成表格，方便查阅**
+| 容器名 | IP  |
+| -------- | -------- |
+| mysqlHost1 | 172.17.0.2 |
+| mysqlHost2 | 172.17.0.3 |
+| mysqlHost3 | 172.17.0.4 |
+
+2. 分别进入三个容器，建库建表：
+```sh
+PS D:\code\blogs\farb.github.io> docker exec -it mysqlHost1 bash
+bash-5.1# mysql -u root -p
+Enter password:
+mysql> create database redisDemo;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> use redisDemo;
+Database changed
+mysql> create table student (
+    -> id int not null primary key,
+    -> name varchar(20),
+    -> age int,
+    -> score float
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+# mysqlHost2和mysqlHost3执行相同的操作，此处略
+# docker exec -it mysqlHost2 bash
+# docker exec -it mysqlHost3 bash
+```
+
+3. 通过docker run命令启动一个MyCAT组件的容器（我发现docker仓库上没有可用的mycat镜像，于是自己根据源码生成的镜像，可以参考这篇文章[MyCAT源码构建镜像](https://blog.csdn.net/weixin_43431218/article/details/133079200)）
+```bash
+PS D:\code\blogs\farb.github.io> docker run -itd --name mycat -p 8066:8066 -p 9066:9066 -v D:\ArchitectPracticer\Redis\MyCAT\server.xml:/usr/local/mycat/conf/server.xml:ro -v D:\ArchitectPracticer\Redis\MyCAT\schema.xml:/usr/local/mycat/conf/schema.xml:ro -v D:\ArchitectPracticer\Redis\MyCAT\rule.xml:/usr/local/mycat/conf/rule.xml:ro mycat:1.6.7.6
+```
