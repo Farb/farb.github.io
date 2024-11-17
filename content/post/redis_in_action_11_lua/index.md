@@ -2,7 +2,7 @@
 title: 基于Docker的Redis实战-Redis整合Lua脚本
 description:
 slug: redis_in_action_11_lua
-date: 2024-11-5
+date: 2024-11-05
 image: 
 categories:
     - Redis
@@ -384,3 +384,133 @@ Exception in thread "main" redis.clients.jedis.exceptions.JedisDataException: ER
 127.0.0.1:6379> Get Next
 "Next"
 ```
+
+## Redis整合lua脚本实战
+
+### 以计数模式实现限流效果
+限流是指某应用模块需要限制指定IP（或指定模块、指定应用）在单位时间内的访问次数。
+
+lua脚本如下：
+
+```lua
+-- 从 KEYS 数组中获取模块名
+local moduleName=KEYs[1]
+-- 将限流次数从字符串转换为数字
+local limitCount=tonumber(ARGV[1])
+-- 获取当前模块的计数，如果不存在则默认为0
+local current=tonumber(redis.call('get',moduleName) or "0")
+
+-- 检查当前计数是否超过了限流次数
+if(current+1>limitCount) then
+    -- 如果超过，则返回0表示操作失败
+	return 0
+else
+    -- 如果未超过，则增加模块的计数
+    redis.call('incrby',moduleName,1)
+    -- 更新模块的过期时间
+    redis.call('expire',moduleName,tonumber(ARGV[2]))
+	-- 返回增加后的计数
+	return current+1
+end
+
+```
+
+java代码如下：
+
+```java
+public class LimitByCount {
+    /**
+     * 判断是否可以访问
+     * 通过Redis和Lua脚本确保在限定时间内访问次数不超过限定次数
+     *
+     * @param jedis      Redis客户端，用于执行Redis命令
+     * @param moduleName 模块名称，用于在Redis中区分不同的模块
+     * @param limitTime  限定时间，单位为秒，在这个时间内访问次数不能超过limitNum
+     * @param limitNum   限定次数，在limitTime内允许的最大访问次数
+     * @return 如果当前访问未超过限制，则返回true，否则返回false
+     */
+    public static boolean canVisit(Jedis jedis, String moduleName, int limitTime, int limitNum) {
+        // Lua脚本，用于在Redis中执行逻辑判断和数据更新
+        // 这段脚本的作用是检查和更新模块的访问次数，确保在限定时间内访问次数不超过限定次数
+        String luaScript = "local moduleName=KEYs[1]\n" +
+                "local limitCount=tonumber(ARGV[1])\n" +
+                "local current=tonumber(redis.call('get',moduleName) or \"0\")\n" +
+                "if(current+1>limitCount) then\n" +
+                "  return 0\n" +
+                "else\n" +
+                "  redis.call('incrby',moduleName,1)\n" +
+                "  redis.call('expire',moduleName,tonumber(ARGV[2]))\n" +
+                "  return current+1\n" +
+                "end";
+        // 执行Lua脚本，判断返回值,如果不为0，则表示可以访问
+        String result = jedis.eval(luaScript, 1, moduleName, String.valueOf(limitNum), String.valueOf(limitTime)).toString();
+        return !result.equals("0");
+    }
+}
+
+/**
+ * LuaLimitByCountThread 类继承自 Thread 类，用于演示如何通过 Redis 限流
+ * 它在每个线程中检查是否可以访问某个资源，基于计数的限流策略
+ */
+public class LuaLimitByCountThread extends Thread {
+    /**
+     * 线程的入口点
+     * 它创建一个 Jedis 实例来与 Redis 通信，并循环检查当前线程是否可以访问资源
+     * @see Thread#run()
+     */
+    @Override
+    public void run() {
+        // 创建 Jedis 实例，连接到本地 Redis 服务器
+        Jedis jedis = new Jedis("localhost");
+        // 循环 5 次，检查是否可以访问资源
+        for (int i = 0; i < 5; i++) {
+            // 调用 LimitByCount 的 canVisit 方法，判断当前线程是否可以访问资源
+            boolean canVisit = LimitByCount.canVisit(jedis, Thread.currentThread().getName(), 10, 3);
+            // 根据 canVisit 的结果，打印是否可以访问
+            if (canVisit) {
+                System.out.println(Thread.currentThread().getName() + " can visit");
+            } else {
+                System.out.println(Thread.currentThread().getName() + " can not visit");
+            }
+        }
+    }
+
+    /**
+     * 程序的入口点
+     * 它创建并启动多个 LuaLimitByCountThread 线程，以演示多线程环境下的限流效果
+     * @param args 命令行参数
+     */
+    public static void main(String[] args) {
+        // 循环 3 次，创建并启动 3 个线程
+        for (int i = 0; i < 3; i++) {
+            new LuaLimitByCountThread().start();
+        }
+    }
+}
+
+```
+
+如预期，每个模块只允许10秒内被访问3次，超过次数的线程会被拒绝访问。运行结果如下：
+
+```log
+Thread-1 can visit
+Thread-2 can visit
+Thread-0 can visit
+Thread-0 can visit
+Thread-2 can visit
+Thread-1 can visit
+Thread-0 can visit
+Thread-2 can visit
+Thread-1 can visit
+Thread-0 can not visit
+Thread-2 can not visit
+Thread-1 can not visit
+Thread-2 can not visit
+Thread-1 can not visit
+Thread-0 can not visit
+```
+
+### lua脚本防止超卖
+超卖是指在某一时间段内，销售数量超过库存数量。
+
+
