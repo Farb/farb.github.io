@@ -215,6 +215,8 @@ else
 end
 ```
 
+执行bash脚本
+
 ```bash
 root@c9900020aba5:/data# redis-cli --eval /luaScript/IfDemo.lua 
 "No Name"
@@ -512,5 +514,116 @@ Thread-0 can not visit
 
 ### lua脚本防止超卖
 超卖是指在某一时间段内，销售数量超过库存数量。
+
+lua脚本具有天然原子性，redis的读写是单线程的，所以使用lua脚本可以防止超卖。
+
+lua脚本如下：
+
+```lua
+-- 从 Redis 中获取指定键的当前值，并将其转换为数字
+local left = tonumber(redis.call('get',KEYS[1]) or '0')
+
+-- 检查当前值是否小于等于0
+if(left<=0) then
+    -- 如果值小于等于0，返回0
+    return 0
+else
+    -- 如果值大于0，将键的值减少1，并返回减少前的值
+    redis.call('decrby',KEYS[1],1)
+    return left
+end
+```
+
+java代码如下：
+
+```java
+/**
+ * OverSellCheck 类用于检查是否可以购买商品，以防止过量销售
+ */
+public class OverSellCheck {
+
+ /**
+     * 检查用户是否可以购买商品
+     *
+     * @param jedis     Redis 客户端实例，用于与 Redis 数据库交互
+     * @param goodsKey 商品键值
+     * @return boolean 表示是否可以购买商品，true 表示可以购买，false 表示不可以购买
+     */
+    public static boolean canBuy(Jedis jedis, String goodsKey) {
+        // Lua 脚本用于原子操作，以防止并发条件下的超卖现象
+        String lua = "local left = tonumber(redis.call('get',KEYS[1]))\n" +
+                "if(left<=0) then\n" +
+                "\treturn 0\n" +
+                "else\n" +
+                "  redis.call('decrby',KEYS[1],1)\n" +
+                "\treturn left\n" +
+                "end";
+        // 执行 Lua 脚本，判断商品是否还可以购买
+        String result = jedis.eval(lua, 1, goodsKey).toString();
+        // 如果返回结果不为 "0"，则表示还可以购买商品
+        return !result.equals("0");
+    }
+}
+
+/**
+ * OverSellDemo 类用于演示在多线程环境下可能出现的超卖问题
+ * 它通过多个线程模拟高并发场景下的商品购买行为
+ */
+public class OverSellDemo extends Thread {
+    // 商品的键，用于在Redis中标识商品
+    private final static String GOODS_KEY = "goods:1";
+
+    /**
+     * 程序的入口点
+     * 初始化商品库存，并启动多个线程模拟购买行为
+     * @param args 命令行参数
+     */
+    public static void main(String[] args) {
+        // 连接本地Redis服务器
+        Jedis jedis = new Jedis("localhost");
+        // 设置商品库存为5，过期时间为10秒
+        jedis.setex(GOODS_KEY, 10, "5");
+        // 启动10个线程模拟购买行为
+        for (int i = 0; i < 10; i++) {
+            new OverSellDemo().start();
+        }
+    }
+
+    /**
+     * 线程的运行方法
+     * 每个线程尝试购买商品，并打印购买结果
+     */
+    @Override
+    public void run() {
+        // 连接本地Redis服务器
+        Jedis jedis = new Jedis("localhost");
+        // 检查当前是否可以购买商品
+        boolean canBuy = OverSellCheck.canBuy(jedis, GOODS_KEY);
+        if (canBuy) {
+            // 如果可以购买，打印线程名称和购买结果
+            System.out.println(Thread.currentThread().getName() + " can buy");
+        } else {
+            // 如果不可以购买，打印线程名称和购买结果
+            System.out.println(Thread.currentThread().getName() + " can not buy");
+        }
+    }
+}
+
+```
+
+可以看到，在多线程环境下，虽然有10个线程尝试购买商品，但只有5个线程可以购买成功，其余线程因为库存不足而被拒绝购买。 运行结果如下：
+
+```log
+Thread-2 can not buy
+Thread-7 can buy
+Thread-1 can buy
+Thread-9 can buy
+Thread-5 can not buy
+Thread-0 can not buy
+Thread-8 can not buy
+Thread-3 can buy
+Thread-6 can not buy
+Thread-4 can buy
+```
 
 
