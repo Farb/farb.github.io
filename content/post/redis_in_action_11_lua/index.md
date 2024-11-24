@@ -12,7 +12,7 @@ tags:
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 源码链接： https://gitee.com/farb/architect-practicer-code 
-
+注：由于微信公众号后台编辑器不支持markdown格式，本人使用的三方网站转换的markdown格式，所以发现代码有混乱的情况，请查看我的博客，https://blog.farb.top/p/redis_in_action_11_lua/
 
 ## 在Redis中调用Lua脚本
 
@@ -24,6 +24,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 **注意：如果运行的lua脚本没有响应或不返回值，就会阻塞整个redis服务，并且运行lua脚本时很难调试，故lua脚本的代码要尽量简洁清晰**
 
 ### 通过redis-cli命令运行lua脚本
+lua脚本如下：
 
 ```lua
  //  先在本地路径D:\ArchitectPracticer\Redis\lua 创建一个SimpleRedis.lua文件，代码如下：
@@ -31,6 +32,8 @@ redis.call('set', 'name', 'farb')
 
 // lua脚本里使用redis.call()方法调用redis命令，第一个参数是Redis命令，后面是命令的参数
 ```
+
+bash脚本如下：
 
 ```bash
 

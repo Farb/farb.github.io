@@ -42,6 +42,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 ### 3. Loading class `com.mysql.jdbc.Driver'. This is deprecated. The new driver class is `com.mysql.cj.jdbc.Driver'. The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.
 **当你看到这条警告信息时，说明你在使用 MySQL 的 JDBC 驱动时正在加载旧版的驱动类 com.mysql.jdbc.Driver，而新版的驱动类应该是 com.mysql.cj.jdbc.Driver。这通常发生在使用 MySQL 8.0 及更高版本时。**
+
 ```java
 // 不要这样写
 Class.forName("com.mysql.jdbc.Driver");
@@ -49,4 +50,39 @@ Class.forName("com.mysql.jdbc.Driver");
 // 按照提示，驱动会自动注册，所以不写也没问题
 // 如果你需要显式指定驱动类，使用新版的驱动类
 Class.forName("com.mysql.cj.jdbc.Driver");
+```
+
+### 4.Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [Public Key Retrieval is not allowed] [n/a]
+
+数据库连接字符串中加上：allowPublicKeyRetrieval=true
+
+``` yml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/stockDB?allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&useSSL=false
+    username: root
+    password: 123456
+```
+
+### 5. Caused by: org.hibernate.service.spi.ServiceException: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+
+jpa是在spring节点下配置，而不是在spring.datasource下配置。
+
+```yml
+spring:
+  jpa:
+    database: MySQL
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+```
+
+### 6. java.lang.UnsupportedOperationException: io.lettuce.core.output.ValueOutput does not support set(long)
+
+```java
+        // 注意，这里必须使用Long返回类型，因为redis中的Integer对应java中的Long
+        RedisScript<Long> defaultRedisScript = new DefaultRedisScript<>(luaScript, Long.class);
+
 ```
