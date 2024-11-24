@@ -86,3 +86,51 @@ spring:
         RedisScript<Long> defaultRedisScript = new DefaultRedisScript<>(luaScript, Long.class);
 
 ```
+
+### 7. Spring Boot [3.4.0] is not compatible with this Spring Cloud release train
+
+SpringCloud应用启动失败：
+
+``` bash
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Your project setup is incompatible with our requirements due to following reasons:
+
+- Spring Boot [3.4.0] is not compatible with this Spring Cloud release train
+
+
+Action:
+
+Consider applying the following actions:
+
+- Change Spring Boot version to one of the following versions [3.2.x, 3.3.x] .
+You can find the latest Spring Boot versions here [https://spring.io/projects/spring-boot#learn]. 
+If you want to learn more about the Spring Cloud Release train compatibility, you can visit this page [https://spring.io/projects/spring-cloud#overview] and check the [Release Trains] section.
+If you want to disable this check, just set the property [spring.cloud.compatibility-verifier.enabled=false]
+```
+
+根因就是SpringBoot和SpringCloud版本不匹配，可以点击错误中的连接查看配套版本。下面这两个版本是配套的。
+
+``` xml
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.2</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>farb.top</groupId>
+    <artifactId>EurekaServer</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>EurekaServer</name>
+    <description>EurekaServer</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2023.0.2</spring-cloud.version>
+    </properties>
+
+```
