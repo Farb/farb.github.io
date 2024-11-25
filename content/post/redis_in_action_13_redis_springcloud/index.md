@@ -79,7 +79,6 @@ SpringCloud的常用组件如下：
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
-            <version>4.1.3</version>
         </dependency>
 
         <dependency>
@@ -145,3 +144,318 @@ eureka:
 运行EurekaServerApplication，访问http://localhost:8888/，可以看到如下界面，说明Eureka服务端已经启动成功。
 
 [![pAhKHO0.png](https://s21.ax1x.com/2024/11/24/pAhKHO0.png)](https://imgse.com/i/pAhKHO0)
+
+### 开发Eureka客户端
+
+新建一个SpringBoot项目EurekaClientRiskApp，作为风险模块，添加依赖，pom.xml如下：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.2</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>farb.top</groupId>
+    <artifactId>EurekaClientRiskApp</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>EurekaClientRiskApp</name>
+    <description>EurekaClientRiskApp</description>
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2023.0.2</spring-cloud.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>3.3.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.boot</groupId>-->
+        <!--            <artifactId>spring-boot-starter-data-jpa</artifactId>-->
+        <!--            <version>RELEASE</version>-->
+        <!--            <scope>compile</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>3.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>2.0.43</version>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
+```
+
+```java
+@EnableDiscoveryClient
+@SpringBootApplication
+public class EurekaClientRiskAppApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaClientRiskAppApplication.class, args);
+    }
+}
+
+@RestController
+public class RiskController {
+    @GetMapping("hello")
+    public String hello() {
+        return "hello,this is Risk Service";
+    }
+}
+```
+
+```yml
+server:
+  port: 1111
+spring:
+  application:
+    name: RiskService
+  data:
+    redis:
+      host: localhost
+      port: 6379
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8888/eureka
+    fetch-registry: true
+    register-with-eureka: true
+```
+
+
+新建一个SpringBoot项目EurekaClientOrderApp，作为订单模块，添加依赖，pom.xml如下：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.2</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>farb.top</groupId>
+    <artifactId>EurekaClientOrderApp</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>EurekaClientOrderApp</name>
+    <description>EurekaClientOrderApp</description>
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2023.0.2</spring-cloud.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>3.4.0</version>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+```
+
+```java
+@SpringBootApplication
+@EnableDiscoveryClient
+public class EurekaClientOrderAppApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaClientOrderAppApplication.class, args);
+    }
+
+}
+
+@RestController
+public class HelloController {
+    @LoadBalanced
+    @Resource
+    private RestTemplate restTemplate;
+
+    @Resource
+    private DiscoveryClient discoveryClient;
+
+    @GetMapping("hello")
+    public String hello() {
+        return "Hello World,this is Order service";
+    }
+
+    @GetMapping("getRiskInfo")
+    public String getRiskInfo() {
+        // 一个服务可能在多个服务器节点上运行，所以一个服务可能对应多个实列
+        List<ServiceInstance> serviceInstances = discoveryClient.getInstances("RiskService");
+        if (!serviceInstances.isEmpty()) {
+            return restTemplate.getForObject("http://RiskService/hello", String.class);
+        }
+        return "RiskService not found";
+    }
+}
+
+@Configuration
+public class AppConfig {
+    @Bean
+    @LoadBalanced
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+```yml
+spring:
+  application:
+    name: OrderService
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://localhost:8888/eureka
+server:
+  port: 2222
+
+```
+
+分别运行两个服务RiskService和OrderService，然后访问OrderService的接口http://localhost:2222/getRiskInfo，会自动调用RiskService的接口。
+
+```bash
+PS C:\Users\farbg> curl http://host.docker.internal:2222/getRiskInfo
+
+
+StatusCode        : 200
+StatusDescription :
+Content           : hello,this is Risk Service
+RawContent        : HTTP/1.1 200
+                    Content-Length: 26
+                    Content-Type: text/plain;charset=UTF-8
+                    Date: Mon, 25 Nov 2024 15:19:23 GMT
+
+                    hello,this is Risk Service
+Forms             : {}
+Headers           : {[Content-Length, 26], [Content-Type, text/plain;charset=UTF-8], [Date, Mon, 25 Nov 2024 15:19:23 G
+                    MT]}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 26
+```
+
+## Redis与Ribbon集成
+
+复制一个RiskService模块，将配置文件的端口修改如下，其他都不变：
+
+``` yml
+server:
+  port: 1222
+spring:
+  application:
+    name: RiskService
+  data:
+    redis:
+      host: localhost
+      port: 6379
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8888/eureka
+    fetch-registry: true
+    register-with-eureka: true
+```
+
+然后再修改一下控制器，目的是能区分出响应是从哪个节点返回的：
+
+```java
+@RestController
+public class RiskController {
+    @GetMapping("hello")
+    public String hello() {
+        return "hello,this is Risk Service,and this is node 2";
+    }
+}
+```
+
+启动两个服务，然后查看Eureka服务器的实例列表如下：
+
+[![pAhfzZR.png](https://s21.ax1x.com/2024/11/25/pAhfzZR.png)](https://imgse.com/i/pAhfzZR)
+
+然后访问http://host.docker.internal:2222/getRiskInfo，会自动调用RiskService的接口，因为Ribbon默认是轮询的方式，所以每次访问结果都不一样。
+
+``` bash
+# 返回的结果会在下面两种结果轮询
+hello,this is Risk Service
+hello,this is Risk Service,and this is node 2
+hello,this is Risk Service
+hello,this is Risk Service,and this is node 2
+```

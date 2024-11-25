@@ -134,3 +134,20 @@ If you want to disable this check, just set the property [spring.cloud.compatibi
     </properties>
 
 ```
+
+### 8. 微服务模块中通过RestTemplate调用其他服务时报错，java.net.UnknownHostException: xxxservice
+
+原因是因为RestTemplate是直接在类中new的，不是专门定义的Bean。
+
+通过Bean 定义的 RestTemplate，可以很好地与其他 Spring 组件集成。例如，在使用服务发现（如 Eureka）和负载均衡（如 Ribbon）的微服务架构中，通过@LoadBalanced注解标记的RestTemplate（定义为 Bean）可以自动与 Ribbon 集成，实现基于服务名称的负载均衡调用。 而通过new 的 RestTemplate 没有集成Ribbon，因而找不到微服务。
+
+``` java
+@Configuration
+public class AppConfig {
+    @Bean
+    @LoadBalanced
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+}
+```
