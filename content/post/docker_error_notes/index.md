@@ -24,6 +24,7 @@ docker: Error response from daemon: Ports are not available: exposing port TCP 0
 解决方法：使用netstat -aon | findstr 查看并没有占用
 
 ``` bash
+# 使用管理员权限打开cmd
 net stop winnat
 net start winnat
 

@@ -123,3 +123,12 @@ Source_SSL_Verify_Server_Cert: No
 3. 为了保持数据操作同步，需要将之前创建的语句手动在从节点执行一下`create database redisDemo;`。
 4. 创建数据库之后，`stop replica;`关闭主从同步，然后再`start replica;`开启主从同步，即可解决从节点同步报错的问题。`show replica status\G;`查看从节点正常。
 
+# 8. ERROR 1872 (HY000): Replica failed to initialize applier metadata structure from the repository
+
+解决办法： 参考：https://blog.csdn.net/m0_66011019/article/details/136429224
+
+```bash
+mysql> reset replica;
+Query OK, 0 rows affected (0.04 sec)
+```
+
