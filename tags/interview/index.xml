@@ -1,0 +1,830 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Interview on Farb的博客</title><link>https://farb.github.io/tags/interview/</link><description>Recent content in Interview on Farb的博客</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Thu, 26 Dec 2024 00:33:41 +0800</lastBuildDate><atom:link href="https://farb.github.io/tags/interview/index.xml" rel="self" type="application/rss+xml"/><item><title>C#面试题</title><link>https://farb.github.io/p/c%23_interview/</link><pubDate>Tue, 24 Dec 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/c%23_interview/</guid><description>&lt;h3 id="1-字符串统计题">1. 字符串统计题
+&lt;/h3>&lt;p>某外企一面编码题目。&lt;/p>
+&lt;p>Given two strings s and t, return true if t is an anagram of s, and false otherwise.
+An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.&lt;/p>
+&lt;p>Example 1:
+Input: s = &amp;ldquo;anagram&amp;rdquo;, t = &amp;ldquo;nagaram&amp;rdquo;
+Output: true&lt;/p>
+&lt;p>Example 2:
+Input: s = &amp;ldquo;rat&amp;rdquo;, t = &amp;ldquo;car&amp;rdquo;
+Output: false&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;span class="lnt">40
+&lt;/span>&lt;span class="lnt">41
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-csharp" data-lang="csharp">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">internal&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">Program&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">Main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">IsAnag&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;anagram&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s">&amp;#34;nagaram&amp;#34;&lt;/span>&lt;span class="p">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">IsAnag&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;rat&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s">&amp;#34;car&amp;#34;&lt;/span>&lt;span class="p">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">bool&lt;/span> &lt;span class="n">IsAnag&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span> &lt;span class="n">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">string&lt;/span> &lt;span class="n">s2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">var&lt;/span> &lt;span class="n">dict1&lt;/span>&lt;span class="p">=&lt;/span> &lt;span class="n">GetAnagDict&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s1&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">var&lt;/span> &lt;span class="n">dict2&lt;/span>&lt;span class="p">=&lt;/span> &lt;span class="n">GetAnagDict&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s2&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">foreach&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">var&lt;/span> &lt;span class="n">entry&lt;/span> &lt;span class="k">in&lt;/span> &lt;span class="n">dict1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">bool&lt;/span> &lt;span class="n">isMatch&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">dict2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ContainsKey&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">entry&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Key&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">&amp;amp;&amp;amp;&lt;/span> &lt;span class="n">dict2&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">entry&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Key&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="n">entry&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(!&lt;/span>&lt;span class="n">isMatch&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="n">Dictionary&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">char&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">GetAnagDict&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span> &lt;span class="n">s1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Dictionary&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">char&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">dict&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">s1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">dict&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ContainsKey&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s1&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">dict&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">s1&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">]]++;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">dict&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s1&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">dict&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="2-杨辉三角问题">2. 杨辉三角问题
+&lt;/h3>&lt;p>题目描述： 杨辉三角是我国古代一个重要的数学成就 。&lt;/p>
+&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/12/25/f721899905bb6f3e.png"
+loading="lazy"
+>&lt;/p>
+&lt;p>如上图，杨辉三角是一个满足以下条件的几何排列：&lt;/p>
+&lt;p>1、每个数等于它上方两数之和。
+2、每行数字左右对称，由1开始逐渐变大。
+第 n 行的数字有 n 项。&lt;/p>
+&lt;p>请编写一个程序，按题目要求输出杨辉三角中第 n 行第 m 个数字。&lt;/p>
+&lt;p>输入&lt;/p>
+&lt;p>第一行，两个数字 n 和 m ，表示需要输出的数字在杨辉三角上的位置，行列均从 1 开始，（1&amp;lt;=n,m&amp;lt;=10000），以空格分隔。&lt;/p>
+&lt;p>输出&lt;/p>
+&lt;p>仅包含一个整数，即杨辉三角中第 n 行第 m 列处的数字。&lt;/p>
+&lt;p>输入示例
+7 5&lt;/p>
+&lt;p>输出示例
+15&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt"> 10
+&lt;/span>&lt;span class="lnt"> 11
+&lt;/span>&lt;span class="lnt"> 12
+&lt;/span>&lt;span class="lnt"> 13
+&lt;/span>&lt;span class="lnt"> 14
+&lt;/span>&lt;span class="lnt"> 15
+&lt;/span>&lt;span class="lnt"> 16
+&lt;/span>&lt;span class="lnt"> 17
+&lt;/span>&lt;span class="lnt"> 18
+&lt;/span>&lt;span class="lnt"> 19
+&lt;/span>&lt;span class="lnt"> 20
+&lt;/span>&lt;span class="lnt"> 21
+&lt;/span>&lt;span class="lnt"> 22
+&lt;/span>&lt;span class="lnt"> 23
+&lt;/span>&lt;span class="lnt"> 24
+&lt;/span>&lt;span class="lnt"> 25
+&lt;/span>&lt;span class="lnt"> 26
+&lt;/span>&lt;span class="lnt"> 27
+&lt;/span>&lt;span class="lnt"> 28
+&lt;/span>&lt;span class="lnt"> 29
+&lt;/span>&lt;span class="lnt"> 30
+&lt;/span>&lt;span class="lnt"> 31
+&lt;/span>&lt;span class="lnt"> 32
+&lt;/span>&lt;span class="lnt"> 33
+&lt;/span>&lt;span class="lnt"> 34
+&lt;/span>&lt;span class="lnt"> 35
+&lt;/span>&lt;span class="lnt"> 36
+&lt;/span>&lt;span class="lnt"> 37
+&lt;/span>&lt;span class="lnt"> 38
+&lt;/span>&lt;span class="lnt"> 39
+&lt;/span>&lt;span class="lnt"> 40
+&lt;/span>&lt;span class="lnt"> 41
+&lt;/span>&lt;span class="lnt"> 42
+&lt;/span>&lt;span class="lnt"> 43
+&lt;/span>&lt;span class="lnt"> 44
+&lt;/span>&lt;span class="lnt"> 45
+&lt;/span>&lt;span class="lnt"> 46
+&lt;/span>&lt;span class="lnt"> 47
+&lt;/span>&lt;span class="lnt"> 48
+&lt;/span>&lt;span class="lnt"> 49
+&lt;/span>&lt;span class="lnt"> 50
+&lt;/span>&lt;span class="lnt"> 51
+&lt;/span>&lt;span class="lnt"> 52
+&lt;/span>&lt;span class="lnt"> 53
+&lt;/span>&lt;span class="lnt"> 54
+&lt;/span>&lt;span class="lnt"> 55
+&lt;/span>&lt;span class="lnt"> 56
+&lt;/span>&lt;span class="lnt"> 57
+&lt;/span>&lt;span class="lnt"> 58
+&lt;/span>&lt;span class="lnt"> 59
+&lt;/span>&lt;span class="lnt"> 60
+&lt;/span>&lt;span class="lnt"> 61
+&lt;/span>&lt;span class="lnt"> 62
+&lt;/span>&lt;span class="lnt"> 63
+&lt;/span>&lt;span class="lnt"> 64
+&lt;/span>&lt;span class="lnt"> 65
+&lt;/span>&lt;span class="lnt"> 66
+&lt;/span>&lt;span class="lnt"> 67
+&lt;/span>&lt;span class="lnt"> 68
+&lt;/span>&lt;span class="lnt"> 69
+&lt;/span>&lt;span class="lnt"> 70
+&lt;/span>&lt;span class="lnt"> 71
+&lt;/span>&lt;span class="lnt"> 72
+&lt;/span>&lt;span class="lnt"> 73
+&lt;/span>&lt;span class="lnt"> 74
+&lt;/span>&lt;span class="lnt"> 75
+&lt;/span>&lt;span class="lnt"> 76
+&lt;/span>&lt;span class="lnt"> 77
+&lt;/span>&lt;span class="lnt"> 78
+&lt;/span>&lt;span class="lnt"> 79
+&lt;/span>&lt;span class="lnt"> 80
+&lt;/span>&lt;span class="lnt"> 81
+&lt;/span>&lt;span class="lnt"> 82
+&lt;/span>&lt;span class="lnt"> 83
+&lt;/span>&lt;span class="lnt"> 84
+&lt;/span>&lt;span class="lnt"> 85
+&lt;/span>&lt;span class="lnt"> 86
+&lt;/span>&lt;span class="lnt"> 87
+&lt;/span>&lt;span class="lnt"> 88
+&lt;/span>&lt;span class="lnt"> 89
+&lt;/span>&lt;span class="lnt"> 90
+&lt;/span>&lt;span class="lnt"> 91
+&lt;/span>&lt;span class="lnt"> 92
+&lt;/span>&lt;span class="lnt"> 93
+&lt;/span>&lt;span class="lnt"> 94
+&lt;/span>&lt;span class="lnt"> 95
+&lt;/span>&lt;span class="lnt"> 96
+&lt;/span>&lt;span class="lnt"> 97
+&lt;/span>&lt;span class="lnt"> 98
+&lt;/span>&lt;span class="lnt"> 99
+&lt;/span>&lt;span class="lnt">100
+&lt;/span>&lt;span class="lnt">101
+&lt;/span>&lt;span class="lnt">102
+&lt;/span>&lt;span class="lnt">103
+&lt;/span>&lt;span class="lnt">104
+&lt;/span>&lt;span class="lnt">105
+&lt;/span>&lt;span class="lnt">106
+&lt;/span>&lt;span class="lnt">107
+&lt;/span>&lt;span class="lnt">108
+&lt;/span>&lt;span class="lnt">109
+&lt;/span>&lt;span class="lnt">110
+&lt;/span>&lt;span class="lnt">111
+&lt;/span>&lt;span class="lnt">112
+&lt;/span>&lt;span class="lnt">113
+&lt;/span>&lt;span class="lnt">114
+&lt;/span>&lt;span class="lnt">115
+&lt;/span>&lt;span class="lnt">116
+&lt;/span>&lt;span class="lnt">117
+&lt;/span>&lt;span class="lnt">118
+&lt;/span>&lt;span class="lnt">119
+&lt;/span>&lt;span class="lnt">120
+&lt;/span>&lt;span class="lnt">121
+&lt;/span>&lt;span class="lnt">122
+&lt;/span>&lt;span class="lnt">123
+&lt;/span>&lt;span class="lnt">124
+&lt;/span>&lt;span class="lnt">125
+&lt;/span>&lt;span class="lnt">126
+&lt;/span>&lt;span class="lnt">127
+&lt;/span>&lt;span class="lnt">128
+&lt;/span>&lt;span class="lnt">129
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-csharp" data-lang="csharp">&lt;span class="line">&lt;span class="cl">&lt;span class="k">using&lt;/span> &lt;span class="nn">YangHuiTriangleDemo&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// &amp;lt;summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// 题目5：杨辉三角&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// &amp;lt;/summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">internal&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">Program&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">Main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span> &lt;span class="n">tips&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s">&amp;#34;&amp;#34;&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s">&lt;/span> &lt;span class="n">Please&lt;/span> &lt;span class="n">input&lt;/span> &lt;span class="m">2&lt;/span> &lt;span class="n">integers&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="k">get&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">result&lt;/span> &lt;span class="n">of&lt;/span> &lt;span class="n">YangHui&lt;/span> &lt;span class="n">triangle&lt;/span>&lt;span class="p">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">The&lt;/span> &lt;span class="m">2&lt;/span> &lt;span class="n">integers&lt;/span> &lt;span class="n">represents&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">row&lt;/span> &lt;span class="n">number&lt;/span> &lt;span class="n">and&lt;/span> &lt;span class="n">column&lt;/span> &lt;span class="n">number&lt;/span> &lt;span class="n">seperately&lt;/span>&lt;span class="p">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">For&lt;/span> &lt;span class="n">example&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">if&lt;/span> &lt;span class="n">you&lt;/span> &lt;span class="n">input&lt;/span> &lt;span class="m">3&lt;/span> &lt;span class="m">2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">result&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="m">2.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">The&lt;/span> &lt;span class="n">range&lt;/span> &lt;span class="n">of&lt;/span> &lt;span class="n">row&lt;/span> &lt;span class="n">number&lt;/span> &lt;span class="k">is&lt;/span> &lt;span class="m">1&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="m">10000&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">and&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">range&lt;/span> &lt;span class="n">of&lt;/span> &lt;span class="n">column&lt;/span> &lt;span class="n">number&lt;/span> &lt;span class="k">is&lt;/span> &lt;span class="m">1&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="m">10000.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Press&lt;/span> &lt;span class="n">Ctrl&lt;/span>&lt;span class="p">+&lt;/span>&lt;span class="n">C&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">exit&lt;/span>&lt;span class="p">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;&amp;#34;&amp;#34;;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s">&lt;/span> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">tips&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">YangHuiTriangle&lt;/span> &lt;span class="n">yangHuiTriangle&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">YangHuiTriangle&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">while&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Please input 2 integers:&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span> &lt;span class="n">input&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ReadLine&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">input&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">break&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">(&lt;/span>&lt;span class="kt">bool&lt;/span> &lt;span class="n">isOk&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">row&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">column&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">ParseRowColumn&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">input&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(!&lt;/span>&lt;span class="n">isOk&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Only 2 integers is allowed and they are seperated with one blank space.&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">continue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">row&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>&lt;span class="m">10000&lt;/span>&lt;span class="p">||&lt;/span> &lt;span class="n">column&lt;/span>&lt;span class="p">&amp;gt;&lt;/span>&lt;span class="m">10000&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;The range of row number is 1 to 10000, and the range of column number is 1 to 10000.&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">continue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">result&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">yangHuiTriangle&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">GetNumber&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">row&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">column&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">result&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">bool&lt;/span> &lt;span class="n">isOk&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">row&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">column&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="n">ParseRowColumn&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span> &lt;span class="n">input&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">inputArray&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">input&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Split&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="sc">&amp;#39; &amp;#39;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">inputArray&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span>&lt;span class="p">!=&lt;/span>&lt;span class="m">2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="k">default&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="k">default&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">bool&lt;/span> &lt;span class="n">isRowOk&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">TryParse&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">inputArray&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="p">],&lt;/span>&lt;span class="k">out&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">row&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">bool&lt;/span> &lt;span class="n">isColumnOk&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">TryParse&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">inputArray&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="p">],&lt;/span>&lt;span class="k">out&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">column&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">isRowOk&lt;/span> &lt;span class="p">&amp;amp;&amp;amp;&lt;/span> &lt;span class="n">isColumnOk&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">row&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">column&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">namespace&lt;/span> &lt;span class="nn">YangHuiTriangleDemo&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">YangHuiTriangle&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 当前内存中杨辉三角数组的最大行数&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">_maxNumRows&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">[,]&lt;/span> &lt;span class="n">_arr&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">GetNumber&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">row&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">col&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">GenerateYanghuiTriangle&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">row&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">_arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">row&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">col&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// 生成杨辉三角&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;/summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;numRows&amp;#34;&amp;gt;&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">GenerateYanghuiTriangle&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">numRows&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 如果当前内存中已经存储了足够的杨辉三角行数，直接返回&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">numRows&lt;/span> &lt;span class="p">&amp;lt;=&lt;/span> &lt;span class="n">_maxNumRows&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 创建二维数组来存储杨辉三角形&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span>&lt;span class="p">[,]&lt;/span> &lt;span class="n">arr&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">numRows&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">numRows&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 扩容数组，补充还没生成的杨辉三角部分&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">_maxNumRows&lt;/span> &lt;span class="p">&amp;gt;&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">CopyJaggedArray&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">_arr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 按照杨辉三角形的规律填充数组元素&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">_maxNumRows&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">numRows&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">&amp;lt;=&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">j&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="p">||&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">+&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">_maxNumRows&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">numRows&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">_arr&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// 拷贝交错数组&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;/summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;oldArr&amp;#34;&amp;gt;&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;newArr&amp;#34;&amp;gt;&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">CopyJaggedArray&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span>&lt;span class="p">[,]&lt;/span> &lt;span class="n">oldArr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">[,]&lt;/span> &lt;span class="n">newArr&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">oldArr&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">GetLength&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">j&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">oldArr&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">GetLength&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">newArr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">oldArr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="3-数据可视化">3. 数据可视化
+&lt;/h3>&lt;p>编程语言：不限&lt;/p>
+&lt;p>题目描述：有句话是这么说的：“文不如表，表不如图”。形象地描述了图表在传达信息时，给接收者带来的截然不同的效率和体验。因此，在计算机计算能力、数据规模和决策需求都不断提升的当下，数据可视化的应用也越来越普遍。&lt;/p>
+&lt;p>数据可视化的范围很广，涉及到数据的获取、加工、建模、图形学，人机交互等很多概念和领域，想更快上手，获得更好的体验，使用DragonFly BI这样的专业工具和服务是更明智的选择。&lt;/p>
+&lt;p>今天，我们通过一个简化的命题，来亲手实现简单的数据可视化。编写一个程序，对于给定的一组数据和要求，输出一个以字符组成的柱状图。&lt;/p>
+&lt;p>输入&lt;/p>
+&lt;p>第一行，一个整数 N（1 &amp;lt;=n&amp;lt;=20），表示这组数据的条目数。
+第二行，两个字符串，用于表示数据展示在柱状图上的排序方式。第一个字符串是“Name” 或者 “Value”，表示排序的依据是数据条目的名称亦或数值；第二个字符串是 “ASC” 或者 “DESC”，表示升序或降序。
+随后的 N 行，每行包含一个字符串 S 和一个数字 V，以空格分隔，表示一条数据。S 即数据条目的名称，仅包含小写字母，V 即对应的数值，是一个整数，(0&amp;lt;=V&amp;lt;=1,000,000)&amp;lt; /P&amp;gt;&lt;/p>
+&lt;p>输出&lt;/p>
+&lt;p>图表外框转角符号：&lt;/p>
+&lt;p>“┌”（\u250c）
+“┐”（\u2510）
+“└”（\u2514）
+“┘”（\u2518）
+图表中的横、竖线：&lt;/p>
+&lt;p>“─”（\u2500）
+“│”（\u2502）
+图表中的各种交叉线：&lt;/p>
+&lt;p>“├”（\u251c）
+“┤”（\u2524）
+“┬”（\u252c）
+“┴”（\u2534）
+“┼”（\u253c）
+用来拼柱子的字符：&lt;/p>
+&lt;p>“█”（\u2588）
+图表中的空格：&lt;/p>
+&lt;p>“ ”（\u0020）
+图表中名称区域的宽度，由这组数据中名称的最大长度决定，所有名称向右对齐， 图表中柱的最大长度为 20，每个柱的长度由该柱对应数据和这组数据中最大值（此值一定大于 0）的比值与 20 相乘获得，不足一格的部分舍去。&lt;/p>
+&lt;p>输入示例&lt;/p>
+&lt;p>3
+Value DESC
+apple 5
+pen 3
+pineapple 10&lt;/p>
+&lt;p>输出示例&lt;/p>
+&lt;p>&lt;img src="https://s3.bmp.ovh/imgs/2024/12/26/05e908cd4234101f.png"
+loading="lazy"
+>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt"> 10
+&lt;/span>&lt;span class="lnt"> 11
+&lt;/span>&lt;span class="lnt"> 12
+&lt;/span>&lt;span class="lnt"> 13
+&lt;/span>&lt;span class="lnt"> 14
+&lt;/span>&lt;span class="lnt"> 15
+&lt;/span>&lt;span class="lnt"> 16
+&lt;/span>&lt;span class="lnt"> 17
+&lt;/span>&lt;span class="lnt"> 18
+&lt;/span>&lt;span class="lnt"> 19
+&lt;/span>&lt;span class="lnt"> 20
+&lt;/span>&lt;span class="lnt"> 21
+&lt;/span>&lt;span class="lnt"> 22
+&lt;/span>&lt;span class="lnt"> 23
+&lt;/span>&lt;span class="lnt"> 24
+&lt;/span>&lt;span class="lnt"> 25
+&lt;/span>&lt;span class="lnt"> 26
+&lt;/span>&lt;span class="lnt"> 27
+&lt;/span>&lt;span class="lnt"> 28
+&lt;/span>&lt;span class="lnt"> 29
+&lt;/span>&lt;span class="lnt"> 30
+&lt;/span>&lt;span class="lnt"> 31
+&lt;/span>&lt;span class="lnt"> 32
+&lt;/span>&lt;span class="lnt"> 33
+&lt;/span>&lt;span class="lnt"> 34
+&lt;/span>&lt;span class="lnt"> 35
+&lt;/span>&lt;span class="lnt"> 36
+&lt;/span>&lt;span class="lnt"> 37
+&lt;/span>&lt;span class="lnt"> 38
+&lt;/span>&lt;span class="lnt"> 39
+&lt;/span>&lt;span class="lnt"> 40
+&lt;/span>&lt;span class="lnt"> 41
+&lt;/span>&lt;span class="lnt"> 42
+&lt;/span>&lt;span class="lnt"> 43
+&lt;/span>&lt;span class="lnt"> 44
+&lt;/span>&lt;span class="lnt"> 45
+&lt;/span>&lt;span class="lnt"> 46
+&lt;/span>&lt;span class="lnt"> 47
+&lt;/span>&lt;span class="lnt"> 48
+&lt;/span>&lt;span class="lnt"> 49
+&lt;/span>&lt;span class="lnt"> 50
+&lt;/span>&lt;span class="lnt"> 51
+&lt;/span>&lt;span class="lnt"> 52
+&lt;/span>&lt;span class="lnt"> 53
+&lt;/span>&lt;span class="lnt"> 54
+&lt;/span>&lt;span class="lnt"> 55
+&lt;/span>&lt;span class="lnt"> 56
+&lt;/span>&lt;span class="lnt"> 57
+&lt;/span>&lt;span class="lnt"> 58
+&lt;/span>&lt;span class="lnt"> 59
+&lt;/span>&lt;span class="lnt"> 60
+&lt;/span>&lt;span class="lnt"> 61
+&lt;/span>&lt;span class="lnt"> 62
+&lt;/span>&lt;span class="lnt"> 63
+&lt;/span>&lt;span class="lnt"> 64
+&lt;/span>&lt;span class="lnt"> 65
+&lt;/span>&lt;span class="lnt"> 66
+&lt;/span>&lt;span class="lnt"> 67
+&lt;/span>&lt;span class="lnt"> 68
+&lt;/span>&lt;span class="lnt"> 69
+&lt;/span>&lt;span class="lnt"> 70
+&lt;/span>&lt;span class="lnt"> 71
+&lt;/span>&lt;span class="lnt"> 72
+&lt;/span>&lt;span class="lnt"> 73
+&lt;/span>&lt;span class="lnt"> 74
+&lt;/span>&lt;span class="lnt"> 75
+&lt;/span>&lt;span class="lnt"> 76
+&lt;/span>&lt;span class="lnt"> 77
+&lt;/span>&lt;span class="lnt"> 78
+&lt;/span>&lt;span class="lnt"> 79
+&lt;/span>&lt;span class="lnt"> 80
+&lt;/span>&lt;span class="lnt"> 81
+&lt;/span>&lt;span class="lnt"> 82
+&lt;/span>&lt;span class="lnt"> 83
+&lt;/span>&lt;span class="lnt"> 84
+&lt;/span>&lt;span class="lnt"> 85
+&lt;/span>&lt;span class="lnt"> 86
+&lt;/span>&lt;span class="lnt"> 87
+&lt;/span>&lt;span class="lnt"> 88
+&lt;/span>&lt;span class="lnt"> 89
+&lt;/span>&lt;span class="lnt"> 90
+&lt;/span>&lt;span class="lnt"> 91
+&lt;/span>&lt;span class="lnt"> 92
+&lt;/span>&lt;span class="lnt"> 93
+&lt;/span>&lt;span class="lnt"> 94
+&lt;/span>&lt;span class="lnt"> 95
+&lt;/span>&lt;span class="lnt"> 96
+&lt;/span>&lt;span class="lnt"> 97
+&lt;/span>&lt;span class="lnt"> 98
+&lt;/span>&lt;span class="lnt"> 99
+&lt;/span>&lt;span class="lnt">100
+&lt;/span>&lt;span class="lnt">101
+&lt;/span>&lt;span class="lnt">102
+&lt;/span>&lt;span class="lnt">103
+&lt;/span>&lt;span class="lnt">104
+&lt;/span>&lt;span class="lnt">105
+&lt;/span>&lt;span class="lnt">106
+&lt;/span>&lt;span class="lnt">107
+&lt;/span>&lt;span class="lnt">108
+&lt;/span>&lt;span class="lnt">109
+&lt;/span>&lt;span class="lnt">110
+&lt;/span>&lt;span class="lnt">111
+&lt;/span>&lt;span class="lnt">112
+&lt;/span>&lt;span class="lnt">113
+&lt;/span>&lt;span class="lnt">114
+&lt;/span>&lt;span class="lnt">115
+&lt;/span>&lt;span class="lnt">116
+&lt;/span>&lt;span class="lnt">117
+&lt;/span>&lt;span class="lnt">118
+&lt;/span>&lt;span class="lnt">119
+&lt;/span>&lt;span class="lnt">120
+&lt;/span>&lt;span class="lnt">121
+&lt;/span>&lt;span class="lnt">122
+&lt;/span>&lt;span class="lnt">123
+&lt;/span>&lt;span class="lnt">124
+&lt;/span>&lt;span class="lnt">125
+&lt;/span>&lt;span class="lnt">126
+&lt;/span>&lt;span class="lnt">127
+&lt;/span>&lt;span class="lnt">128
+&lt;/span>&lt;span class="lnt">129
+&lt;/span>&lt;span class="lnt">130
+&lt;/span>&lt;span class="lnt">131
+&lt;/span>&lt;span class="lnt">132
+&lt;/span>&lt;span class="lnt">133
+&lt;/span>&lt;span class="lnt">134
+&lt;/span>&lt;span class="lnt">135
+&lt;/span>&lt;span class="lnt">136
+&lt;/span>&lt;span class="lnt">137
+&lt;/span>&lt;span class="lnt">138
+&lt;/span>&lt;span class="lnt">139
+&lt;/span>&lt;span class="lnt">140
+&lt;/span>&lt;span class="lnt">141
+&lt;/span>&lt;span class="lnt">142
+&lt;/span>&lt;span class="lnt">143
+&lt;/span>&lt;span class="lnt">144
+&lt;/span>&lt;span class="lnt">145
+&lt;/span>&lt;span class="lnt">146
+&lt;/span>&lt;span class="lnt">147
+&lt;/span>&lt;span class="lnt">148
+&lt;/span>&lt;span class="lnt">149
+&lt;/span>&lt;span class="lnt">150
+&lt;/span>&lt;span class="lnt">151
+&lt;/span>&lt;span class="lnt">152
+&lt;/span>&lt;span class="lnt">153
+&lt;/span>&lt;span class="lnt">154
+&lt;/span>&lt;span class="lnt">155
+&lt;/span>&lt;span class="lnt">156
+&lt;/span>&lt;span class="lnt">157
+&lt;/span>&lt;span class="lnt">158
+&lt;/span>&lt;span class="lnt">159
+&lt;/span>&lt;span class="lnt">160
+&lt;/span>&lt;span class="lnt">161
+&lt;/span>&lt;span class="lnt">162
+&lt;/span>&lt;span class="lnt">163
+&lt;/span>&lt;span class="lnt">164
+&lt;/span>&lt;span class="lnt">165
+&lt;/span>&lt;span class="lnt">166
+&lt;/span>&lt;span class="lnt">167
+&lt;/span>&lt;span class="lnt">168
+&lt;/span>&lt;span class="lnt">169
+&lt;/span>&lt;span class="lnt">170
+&lt;/span>&lt;span class="lnt">171
+&lt;/span>&lt;span class="lnt">172
+&lt;/span>&lt;span class="lnt">173
+&lt;/span>&lt;span class="lnt">174
+&lt;/span>&lt;span class="lnt">175
+&lt;/span>&lt;span class="lnt">176
+&lt;/span>&lt;span class="lnt">177
+&lt;/span>&lt;span class="lnt">178
+&lt;/span>&lt;span class="lnt">179
+&lt;/span>&lt;span class="lnt">180
+&lt;/span>&lt;span class="lnt">181
+&lt;/span>&lt;span class="lnt">182
+&lt;/span>&lt;span class="lnt">183
+&lt;/span>&lt;span class="lnt">184
+&lt;/span>&lt;span class="lnt">185
+&lt;/span>&lt;span class="lnt">186
+&lt;/span>&lt;span class="lnt">187
+&lt;/span>&lt;span class="lnt">188
+&lt;/span>&lt;span class="lnt">189
+&lt;/span>&lt;span class="lnt">190
+&lt;/span>&lt;span class="lnt">191
+&lt;/span>&lt;span class="lnt">192
+&lt;/span>&lt;span class="lnt">193
+&lt;/span>&lt;span class="lnt">194
+&lt;/span>&lt;span class="lnt">195
+&lt;/span>&lt;span class="lnt">196
+&lt;/span>&lt;span class="lnt">197
+&lt;/span>&lt;span class="lnt">198
+&lt;/span>&lt;span class="lnt">199
+&lt;/span>&lt;span class="lnt">200
+&lt;/span>&lt;span class="lnt">201
+&lt;/span>&lt;span class="lnt">202
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-c#" data-lang="c#">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">namespace&lt;/span> &lt;span class="nn">DataVisualizationDemo&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// &amp;lt;summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// 题目2：数据可视化&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cs">/// &amp;lt;/summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">internal&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">Program&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">Main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">DataProcessor&lt;/span> &lt;span class="n">processor&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">while&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Please input your data:&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">products&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">processor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Parse&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span>&lt;span class="p">=&lt;/span>&lt;span class="n">processor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ProcessData&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">products&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">processor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">PrintData&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">products&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">namespace&lt;/span> &lt;span class="nn">DataVisualizationDemo&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">Product&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">string&lt;/span> &lt;span class="n">Name&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">get&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="k">set&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">Value&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">get&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="k">set&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">using&lt;/span> &lt;span class="nn">System.Text&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">namespace&lt;/span> &lt;span class="nn">DataVisualizationDemo&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">internal&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">DataProcessor&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">string&lt;/span> &lt;span class="n">orderField&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">bool&lt;/span> &lt;span class="n">isAsc&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">Parse&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(!&lt;/span>&lt;span class="kt">int&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">TryParse&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ReadLine&lt;/span>&lt;span class="p">(),&lt;/span> &lt;span class="k">out&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">lineCount&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span> &lt;span class="n">sortDesc&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ReadLine&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">arr&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">sortDesc&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Split&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34; &amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">orderField&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">isAsc&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="p">].&lt;/span>&lt;span class="n">Equals&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;ASC&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">StringComparison&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">CurrentCultureIgnoreCase&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">products&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">lineCount&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span> &lt;span class="n">line&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ReadLine&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span>&lt;span class="p">[]&lt;/span> &lt;span class="n">lineArray&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">line&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Split&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34; &amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">lineArray&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span> &lt;span class="p">!=&lt;/span> &lt;span class="m">2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">continue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">string&lt;/span> &lt;span class="n">name&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">lineArray&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="k">value&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Parse&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">lineArray&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="p">]);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">Product&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="n">Name&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">Value&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">value&lt;/span> &lt;span class="p">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">ProcessData&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Equals&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">orderField&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">StringComparison&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">CurrentCultureIgnoreCase&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">isAsc&lt;/span> &lt;span class="p">?&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">OrderBy&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Name&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="n">ToList&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">OrderByDescending&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Name&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="n">ToList&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">isAsc&lt;/span> &lt;span class="p">?&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">OrderBy&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="n">ToList&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">OrderByDescending&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="n">ToList&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintData&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">IList&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="n">Product&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxNameLength&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Max&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Name&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueLength&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Max&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="n">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WindowWidth&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="n">maxNameLength&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">4&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintHeader&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">StringBuilder&lt;/span> &lt;span class="n">sb&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Count&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintDataLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">products&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">sb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="n">products&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Count&lt;/span> &lt;span class="p">-&lt;/span> &lt;span class="m">1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintFooter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">break&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;├&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintNameRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┼&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintValueRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┤&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintDataLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">Product&lt;/span> &lt;span class="n">product&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">StringBuilder&lt;/span> &lt;span class="n">sb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">actualWidth&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">maxValueLength&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span> &lt;span class="p">?&lt;/span> &lt;span class="n">maxValueLength&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">formatedValue&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">GenerateFormatedValue&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">sb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">product&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">formatedValue&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Count&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">$&amp;#34;│{product.Name.PadLeft(maxNameLength)}│{formatedValue[i].PadRight(actualWidth)}│&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">continue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">$&amp;#34;│{string.Empty.PadLeft(maxNameLength)}│{formatedValue[i].PadRight(actualWidth)}│&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// 生成格式化的值字符串&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;/summary&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;sb&amp;#34;&amp;gt;&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;productValue&amp;#34;&amp;gt;&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;param name=&amp;#34;maxValueThreshold&amp;#34;&amp;gt;值的一行最大的字符数&amp;lt;/param&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cs">/// &amp;lt;returns&amp;gt;&amp;lt;/returns&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">GenerateFormatedValue&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">StringBuilder&lt;/span> &lt;span class="n">sb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">productValue&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Clear&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 当value很大时，需要换行，所以需要计算行数&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">valueLineCount&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="n">Math&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Ceiling&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">productValue&lt;/span> &lt;span class="p">*&lt;/span> &lt;span class="m">1.0d&lt;/span> &lt;span class="p">/&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">&amp;gt;&lt;/span> &lt;span class="n">result&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">&amp;lt;&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">&amp;gt;(&lt;/span>&lt;span class="n">valueLineCount&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">actualWidth&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">productValue&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span> &lt;span class="p">?&lt;/span> &lt;span class="n">productValue&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">productValue&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Append&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;█&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span> &lt;span class="p">==&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">result&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ToString&lt;/span>&lt;span class="p">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Clear&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Length&lt;/span> &lt;span class="p">&amp;gt;&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 拼上最后一行&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">result&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">sb&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ToString&lt;/span>&lt;span class="p">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">result&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintHeader&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┌&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintNameRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┬&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintValueRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┐&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintFooter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;└&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintNameRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┴&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PrintValueRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">WriteLine&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;┘&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintValueRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueLength&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">actualWidth&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="n">maxValueLength&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span> &lt;span class="p">?&lt;/span> &lt;span class="n">maxValueLength&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="n">maxValueThreshold&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">actualWidth&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;─&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="k">void&lt;/span> &lt;span class="n">PrintNameRowSpliter&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="m">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="n">maxNameLength&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">++)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">Write&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;─&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item></channel></rss>
