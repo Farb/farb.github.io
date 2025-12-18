@@ -1,0 +1,1319 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="源码链接： https://gitee.com/farb/architect-practicer-code\n微服务和SpringCloud相关概念 传统架构和微服务的比较 传统架构：所有模块都是集中开发，集中部署，集中运行的，耦合度比较高，模块之间通过代码直接调用，数据库和缓存也属于整个系统，包括所有模块的数据。\n微服务：每个模块都是单独开发，单独部署，单独运行的，解耦度较高，模块之间通过接口调用，数据库和缓存也属于每个模块，每个模块的数据也只属于自己。整个系统的扩展能力较强，能用较小的代价扩展新的功能模块。\n微服务和SpringCloud的相关概念 微服务是一种设计风格，有不同的实现方式，而SpringCould是一个微服务框架，它提供了一系列的解决方案，如服务注册中心、配置中心、路由、网关、负载均衡、断路器、监控、网关限流等。\nGateway：网关，用于实现服务间的路由，负载均衡，限流等。\nConfig：配置中心，用于管理配置文件，包括配置文件的版本控制，配置文件的发布等。\nBus：消息总线，用于实现服务间的通信，包括服务间的消息发布，服务间的消息订阅等。\nSleuth：分布式追踪，用于实现服务间的调用链路追踪，包括调用链路追踪的记录，调用链路追踪的日志等。\nCircuit Breaker：断路器，用于实现服务间的容错，包括服务间的调用超时，服务间的调用失败等。\nSecurity：安全中心，用于实现服务间的安全认证，包括服务间的用户认证，服务间的角色认证等。\nLoadBalancer：负载均衡，用于实现服务间的负载均衡，包括服务间的轮询，随机等。\nDiscovery：服务发现，用于实现服务间的服务发现，包括服务间的服务注册，服务间的服务发现等。\nSpringCloud的常用组件如下：\n组件 功能 JPA ORM框架 Eureka 服务治理组件，通过该组件，系统可以动态地实现微服务组件治理 Hystrix 容错保护组件，能提供自动熔断和限流等方面的功能 Ribbon 负载均衡组件，能够把请求均衡地分摊到各服务组件上，包括轮询、随机、一致性哈希等 Zuul 网关组件，能够实现服务间的路由 Spring Cloud Config 配置中心组件，能够实现配置文件的管理 多模块整合Redis，构建微服务体系 用Docker准备Redis和MySQL集群环境 创建一个一主一从的Redis集群环境:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 PS C:\\Users\\farbg> docker run -itd --name master-redis -p 6379:6379 redis 6c0478e385052a2bb2547e3436e236258cd3c7b75c4af234cede446b9987b39f PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' master-redis 172.17.0.4 PS C:\\Users\\farbg> docker run -itd --name slave-redis -p 6380:6380 redis 81441fe049dda8b567bfef6235f7a9bc760cb383cbd4a77c0461ee164dcc28d7 PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' slave-redis 172.17.0.2 PS C:\\Users\\farbg> docker exec -it slave-redis bash root@4cc2ca237b09:/data# redis-cli 127.0.0.1:6379> SLAVEOF 172.17.0.4 6379 OK 127.0.0.1:6379> info replication # Replication role:slave master_host:172.17.0.4 master_port:6379 master_link_status:up master_last_io_seconds_ago:1 master_sync_in_progress:0 slave_read_repl_offset:14 slave_repl_offset:14 slave_priority:100 slave_read_only:1 replica_announced:1 connected_slaves:0 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:14 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:14 root@6c0478e38505:/data# redis-cli 127.0.0.1:6379> info replication # Replication role:master connected_slaves:1 slave0:ip=172.17.0.2,port=6379,state=online,offset=112,lag=1 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:112 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:112 # 验证主从模式是否正常工作 # 在主节点set 127.0.0.1:6379> set hello world OK # 在从节点get 127.0.0.1:6379> get hello &#34;world&#34; 搭建一个一主一从的MySQL集群环境：\n"><title>基于Docker的Redis实战-Redis与SpringCloud微服务整合</title><link rel=canonical href=https://farb.github.io/p/redis_in_action_13_redis_springcloud/><link rel=stylesheet href=/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css><meta property='og:title' content="基于Docker的Redis实战-Redis与SpringCloud微服务整合"><meta property='og:description' content="源码链接： https://gitee.com/farb/architect-practicer-code\n微服务和SpringCloud相关概念 传统架构和微服务的比较 传统架构：所有模块都是集中开发，集中部署，集中运行的，耦合度比较高，模块之间通过代码直接调用，数据库和缓存也属于整个系统，包括所有模块的数据。\n微服务：每个模块都是单独开发，单独部署，单独运行的，解耦度较高，模块之间通过接口调用，数据库和缓存也属于每个模块，每个模块的数据也只属于自己。整个系统的扩展能力较强，能用较小的代价扩展新的功能模块。\n微服务和SpringCloud的相关概念 微服务是一种设计风格，有不同的实现方式，而SpringCould是一个微服务框架，它提供了一系列的解决方案，如服务注册中心、配置中心、路由、网关、负载均衡、断路器、监控、网关限流等。\nGateway：网关，用于实现服务间的路由，负载均衡，限流等。\nConfig：配置中心，用于管理配置文件，包括配置文件的版本控制，配置文件的发布等。\nBus：消息总线，用于实现服务间的通信，包括服务间的消息发布，服务间的消息订阅等。\nSleuth：分布式追踪，用于实现服务间的调用链路追踪，包括调用链路追踪的记录，调用链路追踪的日志等。\nCircuit Breaker：断路器，用于实现服务间的容错，包括服务间的调用超时，服务间的调用失败等。\nSecurity：安全中心，用于实现服务间的安全认证，包括服务间的用户认证，服务间的角色认证等。\nLoadBalancer：负载均衡，用于实现服务间的负载均衡，包括服务间的轮询，随机等。\nDiscovery：服务发现，用于实现服务间的服务发现，包括服务间的服务注册，服务间的服务发现等。\nSpringCloud的常用组件如下：\n组件 功能 JPA ORM框架 Eureka 服务治理组件，通过该组件，系统可以动态地实现微服务组件治理 Hystrix 容错保护组件，能提供自动熔断和限流等方面的功能 Ribbon 负载均衡组件，能够把请求均衡地分摊到各服务组件上，包括轮询、随机、一致性哈希等 Zuul 网关组件，能够实现服务间的路由 Spring Cloud Config 配置中心组件，能够实现配置文件的管理 多模块整合Redis，构建微服务体系 用Docker准备Redis和MySQL集群环境 创建一个一主一从的Redis集群环境:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 PS C:\\Users\\farbg> docker run -itd --name master-redis -p 6379:6379 redis 6c0478e385052a2bb2547e3436e236258cd3c7b75c4af234cede446b9987b39f PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' master-redis 172.17.0.4 PS C:\\Users\\farbg> docker run -itd --name slave-redis -p 6380:6380 redis 81441fe049dda8b567bfef6235f7a9bc760cb383cbd4a77c0461ee164dcc28d7 PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' slave-redis 172.17.0.2 PS C:\\Users\\farbg> docker exec -it slave-redis bash root@4cc2ca237b09:/data# redis-cli 127.0.0.1:6379> SLAVEOF 172.17.0.4 6379 OK 127.0.0.1:6379> info replication # Replication role:slave master_host:172.17.0.4 master_port:6379 master_link_status:up master_last_io_seconds_ago:1 master_sync_in_progress:0 slave_read_repl_offset:14 slave_repl_offset:14 slave_priority:100 slave_read_only:1 replica_announced:1 connected_slaves:0 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:14 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:14 root@6c0478e38505:/data# redis-cli 127.0.0.1:6379> info replication # Replication role:master connected_slaves:1 slave0:ip=172.17.0.2,port=6379,state=online,offset=112,lag=1 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:112 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:112 # 验证主从模式是否正常工作 # 在主节点set 127.0.0.1:6379> set hello world OK # 在从节点get 127.0.0.1:6379> get hello &#34;world&#34; 搭建一个一主一从的MySQL集群环境：\n"><meta property='og:url' content='https://farb.github.io/p/redis_in_action_13_redis_springcloud/'><meta property='og:site_name' content="Farb's Blog"><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='redis'><meta property='article:tag' content='docker'><meta property='article:published_time' content='2024-11-24T00:00:00+00:00'><meta property='article:modified_time' content='2024-11-24T00:00:00+00:00'><meta name=twitter:title content="基于Docker的Redis实战-Redis与SpringCloud微服务整合"><meta name=twitter:description content="源码链接： https://gitee.com/farb/architect-practicer-code\n微服务和SpringCloud相关概念 传统架构和微服务的比较 传统架构：所有模块都是集中开发，集中部署，集中运行的，耦合度比较高，模块之间通过代码直接调用，数据库和缓存也属于整个系统，包括所有模块的数据。\n微服务：每个模块都是单独开发，单独部署，单独运行的，解耦度较高，模块之间通过接口调用，数据库和缓存也属于每个模块，每个模块的数据也只属于自己。整个系统的扩展能力较强，能用较小的代价扩展新的功能模块。\n微服务和SpringCloud的相关概念 微服务是一种设计风格，有不同的实现方式，而SpringCould是一个微服务框架，它提供了一系列的解决方案，如服务注册中心、配置中心、路由、网关、负载均衡、断路器、监控、网关限流等。\nGateway：网关，用于实现服务间的路由，负载均衡，限流等。\nConfig：配置中心，用于管理配置文件，包括配置文件的版本控制，配置文件的发布等。\nBus：消息总线，用于实现服务间的通信，包括服务间的消息发布，服务间的消息订阅等。\nSleuth：分布式追踪，用于实现服务间的调用链路追踪，包括调用链路追踪的记录，调用链路追踪的日志等。\nCircuit Breaker：断路器，用于实现服务间的容错，包括服务间的调用超时，服务间的调用失败等。\nSecurity：安全中心，用于实现服务间的安全认证，包括服务间的用户认证，服务间的角色认证等。\nLoadBalancer：负载均衡，用于实现服务间的负载均衡，包括服务间的轮询，随机等。\nDiscovery：服务发现，用于实现服务间的服务发现，包括服务间的服务注册，服务间的服务发现等。\nSpringCloud的常用组件如下：\n组件 功能 JPA ORM框架 Eureka 服务治理组件，通过该组件，系统可以动态地实现微服务组件治理 Hystrix 容错保护组件，能提供自动熔断和限流等方面的功能 Ribbon 负载均衡组件，能够把请求均衡地分摊到各服务组件上，包括轮询、随机、一致性哈希等 Zuul 网关组件，能够实现服务间的路由 Spring Cloud Config 配置中心组件，能够实现配置文件的管理 多模块整合Redis，构建微服务体系 用Docker准备Redis和MySQL集群环境 创建一个一主一从的Redis集群环境:\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 PS C:\\Users\\farbg> docker run -itd --name master-redis -p 6379:6379 redis 6c0478e385052a2bb2547e3436e236258cd3c7b75c4af234cede446b9987b39f PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' master-redis 172.17.0.4 PS C:\\Users\\farbg> docker run -itd --name slave-redis -p 6380:6380 redis 81441fe049dda8b567bfef6235f7a9bc760cb383cbd4a77c0461ee164dcc28d7 PS C:\\Users\\farbg> docker inspect -f '{{.NetworkSettings.IPAddress}}' slave-redis 172.17.0.2 PS C:\\Users\\farbg> docker exec -it slave-redis bash root@4cc2ca237b09:/data# redis-cli 127.0.0.1:6379> SLAVEOF 172.17.0.4 6379 OK 127.0.0.1:6379> info replication # Replication role:slave master_host:172.17.0.4 master_port:6379 master_link_status:up master_last_io_seconds_ago:1 master_sync_in_progress:0 slave_read_repl_offset:14 slave_repl_offset:14 slave_priority:100 slave_read_only:1 replica_announced:1 connected_slaves:0 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:14 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:14 root@6c0478e38505:/data# redis-cli 127.0.0.1:6379> info replication # Replication role:master connected_slaves:1 slave0:ip=172.17.0.2,port=6379,state=online,offset=112,lag=1 master_failover_state:no-failover master_replid:cc12d98a9045805969db2fa546a002bb35234c53 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:112 second_repl_offset:-1 repl_backlog_active:1 repl_backlog_size:1048576 repl_backlog_first_byte_offset:1 repl_backlog_histlen:112 # 验证主从模式是否正常工作 # 在主节点set 127.0.0.1:6379> set hello world OK # 在从节点get 127.0.0.1:6379> get hello &#34;world&#34; 搭建一个一主一从的MySQL集群环境：\n"><link rel="shortcut icon" href=/favicon.png><meta name=baidu-site-verification content="codeva-XtyrR4VjKV"></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://s3.bmp.ovh/imgs/2024/04/25/1e5e17f5abe2b80d.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>Farb's Blog</a></h1><h2 class=site-description>像水一样努力，终会水滴石穿</h2></div></header><ol class=menu-social><li><a href=https://gitee.com/farb target=_blank title=Gitee rel=me><!doctype html><svg t="1713884778674" class="icon" viewBox="0 0 1024 1024" p-id="10647" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 1024A512 512 0 11512 0a512 512 0 010 1024zm259.2-568.896H480.32a25.28 25.28.0 00-25.28 25.28v63.232c0 13.952 11.328 25.28 25.28 25.28h177.024c13.952.0 25.28 11.328 25.28 25.28v12.672c0 41.856-33.92 75.84-75.84 75.84H366.592a25.28 25.28.0 01-25.28-25.28V417.216c0-41.92 33.92-75.84 75.84-75.84h353.92a25.28 25.28.0 0025.28-25.344l.064-63.168a25.28 25.28.0 00-25.216-25.28H417.152A189.632 189.632.0 00227.52 417.216v353.92c0 14.016 11.328 25.28 25.28 25.28h372.992a170.624 170.624.0 00170.624-170.624V480.384a25.28 25.28.0 00-25.28-25.28z" fill="#C71D23" p-id="10648"/></svg></a></li><li><a href=https://github.com/farb target=_blank title=GitHub rel=me><!doctype html><svg t="1713884694671" class="icon" viewBox="0 0 1024 1024" p-id="9399" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M64 512c0 195.2 124.8 361.6 300.8 422.4 22.4 6.4 19.2-9.6 19.2-22.4v-76.8c-134.4 16-140.8-73.6-150.4-89.6-19.2-32-60.8-38.4-48-54.4 32-16 64 3.2 99.2 57.6 25.6 38.4 76.8 32 105.6 25.6 6.4-22.4 19.2-44.8 35.2-60.8C281.6 691.2 224 604.8 224 502.4c0-48 16-96 48-131.2-22.4-60.8.0-115.2 3.2-121.6 57.6-6.4 118.4 41.6 124.8 44.8 32-9.6 70.4-12.8 112-12.8s80 6.4 112 12.8c12.8-9.6 67.2-48 121.6-44.8 3.2 6.4 25.6 57.6 6.4 118.4 32 38.4 48 83.2 48 131.2.0 102.4-57.6 188.8-201.6 214.4 22.4 22.4 38.4 54.4 38.4 92.8v112c0 9.6.0 19.2 16 19.2C832 876.8 960 710.4 960 512c0-246.4-201.6-448-448-448S64 265.6 64 512z" fill="#040000" p-id="9400"/></svg></a></li><li><a href=https://leetcode.cn/u/int2147483647 target=_blank title=力扣 rel=me><!doctype html><svg t="1713884461345" class="icon" viewBox="0 0 1024 1024" p-id="4333" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M701.28 766.86a58.9 58.9.0 0183.1 83.52l-102.24 102c-94.3 94.16-248 95.52-344 3.16-.56-.52-43.26-42.4-184.12-180.54-93.72-92-103.06-238.94-14.88-333.36l164.44-176C391.12 172 552.46 161.68 652.54 242.6l149.34 120.78a58.92 58.92.0 01-74 91.76L578.54 334.36c-52.34-42.34-144-36.52-189.06 11.84l-164.44 176c-42.94 46-38.22 120 11.26 168.54l183.26 179.7c49.86 48 130.48 47.3 179.42-1.58z" fill="#FFA116" p-id="4334"/><path d="M452.94 664.7a58.96 58.96.0 010-118h434a58.96 58.96.0 010 118z" fill="#B3B3B3" p-id="4335"/><path d="M534.22 18.68a58.9 58.9.0 1186 80.56L225.1 522.28c-42.92 46-38.22 120 11.24 168.54l182.46 178.9A58.92 58.92.0 01336.46 954L154.06 775.08c-93.7-92-103.04-238.94-14.84-333.36z" p-id="4336"/></svg></a></li><li><a href=https://www.cnblogs.com/farb target=_blank title=博客园 rel=me><!doctype html><svg t="1713884612994" class="icon" viewBox="0 0 1024 1024" p-id="8439" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M851.40363594 172.59636406c-187.46181844-187.46181844-491.34545437-187.46181844-678.80727188.0-187.46181844 187.46181844-187.46181844 491.34545437.0 678.80727188 187.46181844 187.46181844 491.34545437 187.46181844 678.80727188.0 187.46181844-187.46181844 187.46181844-491.34545437.0-678.80727188zM387.33090875 728.08727281a47.08363594 47.08363594.0 11-66.63272719-66.50181843 47.08363594 47.08363594.0 0166.63272719 66.50181843zm205.52727281 1.39636313a38.74909125 38.74909125.0 01-76.62545437-11.52h-.04363594a6.54545437 6.54545437.0 00-.04363688.30545531V717.92c.30545438-2.61818156 2.05090875-20.72727281-2.96727281-44.98909125a174.24 174.24.0 00-48.56727281-89.28 172.10181844 172.10181844.0 00-88.8-48.30545438 156.69818156 156.69818156.0 00-42.45818156-2.92363593 38.66181844 38.66181844.0 01-35.38909125-65.32363688 38.61818156 38.61818156.0 0121.12-10.8218175v-.2181825c4.45090875-.74181844 111.14181844-16.45090875 200.33454562 72.74181844 89.01818156 89.01818156 74.18181844 196.14545438 73.44 200.72727281zm175.2 7.59272812a38.74909125 38.74909125.0 01-65.67272719 21.3818175 39.49090875 39.49090875.0 01-11.65090875-33.73090875c.08727281-.34909125 5.10545437-37.48363594-5.06181843-88.97454562C672.36363594 568.37818157 640.37818156 508.85818156 590.72 458.85090875c-50.00727281-49.70181844-109.52727281-81.64363594-176.94545438-94.95272719-51.49090875-10.16727281-88.58181844-5.19272719-89.01818156-5.14909031h.21818156-.04363687a39.92727281 39.92727281.0 01-44.68363594-32.90181844 38.83636406 38.83636406.0 0132.20363594-44.37818156c1.92-.30545438 47.86909125-7.33090875 111.27272719 4.36363594a411.75272719 411.75272719.0 01106.25454562 34.95272718A425.76 425.76.0 01644.61090875 403.04l.91636406.96.96.87272719a425.89090875 425.89090875.0 0182.25454563 114.72c16.40727281 33.6 28.14545437 69.29454562 34.99636312 106.21090875 11.65090875 63.40363594 4.66909125 109.35272719 4.32 111.27272812z" fill="#1296db" p-id="8440"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>主页</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>搜索</span></a></li><li><a href=/%E9%93%BE%E6%8E%A5/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>链接</span></a></li><li class=menu-bottom-section><ol class=menu><li id=i18n-switch><svg class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/></svg>
+<select name=language title=language onchange="window.location.href=this.selectedOptions[0].value"><option value=https://farb.github.io/ selected>English</option><option value=https://farb.github.io/zh-cn/>中文</option></select></li><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#微服务和springcloud相关概念>微服务和SpringCloud相关概念</a><ol><li><a href=#传统架构和微服务的比较>传统架构和微服务的比较</a></li><li><a href=#微服务和springcloud的相关概念>微服务和SpringCloud的相关概念</a></li></ol></li><li><a href=#多模块整合redis构建微服务体系>多模块整合Redis，构建微服务体系</a><ol><li><a href=#用docker准备redis和mysql集群环境>用Docker准备Redis和MySQL集群环境</a></li><li><a href=#包含redis和eureka的架构图>包含Redis和Eureka的架构图</a></li><li><a href=#开发eureka服务端>开发Eureka服务端</a></li><li><a href=#开发eureka客户端>开发Eureka客户端</a></li></ol></li><li><a href=#redis与ribbon集成>Redis与Ribbon集成</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/redis/ style=background-color:#2a9d8f;color:#fff>Redis</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/redis_in_action_13_redis_springcloud/>基于Docker的Redis实战-Redis与SpringCloud微服务整合</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>2024-11-24</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>11 minute read</time></div></footer></div></header><section class=article-content><p>源码链接： <a class=link href=https://gitee.com/farb/architect-practicer-code target=_blank rel=noopener>https://gitee.com/farb/architect-practicer-code</a></p><h2 id=微服务和springcloud相关概念>微服务和SpringCloud相关概念</h2><h3 id=传统架构和微服务的比较>传统架构和微服务的比较</h3><p>传统架构：所有模块都是集中开发，集中部署，集中运行的，耦合度比较高，模块之间通过代码直接调用，数据库和缓存也属于整个系统，包括所有模块的数据。</p><p>微服务：每个模块都是单独开发，单独部署，单独运行的，解耦度较高，模块之间通过接口调用，数据库和缓存也属于每个模块，每个模块的数据也只属于自己。整个系统的扩展能力较强，能用较小的代价扩展新的功能模块。</p><h3 id=微服务和springcloud的相关概念>微服务和SpringCloud的相关概念</h3><p>微服务是一种设计风格，有不同的实现方式，而SpringCould是一个微服务框架，它提供了一系列的解决方案，如服务注册中心、配置中心、路由、网关、负载均衡、断路器、监控、网关限流等。</p><p>Gateway：网关，用于实现服务间的路由，负载均衡，限流等。</p><p>Config：配置中心，用于管理配置文件，包括配置文件的版本控制，配置文件的发布等。</p><p>Bus：消息总线，用于实现服务间的通信，包括服务间的消息发布，服务间的消息订阅等。</p><p>Sleuth：分布式追踪，用于实现服务间的调用链路追踪，包括调用链路追踪的记录，调用链路追踪的日志等。</p><p>Circuit Breaker：断路器，用于实现服务间的容错，包括服务间的调用超时，服务间的调用失败等。</p><p>Security：安全中心，用于实现服务间的安全认证，包括服务间的用户认证，服务间的角色认证等。</p><p>LoadBalancer：负载均衡，用于实现服务间的负载均衡，包括服务间的轮询，随机等。</p><p>Discovery：服务发现，用于实现服务间的服务发现，包括服务间的服务注册，服务间的服务发现等。</p><p>SpringCloud的常用组件如下：</p><div class=table-wrapper><table><thead><tr><th>组件</th><th>功能</th></tr></thead><tbody><tr><td>JPA</td><td>ORM框架</td></tr><tr><td>Eureka</td><td>服务治理组件，通过该组件，系统可以动态地实现微服务组件治理</td></tr><tr><td>Hystrix</td><td>容错保护组件，能提供自动熔断和限流等方面的功能</td></tr><tr><td>Ribbon</td><td>负载均衡组件，能够把请求均衡地分摊到各服务组件上，包括轮询、随机、一致性哈希等</td></tr><tr><td>Zuul</td><td>网关组件，能够实现服务间的路由</td></tr><tr><td>Spring Cloud Config</td><td>配置中心组件，能够实现配置文件的管理</td></tr></tbody></table></div><h2 id=多模块整合redis构建微服务体系>多模块整合Redis，构建微服务体系</h2><h3 id=用docker准备redis和mysql集群环境>用Docker准备Redis和MySQL集群环境</h3><p>创建一个一主一从的Redis集群环境:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; docker run -itd --name master-redis -p 6379:6379 redis
+</span></span><span class=line><span class=cl>6c0478e385052a2bb2547e3436e236258cd3c7b75c4af234cede446b9987b39f
+</span></span><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; docker inspect -f <span class=s1>&#39;{{.NetworkSettings.IPAddress}}&#39;</span> master-redis
+</span></span><span class=line><span class=cl>172.17.0.4
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; docker run -itd --name slave-redis -p 6380:6380 redis
+</span></span><span class=line><span class=cl>81441fe049dda8b567bfef6235f7a9bc760cb383cbd4a77c0461ee164dcc28d7
+</span></span><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; docker inspect -f <span class=s1>&#39;{{.NetworkSettings.IPAddress}}&#39;</span> slave-redis
+</span></span><span class=line><span class=cl>172.17.0.2
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; docker <span class=nb>exec</span> -it slave-redis bash
+</span></span><span class=line><span class=cl>root@4cc2ca237b09:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; SLAVEOF 172.17.0.4 <span class=m>6379</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; info replication
+</span></span><span class=line><span class=cl><span class=c1># Replication</span>
+</span></span><span class=line><span class=cl>role:slave
+</span></span><span class=line><span class=cl>master_host:172.17.0.4
+</span></span><span class=line><span class=cl>master_port:6379
+</span></span><span class=line><span class=cl>master_link_status:up
+</span></span><span class=line><span class=cl>master_last_io_seconds_ago:1
+</span></span><span class=line><span class=cl>master_sync_in_progress:0
+</span></span><span class=line><span class=cl>slave_read_repl_offset:14
+</span></span><span class=line><span class=cl>slave_repl_offset:14
+</span></span><span class=line><span class=cl>slave_priority:100
+</span></span><span class=line><span class=cl>slave_read_only:1
+</span></span><span class=line><span class=cl>replica_announced:1
+</span></span><span class=line><span class=cl>connected_slaves:0
+</span></span><span class=line><span class=cl>master_failover_state:no-failover
+</span></span><span class=line><span class=cl>master_replid:cc12d98a9045805969db2fa546a002bb35234c53
+</span></span><span class=line><span class=cl>master_replid2:0000000000000000000000000000000000000000
+</span></span><span class=line><span class=cl>master_repl_offset:14
+</span></span><span class=line><span class=cl>second_repl_offset:-1
+</span></span><span class=line><span class=cl>repl_backlog_active:1
+</span></span><span class=line><span class=cl>repl_backlog_size:1048576
+</span></span><span class=line><span class=cl>repl_backlog_first_byte_offset:1
+</span></span><span class=line><span class=cl>repl_backlog_histlen:14
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>root@6c0478e38505:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; info replication
+</span></span><span class=line><span class=cl><span class=c1># Replication</span>
+</span></span><span class=line><span class=cl>role:master
+</span></span><span class=line><span class=cl>connected_slaves:1
+</span></span><span class=line><span class=cl>slave0:ip<span class=o>=</span>172.17.0.2,port<span class=o>=</span>6379,state<span class=o>=</span>online,offset<span class=o>=</span>112,lag<span class=o>=</span><span class=m>1</span>
+</span></span><span class=line><span class=cl>master_failover_state:no-failover
+</span></span><span class=line><span class=cl>master_replid:cc12d98a9045805969db2fa546a002bb35234c53
+</span></span><span class=line><span class=cl>master_replid2:0000000000000000000000000000000000000000
+</span></span><span class=line><span class=cl>master_repl_offset:112
+</span></span><span class=line><span class=cl>second_repl_offset:-1
+</span></span><span class=line><span class=cl>repl_backlog_active:1
+</span></span><span class=line><span class=cl>repl_backlog_size:1048576
+</span></span><span class=line><span class=cl>repl_backlog_first_byte_offset:1
+</span></span><span class=line><span class=cl>repl_backlog_histlen:112
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 验证主从模式是否正常工作</span>
+</span></span><span class=line><span class=cl><span class=c1># 在主节点set</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> hello world
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在从节点get</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get hello
+</span></span><span class=line><span class=cl><span class=s2>&#34;world&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>搭建一个一主一从的MySQL集群环境：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 本机中新建mysql的配置文件 D:\ArchitectPracticer\Redis\MySql\MasterMySql\conf\my.cnf ，内容如下：</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>mysqld<span class=o>]</span>
+</span></span><span class=line><span class=cl>pid-file<span class=o>=</span>/var/run/mysqld/mysqld.pid
+</span></span><span class=line><span class=cl><span class=nv>socket</span><span class=o>=</span>/var/run/mysqld/mysqld.sock
+</span></span><span class=line><span class=cl><span class=nv>datadir</span><span class=o>=</span>/var/lib/mysql
+</span></span><span class=line><span class=cl>server-id<span class=o>=</span><span class=m>1</span> <span class=c1># 主服务器的id，这个id不能重复</span>
+</span></span><span class=line><span class=cl>log-bin<span class=o>=</span>mysql-master-bin
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 启动主服务器，设置环境变量，MYSQL_ROOT_PASSWORD为root用户的密码，同时挂载配置文件目录和数据目录</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name master-mysql -p 3306:3306 -e <span class=nv>MYSQL_ROOT_PASSWORD</span><span class=o>=</span><span class=m>123456</span> -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\M</span>ySql<span class=se>\M</span>asterMySql<span class=se>\c</span>onf:/etc/mysql/conf.d -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\M</span>ySql<span class=se>\M</span>asterMySql<span class=se>\d</span>ata:/var/lib/mysql mysql
+</span></span><span class=line><span class=cl>05e2c449e667b7fbd6898f9e84306440d1afff5c7e75624a438af082157ca75d
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看运行的容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker ps
+</span></span><span class=line><span class=cl>CONTAINER ID   IMAGE     COMMAND                   CREATED              STATUS              PORTS                               NAMES
+</span></span><span class=line><span class=cl>7b1067615f0d   mysql     <span class=s2>&#34;docker-entrypoint.s…&#34;</span>   About a minute ago   Up About a minute   0.0.0.0:3306-&gt;3306/tcp, 33060/tcp   master-mysql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取主服务器的IP地址</span>
+</span></span><span class=line><span class=cl>D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker inspect master-mysql -f <span class=s2>&#34;{{.NetworkSettings.IPAddress}}&#34;</span> 
+</span></span><span class=line><span class=cl>172.17.0.3
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 登录主服务器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it master-mysql bash
+</span></span><span class=line><span class=cl>bash-5.1# mysql -u root -p
+</span></span><span class=line><span class=cl>Enter password: 
+</span></span><span class=line><span class=cl>Welcome to the MySQL monitor.  Commands end with <span class=p>;</span> or <span class=se>\g</span>.
+</span></span><span class=line><span class=cl>Your MySQL connection id is <span class=m>9</span>
+</span></span><span class=line><span class=cl>Server version: 8.4.0 MySQL Community Server - GPL
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Copyright <span class=o>(</span>c<span class=o>)</span> 2000, 2024, Oracle and/or its affiliates.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class=line><span class=cl>affiliates. Other names may be trademarks of their respective
+</span></span><span class=line><span class=cl>owners.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Type <span class=s1>&#39;help;&#39;</span> or <span class=s1>&#39;\h&#39;</span> <span class=k>for</span> help. Type <span class=s1>&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>mysql&gt; SHOW BINARY LOG STATUS<span class=p>;</span>
+</span></span><span class=line><span class=cl>+-------------------------+----------+--------------+------------------+-------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> File                    <span class=p>|</span> Position <span class=p>|</span> Binlog_Do_DB <span class=p>|</span> Binlog_Ignore_DB <span class=p>|</span> Executed_Gtid_Set <span class=p>|</span>
+</span></span><span class=line><span class=cl>+-------------------------+----------+--------------+------------------+-------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> mysql-master-bin.000007 <span class=p>|</span>      <span class=m>158</span> <span class=p>|</span>              <span class=p>|</span>                  <span class=p>|</span>                   <span class=p>|</span>
+</span></span><span class=line><span class=cl>+-------------------------+----------+--------------+------------------+-------------------+
+</span></span><span class=line><span class=cl><span class=m>1</span> row in <span class=nb>set</span> <span class=o>(</span>0.00 sec<span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>创建从数据库：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># mysql从服务器的配置文件如下</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>mysqld<span class=o>]</span>
+</span></span><span class=line><span class=cl>pid-file<span class=o>=</span>/var/run/mysqld/mysqld.pid
+</span></span><span class=line><span class=cl><span class=nv>socket</span><span class=o>=</span>/var/run/mysqld/mysqld.sock
+</span></span><span class=line><span class=cl><span class=nv>datadir</span><span class=o>=</span>/var/lib/mysql
+</span></span><span class=line><span class=cl>server-id<span class=o>=</span><span class=m>2</span> <span class=c1># 从服务器的id，这个id不能和主服务器的一致</span>
+</span></span><span class=line><span class=cl>log-bin<span class=o>=</span>mysql-slave-bin <span class=c1># 二进制文件的名字</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 启动从服务器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name slave-mysql -p 3316:3306 -e <span class=nv>MYSQL_ROOT_PASSWORD</span><span class=o>=</span><span class=m>123456</span> -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\M</span>ySql<span class=se>\S</span>laveMySql<span class=se>\c</span>onf:/etc/mysql/conf.d -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\M</span>ySql<span class=se>\S</span>laveMySql<span class=se>\d</span>ata:/var/lib/mysql mysql 
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it slave-mysql /bin/bash
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 确认可以在从服务器的容器中连接到主服务器</span>
+</span></span><span class=line><span class=cl>bash-5.1# mysql -h 172.17.0.3 -u root -p
+</span></span><span class=line><span class=cl>Enter password:
+</span></span><span class=line><span class=cl>Welcome to the MySQL monitor.  Commands end with <span class=p>;</span> or <span class=se>\g</span>.
+</span></span><span class=line><span class=cl>Your MySQL connection id is <span class=m>18</span>
+</span></span><span class=line><span class=cl>Server version: 8.4.0 MySQL Community Server - GPL
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Copyright <span class=o>(</span>c<span class=o>)</span> 2000, 2024, Oracle and/or its affiliates.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class=line><span class=cl>affiliates. Other names may be trademarks of their respective
+</span></span><span class=line><span class=cl>owners.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Type <span class=s1>&#39;help;&#39;</span> or <span class=s1>&#39;\h&#39;</span> <span class=k>for</span> help. Type <span class=s1>&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#  exit退出主服务器的连接</span>
+</span></span><span class=line><span class=cl>mysql&gt; <span class=nb>exit</span>
+</span></span><span class=line><span class=cl>Bye
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 连接到从服务器</span>
+</span></span><span class=line><span class=cl>bash-5.1# mysql -h localhost -u root -p
+</span></span><span class=line><span class=cl>mysql: <span class=o>[</span>Warning<span class=o>]</span> World-writable config file <span class=s1>&#39;/etc/mysql/conf.d/my.cnf&#39;</span> is ignored.
+</span></span><span class=line><span class=cl>Enter password:
+</span></span><span class=line><span class=cl>Welcome to the MySQL monitor.  Commands end with <span class=p>;</span> or <span class=se>\g</span>.
+</span></span><span class=line><span class=cl>Your MySQL connection id is <span class=m>11</span>
+</span></span><span class=line><span class=cl>Server version: 8.4.0 MySQL Community Server - GPL
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Copyright <span class=o>(</span>c<span class=o>)</span> 2000, 2024, Oracle and/or its affiliates.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class=line><span class=cl>affiliates. Other names may be trademarks of their respective
+</span></span><span class=line><span class=cl>owners.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 配置主从关系，这里注意`change master to`已经在MySql8中被`CHANGE REPLICATION SOURCE TO`取代。每个字段的意思很明显，主要是`SOURCE_log_pos`和`SOURCE_log_file`要和上面`show binary log status;`的结果一致。`</span>
+</span></span><span class=line><span class=cl>mysql&gt; CHANGE REPLICATION SOURCE TO <span class=nv>SOURCE_host</span><span class=o>=</span><span class=s1>&#39;172.17.0.3&#39;</span>,SOURCE_port<span class=o>=</span>3306,SOURCE_user<span class=o>=</span><span class=s1>&#39;root&#39;</span>,SOURCE_password<span class=o>=</span><span class=s1>&#39;123456&#39;</span>,SOURCE_log_pos<span class=o>=</span>158,SOURCE_log_file<span class=o>=</span><span class=s1>&#39;mysql-master-bin.000007&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>Query OK, <span class=m>0</span> rows affected, <span class=m>2</span> warnings <span class=o>(</span>0.04 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># start slave;也变成了start replica; 详见 https://dev.mysql.com/doc/refman/8.4/en/start-replica.html</span>
+</span></span><span class=line><span class=cl>mysql&gt; start replica<span class=p>;</span>
+</span></span><span class=line><span class=cl>Query OK, <span class=m>0</span> rows affected <span class=o>(</span>0.01 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看主从复制状态，命令结尾符\G是以垂直列表的形式显示。看到Replica_IO_Running: Yes 和 Replica_SQL_Running: Yes，说明配置主从复制成功</span>
+</span></span><span class=line><span class=cl>mysql&gt; show replica status<span class=se>\G</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>*************************** 1. row ***************************
+</span></span><span class=line><span class=cl>             Replica_IO_State: Waiting <span class=k>for</span> <span class=nb>source</span> to send event
+</span></span><span class=line><span class=cl>                  Source_Host: 172.17.0.2
+</span></span><span class=line><span class=cl>                  Source_User: root
+</span></span><span class=line><span class=cl>                  Source_Port: <span class=m>3306</span>
+</span></span><span class=line><span class=cl>                Connect_Retry: <span class=m>60</span>
+</span></span><span class=line><span class=cl>              Source_Log_File: mysql-master-bin.000002
+</span></span><span class=line><span class=cl>          Read_Source_Log_Pos: <span class=m>158</span>
+</span></span><span class=line><span class=cl>               Relay_Log_File: 0f827dad7de8-relay-bin.000003
+</span></span><span class=line><span class=cl>                Relay_Log_Pos: <span class=m>335</span>
+</span></span><span class=line><span class=cl>        Relay_Source_Log_File: mysql-master-bin.000002
+</span></span><span class=line><span class=cl>           Replica_IO_Running: Yes
+</span></span><span class=line><span class=cl>          Replica_SQL_Running: Yes
+</span></span><span class=line><span class=cl>... 省略一部分输出
+</span></span><span class=line><span class=cl><span class=m>1</span> row in <span class=nb>set</span> <span class=o>(</span>0.00 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>ERROR:
+</span></span><span class=line><span class=cl>No query specified
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 回到主服务器，创建数据库</span>
+</span></span><span class=line><span class=cl>mysql&gt; create database  RiskDb<span class=p>;</span>
+</span></span><span class=line><span class=cl>Query OK, <span class=m>1</span> row affected <span class=o>(</span>0.01 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>mysql&gt; use RiskDb<span class=p>;</span>
+</span></span><span class=line><span class=cl>Database changed
+</span></span><span class=line><span class=cl>mysql&gt; create table riskinfo <span class=o>(</span>id int not null primary key,level varchar<span class=o>(</span>20<span class=o>)</span>,userId varchar<span class=o>(</span>20<span class=o>))</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>Query OK, <span class=m>0</span> rows affected <span class=o>(</span>0.02 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 表示用户id为003的用户有高危风险,不能下单</span>
+</span></span><span class=line><span class=cl>mysql&gt; insert into riskinfo <span class=o>(</span>id,level,userid<span class=o>)</span> values<span class=o>(</span>1,<span class=s1>&#39;High&#39;</span>,<span class=s1>&#39;003&#39;</span><span class=o>)</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>Query OK, <span class=m>1</span> row affected <span class=o>(</span>0.01 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 可以看到主服务器中有新建的数据库 RiskDb</span>
+</span></span><span class=line><span class=cl>mysql&gt; show databases<span class=p>;</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> Database           <span class=p>|</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> information_schema <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> MasterSlaveDemo    <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> mysql              <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> performance_schema <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> redisDemo          <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> RiskDb             <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> sys                <span class=p>|</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=m>7</span> rows in <span class=nb>set</span> <span class=o>(</span>0.00 sec<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 再去从服务器中查看，检查是否同步成功，结果发现同步成功</span>
+</span></span><span class=line><span class=cl>mysql&gt; show databases<span class=p>;</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> Database           <span class=p>|</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=p>|</span> information_schema <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> MasterSlaveDemo    <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> mysql              <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> performance_schema <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> redisDemo          <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> RiskDb             <span class=p>|</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> sys                <span class=p>|</span>
+</span></span><span class=line><span class=cl>+--------------------+
+</span></span><span class=line><span class=cl><span class=m>7</span> rows in <span class=nb>set</span> <span class=o>(</span>0.00 sec<span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>至此，一主一从的Redis和MySQL主从复制搭建完成。</p><div class=table-wrapper><table><thead><tr><th style=text-align:center>Docker容器名</th><th style=text-align:center>IP和端口</th><th style=text-align:center>说明</th></tr></thead><tbody><tr><td style=text-align:center>master-mysql</td><td style=text-align:center>172.17.0.3:3306</td><td style=text-align:center>MySQL主服务器</td></tr><tr><td style=text-align:center>slave-mysql</td><td style=text-align:center>172.17.0.5:3316</td><td style=text-align:center>MySQL从服务器</td></tr><tr><td style=text-align:center>master-redis</td><td style=text-align:center>172.17.0.4:6379</td><td style=text-align:center>Redis主服务器</td></tr><tr><td style=text-align:center>slave-redis</td><td style=text-align:center>172.17.0.2:6380</td><td style=text-align:center>Redis从服务器</td></tr></tbody></table></div><h3 id=包含redis和eureka的架构图>包含Redis和Eureka的架构图</h3><p><a class=link href=https://imgse.com/i/pA51WDA target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/11/28/pA51WDA.png loading=lazy alt=pA51WDA.png></a></p><h3 id=开发eureka服务端>开发Eureka服务端</h3><p>新建一个SpringBoot项目，添加依赖，pom.xml如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=cp>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;project</span> <span class=na>xmlns:xsi=</span><span class=s>&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span> <span class=na>xmlns=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0&#34;</span>
+</span></span><span class=line><span class=cl>         <span class=na>xsi:schemaLocation=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd&#34;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;modelVersion&gt;</span>4.0.0<span class=nt>&lt;/modelVersion&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;parent&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-parent<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;version&gt;</span>3.3.2<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;relativePath/&gt;</span> <span class=c>&lt;!-- lookup parent from repository --&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/parent&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;groupId&gt;</span>farb.top<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;artifactId&gt;</span>EurekaServer<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;version&gt;</span>0.0.1-SNAPSHOT<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;name&gt;</span>EurekaServer<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;description&gt;</span>EurekaServer<span class=nt>&lt;/description&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;properties&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;java.version&gt;</span>17<span class=nt>&lt;/java.version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;spring-cloud.version&gt;</span>2023.0.2<span class=nt>&lt;/spring-cloud.version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/properties&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-cloud-starter-netflix-eureka-server<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-test<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;scope&gt;</span>test<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-cloud-dependencies<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>${spring-cloud.version}<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;type&gt;</span>pom<span class=nt>&lt;/type&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;scope&gt;</span>import<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;build&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;plugins&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;plugin&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-boot-maven-plugin<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/plugin&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/plugins&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/build&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/project&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>EurekaServerApplication.java代码如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=nd>@EnableEurekaServer</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@SpringBootApplication</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>EurekaServerApplication</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>SpringApplication</span><span class=p>.</span><span class=na>run</span><span class=p>(</span><span class=n>EurekaServerApplication</span><span class=p>.</span><span class=na>class</span><span class=p>,</span><span class=w> </span><span class=n>args</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>application.yml配置如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yml data-lang=yml><span class=line><span class=cl><span class=nt>server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>8888</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>eureka</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>instance</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>hostname</span><span class=p>:</span><span class=w> </span><span class=l>localhost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>client</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>fetch-registry</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>register-with-eureka</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>service-url</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>defaultZone</span><span class=p>:</span><span class=w> </span><span class=l>http://${eureka.instance.hostname}:${server.port}/eureka</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>运行EurekaServerApplication，访问http://localhost:8888/，可以看到如下界面，说明Eureka服务端已经启动成功。</p><p><a class=link href=https://imgse.com/i/pAhKHO0 target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/11/24/pAhKHO0.png loading=lazy alt=pAhKHO0.png></a></p><h3 id=开发eureka客户端>开发Eureka客户端</h3><p>新建一个SpringBoot项目EurekaClientRiskApp，作为风险模块，添加依赖，pom.xml如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=cp>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;project</span> <span class=na>xmlns:xsi=</span><span class=s>&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span> <span class=na>xmlns=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0&#34;</span>
+</span></span><span class=line><span class=cl>         <span class=na>xsi:schemaLocation=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd&#34;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;modelVersion&gt;</span>4.0.0<span class=nt>&lt;/modelVersion&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;parent&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-parent<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;version&gt;</span>3.3.2<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;relativePath/&gt;</span> <span class=c>&lt;!-- lookup parent from repository --&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/parent&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;groupId&gt;</span>farb.top<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;artifactId&gt;</span>EurekaClientRiskApp<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;version&gt;</span>0.0.1-SNAPSHOT<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;name&gt;</span>EurekaClientRiskApp<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;description&gt;</span>EurekaClientRiskApp<span class=nt>&lt;/description&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;properties&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;java.version&gt;</span>17<span class=nt>&lt;/java.version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;spring-cloud.version&gt;</span>2023.0.2<span class=nt>&lt;/spring-cloud.version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/properties&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-cloud-starter-netflix-eureka-client<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-test<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;scope&gt;</span>test<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-web<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>3.3.2<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;scope&gt;</span>compile<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-data-jpa<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>RELEASE<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;scope&gt;</span>compile<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-data-redis<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>3.4.0<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>mysql<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>mysql-connector-java<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>8.0.33<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>com.alibaba.fastjson2<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>fastjson2<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>2.0.43<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-cloud-dependencies<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>${spring-cloud.version}<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;type&gt;</span>pom<span class=nt>&lt;/type&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;scope&gt;</span>import<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;build&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;plugins&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;plugin&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-boot-maven-plugin<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/plugin&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/plugins&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/build&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/project&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>下面是具体代码：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=nd>@EnableDiscoveryClient</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@SpringBootApplication</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>EurekaClientRiskAppApplication</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>SpringApplication</span><span class=p>.</span><span class=na>run</span><span class=p>(</span><span class=n>EurekaClientRiskAppApplication</span><span class=p>.</span><span class=na>class</span><span class=p>,</span><span class=w> </span><span class=n>args</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@RestController</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>RiskController</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=kd>final</span><span class=w> </span><span class=n>RiskService</span><span class=w> </span><span class=n>riskService</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Value</span><span class=p>(</span><span class=s>&#34;${server.port}&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>port</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=nf>RiskController</span><span class=p>(</span><span class=n>RiskService</span><span class=w> </span><span class=n>riskService</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>this</span><span class=p>.</span><span class=na>riskService</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>riskService</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GetMapping</span><span class=p>(</span><span class=s>&#34;hello&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>hello</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=s>&#34;hello,this is Risk Service&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GetMapping</span><span class=p>(</span><span class=s>&#34;getRiskLevel/{userId}&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>getRiskLevel</span><span class=p>(</span><span class=nd>@PathVariable</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>userId</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;当前端口号为：&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=k>this</span><span class=p>.</span><span class=na>port</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=n>riskService</span><span class=p>.</span><span class=na>getRiskLevel</span><span class=p>(</span><span class=n>userId</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>  
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Entity</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Table</span><span class=p>(</span><span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&#34;riskinfo&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Data</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@AllArgsConstructor</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@NoArgsConstructor</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>Risk</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GeneratedValue</span><span class=p>(</span><span class=n>strategy</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>GenerationType</span><span class=p>.</span><span class=na>IDENTITY</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>id</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>level</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>userid</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Repository</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>RedisRiskRepo</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Autowired</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>RedisTemplate</span><span class=o>&lt;</span><span class=n>String</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=o>&gt;</span><span class=w> </span><span class=n>redisTemplate</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>saveRiskLevel</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>expireTime</span><span class=p>,</span><span class=w> </span><span class=n>Risk</span><span class=w> </span><span class=n>risk</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>redisTemplate</span><span class=p>.</span><span class=na>opsForValue</span><span class=p>().</span><span class=na>set</span><span class=p>(</span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>JSON</span><span class=p>.</span><span class=na>toJSONString</span><span class=p>(</span><span class=n>risk</span><span class=p>),</span><span class=w> </span><span class=n>expireTime</span><span class=p>,</span><span class=w> </span><span class=n>TimeUnit</span><span class=p>.</span><span class=na>MINUTES</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>Risk</span><span class=w> </span><span class=nf>getRiskLevel</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>key</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>json</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>redisTemplate</span><span class=p>.</span><span class=na>opsForValue</span><span class=p>().</span><span class=na>get</span><span class=p>(</span><span class=n>key</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=n>JSON</span><span class=p>.</span><span class=na>parseObject</span><span class=p>(</span><span class=n>json</span><span class=p>,</span><span class=w> </span><span class=n>Risk</span><span class=p>.</span><span class=na>class</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Repository</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>interface</span> <span class=nc>RiskRepo</span><span class=w> </span><span class=kd>extends</span><span class=w> </span><span class=n>JpaRepository</span><span class=o>&lt;</span><span class=n>Risk</span><span class=p>,</span><span class=w> </span><span class=n>Long</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Risk</span><span class=w> </span><span class=nf>getRiskByUserid</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>userid</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Service</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>RiskService</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kd>final</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>RISK_KEY_PREFIX</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&#34;risk_&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Autowired</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>RiskRepo</span><span class=w> </span><span class=n>riskRepo</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Autowired</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>RedisRiskRepo</span><span class=w> </span><span class=n>redisRiskRepo</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>getRiskLevel</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>userId</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Risk</span><span class=w> </span><span class=n>risk</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>redisRiskRepo</span><span class=p>.</span><span class=na>getRiskLevel</span><span class=p>(</span><span class=n>RISK_KEY_PREFIX</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>userId</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>risk</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=kc>null</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;从redis获取数据&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=n>risk</span><span class=p>.</span><span class=na>getLevel</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>risk</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>riskRepo</span><span class=p>.</span><span class=na>getRiskByUserid</span><span class=p>(</span><span class=n>userId</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;从mysql获取数据&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>risk</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=kc>null</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>redisRiskRepo</span><span class=p>.</span><span class=na>saveRiskLevel</span><span class=p>(</span><span class=n>RISK_KEY_PREFIX</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>userId</span><span class=p>,</span><span class=w> </span><span class=n>60</span><span class=p>,</span><span class=w> </span><span class=n>risk</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=n>risk</span><span class=p>.</span><span class=na>getLevel</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=s>&#34;&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yml data-lang=yml><span class=line><span class=cl><span class=nt>server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>1111</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spring</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>application</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>RiskService</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>data</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>redis</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>host</span><span class=p>:</span><span class=w> </span><span class=l>localhost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>6379</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>eureka</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>client</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>service-url</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>defaultZone</span><span class=p>:</span><span class=w> </span><span class=l>http://localhost:8888/eureka</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>fetch-registry</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>register-with-eureka</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>复制一个项目EurekaClientRiskApp2，只修改yml中的端口号为1222，用来区分负载均衡生效。</p><p>新建一个SpringBoot项目EurekaClientOrderApp，作为订单模块，添加依赖，pom.xml如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=cp>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;project</span> <span class=na>xmlns:xsi=</span><span class=s>&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span> <span class=na>xmlns=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0&#34;</span>
+</span></span><span class=line><span class=cl>         <span class=na>xsi:schemaLocation=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd&#34;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;modelVersion&gt;</span>4.0.0<span class=nt>&lt;/modelVersion&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;parent&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-parent<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;version&gt;</span>3.3.2<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;relativePath/&gt;</span> <span class=c>&lt;!-- lookup parent from repository --&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/parent&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;groupId&gt;</span>farb.top<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;artifactId&gt;</span>EurekaClientOrderApp<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;version&gt;</span>0.0.1-SNAPSHOT<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;name&gt;</span>EurekaClientOrderApp<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;description&gt;</span>EurekaClientOrderApp<span class=nt>&lt;/description&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;properties&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;java.version&gt;</span>17<span class=nt>&lt;/java.version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;spring-cloud.version&gt;</span>2023.0.2<span class=nt>&lt;/spring-cloud.version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/properties&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-cloud-starter-netflix-eureka-client<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-web<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>3.4.0<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-cloud-dependencies<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>${spring-cloud.version}<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;type&gt;</span>pom<span class=nt>&lt;/type&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;scope&gt;</span>import<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;build&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;plugins&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;plugin&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-boot-maven-plugin<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/plugin&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/plugins&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/build&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/project&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=nd>@SpringBootApplication</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@EnableDiscoveryClient</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>EurekaClientOrderAppApplication</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>SpringApplication</span><span class=p>.</span><span class=na>run</span><span class=p>(</span><span class=n>EurekaClientOrderAppApplication</span><span class=p>.</span><span class=na>class</span><span class=p>,</span><span class=w> </span><span class=n>args</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@RestController</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>HelloController</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@LoadBalanced</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>RestTemplate</span><span class=w> </span><span class=n>restTemplate</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=n>DiscoveryClient</span><span class=w> </span><span class=n>discoveryClient</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GetMapping</span><span class=p>(</span><span class=s>&#34;hello&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>hello</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 一个服务可能在多个服务器节点上运行，所以一个服务可能对应多个实列</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>List</span><span class=o>&lt;</span><span class=n>ServiceInstance</span><span class=o>&gt;</span><span class=w> </span><span class=n>serviceInstances</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>discoveryClient</span><span class=p>.</span><span class=na>getInstances</span><span class=p>(</span><span class=s>&#34;RiskService&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=n>serviceInstances</span><span class=p>.</span><span class=na>isEmpty</span><span class=p>())</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=n>restTemplate</span><span class=p>.</span><span class=na>getForObject</span><span class=p>(</span><span class=s>&#34;http://RiskService/hello&#34;</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=p>.</span><span class=na>class</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=s>&#34;RiskService not found&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GetMapping</span><span class=p>(</span><span class=s>&#34;getRiskInfo&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>getRiskInfo</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 一个服务可能在多个服务器节点上运行，所以一个服务可能对应多个实列</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>List</span><span class=o>&lt;</span><span class=n>ServiceInstance</span><span class=o>&gt;</span><span class=w> </span><span class=n>serviceInstances</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>discoveryClient</span><span class=p>.</span><span class=na>getInstances</span><span class=p>(</span><span class=s>&#34;RiskService&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=n>serviceInstances</span><span class=p>.</span><span class=na>isEmpty</span><span class=p>())</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=n>restTemplate</span><span class=p>.</span><span class=na>getForObject</span><span class=p>(</span><span class=s>&#34;http://RiskService/getRiskLevel/003&#34;</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=p>.</span><span class=na>class</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=s>&#34;RiskService not found&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nd>@Configuration</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>AppConfig</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Bean</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@LoadBalanced</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>RestTemplate</span><span class=w> </span><span class=nf>restTemplate</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>RestTemplate</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yml data-lang=yml><span class=line><span class=cl><span class=nt>spring</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>application</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>OrderService</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>eureka</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>client</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>fetch-registry</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>register-with-eureka</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>service-url</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>defaultZone</span><span class=p>:</span><span class=w> </span><span class=l>http://localhost:8888/eureka</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>2222</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>分别运行两个服务RiskService和OrderService，然后访问OrderService的接口http://localhost:2222/hello，会自动调用RiskService的接口。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>PS C:<span class=se>\U</span>sers<span class=se>\f</span>arbg&gt; curl http://host.docker.internal:2222/hello
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>StatusCode        : <span class=m>200</span>
+</span></span><span class=line><span class=cl>StatusDescription :
+</span></span><span class=line><span class=cl>Content           : hello,this is Risk Service
+</span></span><span class=line><span class=cl>RawContent        : HTTP/1.1 <span class=m>200</span>
+</span></span><span class=line><span class=cl>                    Content-Length: <span class=m>26</span>
+</span></span><span class=line><span class=cl>                    Content-Type: text/plain<span class=p>;</span><span class=nv>charset</span><span class=o>=</span>UTF-8
+</span></span><span class=line><span class=cl>                    Date: Mon, <span class=m>25</span> Nov <span class=m>2024</span> 15:19:23 GMT
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>                    hello,this is Risk Service
+</span></span><span class=line><span class=cl>Forms             : <span class=o>{}</span>
+</span></span><span class=line><span class=cl>Headers           : <span class=o>{[</span>Content-Length, 26<span class=o>]</span>, <span class=o>[</span>Content-Type, text/plain<span class=p>;</span><span class=nv>charset</span><span class=o>=</span>UTF-8<span class=o>]</span>, <span class=o>[</span>Date, Mon, <span class=m>25</span> Nov <span class=m>2024</span> 15:19:23 G
+</span></span><span class=line><span class=cl>                    MT<span class=o>]}</span>
+</span></span><span class=line><span class=cl>Images            : <span class=o>{}</span>
+</span></span><span class=line><span class=cl>InputFields       : <span class=o>{}</span>
+</span></span><span class=line><span class=cl>Links             : <span class=o>{}</span>
+</span></span><span class=line><span class=cl>ParsedHtml        : mshtml.HTMLDocumentClass
+</span></span><span class=line><span class=cl>RawContentLength  : <span class=m>26</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 返回的结果会在下面两种结果轮询</span>
+</span></span><span class=line><span class=cl>hello,this is Risk Service
+</span></span><span class=line><span class=cl>hello,this is Risk Service,and this is node <span class=m>2</span>
+</span></span><span class=line><span class=cl>hello,this is Risk Service
+</span></span><span class=line><span class=cl>hello,this is Risk Service,and this is node <span class=m>2</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=redis与ribbon集成>Redis与Ribbon集成</h2><p>复制一个RiskService模块，将配置文件的端口修改如下，其他都不变：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yml data-lang=yml><span class=line><span class=cl><span class=nt>server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>1222</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spring</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>application</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>RiskService</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>data</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>redis</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>host</span><span class=p>:</span><span class=w> </span><span class=l>localhost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>6379</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>eureka</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>client</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>service-url</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>defaultZone</span><span class=p>:</span><span class=w> </span><span class=l>http://localhost:8888/eureka</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>fetch-registry</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>register-with-eureka</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>然后再修改一下控制器，目的是能区分出响应是从哪个节点返回的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=nd>@RestController</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>RiskController</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@GetMapping</span><span class=p>(</span><span class=s>&#34;hello&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>hello</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=s>&#34;hello,this is Risk Service,and this is node 2&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>启动两个服务，然后查看Eureka服务器的实例列表如下：</p><p><a class=link href=https://imgse.com/i/pAhfzZR target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/11/25/pAhfzZR.png loading=lazy alt=pAhfzZR.png></a></p><p>然后访问http://host.docker.internal:2222/getRiskInfo，会自动调用RiskService的接口，因为Ribbon默认是轮询的方式，所以每次访问结果都不一样。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 返回的结果会在两个服务节点切换，而且一开始是从mysql获取数据，以后从redis获取数据</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>当前端口号为：1222
+</span></span><span class=line><span class=cl>从mysql获取数据
+</span></span><span class=line><span class=cl>当前端口号为：1222
+</span></span><span class=line><span class=cl>从redis获取数据
+</span></span><span class=line><span class=cl>当前端口号为：1222
+</span></span><span class=line><span class=cl>从redis获取数据
+</span></span><span class=line><span class=cl>当前端口号为：1111
+</span></span><span class=line><span class=cl>从redis获取数据
+</span></span><span class=line><span class=cl>当前端口号为：1111
+</span></span><span class=line><span class=cl>从redis获取数据
+</span></span></code></pre></td></tr></table></div></div></section><footer class=article-footer><section class=article-tags><a href=/tags/redis/>Redis</a>
+<a href=/tags/docker/>Docker</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section>页面浏览量<span id=busuanzi_value_page_pv>Loading</span></section><section><strong>如果觉得我的博客能帮助到你，欢迎点击右侧的赞助进行投喂。如有技术咨询，也可以加本人好友。</strong></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/redis_in_action_12_redis_springboot/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringBoot整合</h2></div></a></article><article><a href=/p/redis_in_action_11_lua/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Lua脚本</h2></div></a></article><article><a href=/p/redis_in_action_10_mysql_mycat/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Mysql集群和MyCat分库分表组件</h2></div></a></article><article><a href=/p/redis_in_action_09_redis_practical_cases/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例</h2></div></a></article><article><a href=/p/redis_in_action_08_java_mysql_redis/><div class=article-details><h2 class=article-title>基于Docker的Redis实战--Java整合Mysql和Redis</h2></div></a></article></div></div></aside><script src=//unpkg.com/@waline/client@v2/dist/waline.js></script><link href=//unpkg.com/@waline/client@v2/dist/waline.css rel=stylesheet><div id=waline class=waline-container></div><style>.waline-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding);--waline-font-size:var(--article-font-size)}.waline-container .wl-count{color:var(--card-text-color-main)}</style><script>Waline.init({avatar:"",dark:'html[data-scheme="dark"]',el:"#waline",emoji:["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"],lang:"zh-cn",locale:{admin:"Admin",placeholder:null},placeholder:"",requiredMeta:["name","email"],serverURL:"https://blog.comment.farb.top",visitor:""})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 Farb's Blog</section><section class=powerby>总访客数：<span id=busuanzi_value_site_uv style=margin-right:10px>Loading</span> 总访问量：<span id=busuanzi_value_site_pv style=margin-right:10px>Loading</span>
+<a href=https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io style=color:blue target=_blank>实时统计</a><br><span id=span_show_age style=margin-right:30px><br>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script><script src=https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js></script><script>new tctip({top:"20%",button:{id:8,type:"zanzhu"},list:[{type:"alipay",qrImg:"https://github.com/user-attachments/assets/3ac3da80-aa15-4ab7-bee7-7292a08fcda1"},{type:"wechat",qrImg:"https://github.com/user-attachments/assets/efc07320-351b-45f3-9a89-a938050da4ef"},{type:"weixin",name:"加好友",icon:"https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png",qrImg:"https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg",desc:"微信:beingBetterSelf"}]}).init()</script><script defer src=https://cn.vercount.one/js></script><script defer src=https://analytics.eu.umami.is/script.js data-website-id=0a12e949-0500-4ff1-872c-b8969b376add></script><script defer language=javascript>var uptime_1="本站已经开心运行 ",uptime_2=" 天 ",uptime_3=" 小时 ",uptime_4=" 分 ",uptime_5=" 秒";function show_date_time(){window.setTimeout(show_date_time,1e3),BirthDay=new Date("4/08/2024 22:54:23"),today=new Date,timeold=today.getTime()-BirthDay.getTime(),sectimeold=timeold/1e3,secondsold=Math.floor(sectimeold),msPerDay=24*60*60*1e3,e_daysold=timeold/msPerDay,daysold=Math.floor(e_daysold),e_hrsold=(e_daysold-daysold)*24,hrsold=Math.floor(e_hrsold),e_minsold=(e_hrsold-hrsold)*60,minsold=Math.floor((e_hrsold-hrsold)*60),seconds=Math.floor((e_minsold-minsold)*60),document.getElementById("span_show_age").innerHTML=uptime_1+daysold+uptime_2+hrsold+uptime_3+minsold+uptime_4+seconds+uptime_5}show_date_time()</script></body></html>

@@ -1,0 +1,952 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content='源码链接： https://gitee.com/farb/architect-practicer-code\n一、Redis消息队列实战 实际项目中，模块间可以通过消息队列（Message queue,MQ）进行通信，MQ有各种实现，如RabbitMQ、Kafka等。使用场景比如：订单模块在处理好一个订单后可以把该订单对象放入消息队列，而记账模块则可以从消息队列中获取订单对象，进行记账。\n1.消息队列与Redis消息订阅发布模式 用消息队列来交互数据的好处是“解耦合”，比如订单模块和记账模块在交互数据时无需考虑对方的业务细节，一般会用现成的消息队列，如RabbitMQ、Kafka等。而Redis消息订阅发布模式也能实现消息队列的效果。\nRedis的消息订阅和发布模式是一种消息的通信模式，其中发布者（Publisher）可以向指定的频道（channel）发布消息，而订阅者（Subscriber）则可以订阅指定的频道，当有消息发布到该频道时，订阅者就会收到该消息。每个频道包含一个消息队列，当发布者发布消息时，消息会被推送到该频道的消息队列中，订阅者会从该队列中获取消息。\n2.消息订阅发布的命令和流程 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 # 启动一个redis服务端容器 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisPublisher -p 6379:6379 redis 563f5a099d06e078e77d4ae1ebefef01def94316203ed1db750a73c4afb5e4de # 获取redis服务端容器的IP PS D:\\code\\blogs\\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" redisPublisher 172.17.0.2 # 进入redis服务端容器，执行redis-cli命令 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisPublisher bash root@563f5a099d06:/data# redis-cli # 发布消息，channel是频道名称，message是消息内容。当前返回0，因为没有订阅者 127.0.0.1:6379> publish channel message (integer) 0 # 在另一个命令行窗口运行另一个容器redisSub1，使用redis-cli连接到redisPublisher容器所在的服务器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub1 -p 6380:6380 redis bc7c2748c6a82e1b1c8c06cde89865ea6963c8dba8c16016e65c35be3d8c16bd PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub1 bash root@bc7c2748c6a8:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 回到redisPublisher容器，发布消息（注意，多个单词应该用引号），当前返回1，表示消息发送给1个订阅者 127.0.0.1:6379> publish MQChannel "Hello,MQ subscribers!" (integer) 1 # 在redisSub1容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)Hello,MQ subscribers!为消息内容 1) "message" 2) "MQChannel" 3) "Hello,MQ subscribers!" # 在另一个命令行窗口再启动另一个redisSub2容器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub2 redis 8a70f31c6f2d461e95fafbe2f79c499d13ff3fe4a12415fdb67a78e8efd7b899 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub2 bash root@8a70f31c6f2d:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 再次回到redisPublisher容器，发布消息，当前返回2，表示消息发送给2个订阅者 127.0.0.1:6379> publish MQChannel "This is the 2nd message." (integer) 2 # 回到reidsSub1和redisSub2容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)This is the 2nd message.为消息内容 1) "message" 2) "MQChannel" 3) "This is the 2nd message." Reading messages... (press Ctrl-C to quit or any key to type command) 3.消息订阅发布的相关命令汇总 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # 发布消息，channel是频道名称，message是消息内容，多个单词应该用引号 publish channel message # 订阅频道，channel是频道名称，可以同时指定多个频道 subscribe channel [channel ...] # 取消订阅频道，channel是频道名称，可以同时指定多个频道 unsubscribe [channel [channel ...]] # 使用模式的方式订阅频道，pattern是模式名称，可以同时指定多个模式。?表示匹配一个字符，*表示匹配任意多个字符 psubscribe pattern [pattern ...] # 取消订阅模式，pattern是模式名称，可以同时指定多个模式 punsubscribe [pattern [pattern ...]] 4.Java与消息队列的实战范例 确保pom.xml中包含以下依赖。\n'><title>基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例</title><link rel=canonical href=https://farb.github.io/p/redis_in_action_09_redis_practical_cases/><link rel=stylesheet href=/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css><meta property='og:title' content="基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例"><meta property='og:description' content='源码链接： https://gitee.com/farb/architect-practicer-code\n一、Redis消息队列实战 实际项目中，模块间可以通过消息队列（Message queue,MQ）进行通信，MQ有各种实现，如RabbitMQ、Kafka等。使用场景比如：订单模块在处理好一个订单后可以把该订单对象放入消息队列，而记账模块则可以从消息队列中获取订单对象，进行记账。\n1.消息队列与Redis消息订阅发布模式 用消息队列来交互数据的好处是“解耦合”，比如订单模块和记账模块在交互数据时无需考虑对方的业务细节，一般会用现成的消息队列，如RabbitMQ、Kafka等。而Redis消息订阅发布模式也能实现消息队列的效果。\nRedis的消息订阅和发布模式是一种消息的通信模式，其中发布者（Publisher）可以向指定的频道（channel）发布消息，而订阅者（Subscriber）则可以订阅指定的频道，当有消息发布到该频道时，订阅者就会收到该消息。每个频道包含一个消息队列，当发布者发布消息时，消息会被推送到该频道的消息队列中，订阅者会从该队列中获取消息。\n2.消息订阅发布的命令和流程 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 # 启动一个redis服务端容器 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisPublisher -p 6379:6379 redis 563f5a099d06e078e77d4ae1ebefef01def94316203ed1db750a73c4afb5e4de # 获取redis服务端容器的IP PS D:\\code\\blogs\\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" redisPublisher 172.17.0.2 # 进入redis服务端容器，执行redis-cli命令 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisPublisher bash root@563f5a099d06:/data# redis-cli # 发布消息，channel是频道名称，message是消息内容。当前返回0，因为没有订阅者 127.0.0.1:6379> publish channel message (integer) 0 # 在另一个命令行窗口运行另一个容器redisSub1，使用redis-cli连接到redisPublisher容器所在的服务器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub1 -p 6380:6380 redis bc7c2748c6a82e1b1c8c06cde89865ea6963c8dba8c16016e65c35be3d8c16bd PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub1 bash root@bc7c2748c6a8:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 回到redisPublisher容器，发布消息（注意，多个单词应该用引号），当前返回1，表示消息发送给1个订阅者 127.0.0.1:6379> publish MQChannel "Hello,MQ subscribers!" (integer) 1 # 在redisSub1容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)Hello,MQ subscribers!为消息内容 1) "message" 2) "MQChannel" 3) "Hello,MQ subscribers!" # 在另一个命令行窗口再启动另一个redisSub2容器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub2 redis 8a70f31c6f2d461e95fafbe2f79c499d13ff3fe4a12415fdb67a78e8efd7b899 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub2 bash root@8a70f31c6f2d:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 再次回到redisPublisher容器，发布消息，当前返回2，表示消息发送给2个订阅者 127.0.0.1:6379> publish MQChannel "This is the 2nd message." (integer) 2 # 回到reidsSub1和redisSub2容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)This is the 2nd message.为消息内容 1) "message" 2) "MQChannel" 3) "This is the 2nd message." Reading messages... (press Ctrl-C to quit or any key to type command) 3.消息订阅发布的相关命令汇总 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # 发布消息，channel是频道名称，message是消息内容，多个单词应该用引号 publish channel message # 订阅频道，channel是频道名称，可以同时指定多个频道 subscribe channel [channel ...] # 取消订阅频道，channel是频道名称，可以同时指定多个频道 unsubscribe [channel [channel ...]] # 使用模式的方式订阅频道，pattern是模式名称，可以同时指定多个模式。?表示匹配一个字符，*表示匹配任意多个字符 psubscribe pattern [pattern ...] # 取消订阅模式，pattern是模式名称，可以同时指定多个模式 punsubscribe [pattern [pattern ...]] 4.Java与消息队列的实战范例 确保pom.xml中包含以下依赖。\n'><meta property='og:url' content='https://farb.github.io/p/redis_in_action_09_redis_practical_cases/'><meta property='og:site_name' content="Farb's Blog"><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='redis'><meta property='article:tag' content='docker'><meta property='article:published_time' content='2024-08-18T00:00:00+00:00'><meta property='article:modified_time' content='2024-08-18T00:00:00+00:00'><meta name=twitter:title content="基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例"><meta name=twitter:description content='源码链接： https://gitee.com/farb/architect-practicer-code\n一、Redis消息队列实战 实际项目中，模块间可以通过消息队列（Message queue,MQ）进行通信，MQ有各种实现，如RabbitMQ、Kafka等。使用场景比如：订单模块在处理好一个订单后可以把该订单对象放入消息队列，而记账模块则可以从消息队列中获取订单对象，进行记账。\n1.消息队列与Redis消息订阅发布模式 用消息队列来交互数据的好处是“解耦合”，比如订单模块和记账模块在交互数据时无需考虑对方的业务细节，一般会用现成的消息队列，如RabbitMQ、Kafka等。而Redis消息订阅发布模式也能实现消息队列的效果。\nRedis的消息订阅和发布模式是一种消息的通信模式，其中发布者（Publisher）可以向指定的频道（channel）发布消息，而订阅者（Subscriber）则可以订阅指定的频道，当有消息发布到该频道时，订阅者就会收到该消息。每个频道包含一个消息队列，当发布者发布消息时，消息会被推送到该频道的消息队列中，订阅者会从该队列中获取消息。\n2.消息订阅发布的命令和流程 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 # 启动一个redis服务端容器 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisPublisher -p 6379:6379 redis 563f5a099d06e078e77d4ae1ebefef01def94316203ed1db750a73c4afb5e4de # 获取redis服务端容器的IP PS D:\\code\\blogs\\farb.github.io> docker inspect -f "{{.NetworkSettings.IPAddress}}" redisPublisher 172.17.0.2 # 进入redis服务端容器，执行redis-cli命令 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisPublisher bash root@563f5a099d06:/data# redis-cli # 发布消息，channel是频道名称，message是消息内容。当前返回0，因为没有订阅者 127.0.0.1:6379> publish channel message (integer) 0 # 在另一个命令行窗口运行另一个容器redisSub1，使用redis-cli连接到redisPublisher容器所在的服务器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub1 -p 6380:6380 redis bc7c2748c6a82e1b1c8c06cde89865ea6963c8dba8c16016e65c35be3d8c16bd PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub1 bash root@bc7c2748c6a8:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 回到redisPublisher容器，发布消息（注意，多个单词应该用引号），当前返回1，表示消息发送给1个订阅者 127.0.0.1:6379> publish MQChannel "Hello,MQ subscribers!" (integer) 1 # 在redisSub1容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)Hello,MQ subscribers!为消息内容 1) "message" 2) "MQChannel" 3) "Hello,MQ subscribers!" # 在另一个命令行窗口再启动另一个redisSub2容器，订阅MQChannel频道，当前返回1，表示订阅成功 PS D:\\code\\blogs\\farb.github.io> docker run -itd --name redisSub2 redis 8a70f31c6f2d461e95fafbe2f79c499d13ff3fe4a12415fdb67a78e8efd7b899 PS D:\\code\\blogs\\farb.github.io> docker exec -it redisSub2 bash root@8a70f31c6f2d:/data# redis-cli -h 172.17.0.2 -p 6379 172.17.0.2:6379> subscribe MQChannel 1) "subscribe" 2) "MQChannel" 3) (integer) 1 Reading messages... (press Ctrl-C to quit or any key to type command) # 再次回到redisPublisher容器，发布消息，当前返回2，表示消息发送给2个订阅者 127.0.0.1:6379> publish MQChannel "This is the 2nd message." (integer) 2 # 回到reidsSub1和redisSub2容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)This is the 2nd message.为消息内容 1) "message" 2) "MQChannel" 3) "This is the 2nd message." Reading messages... (press Ctrl-C to quit or any key to type command) 3.消息订阅发布的相关命令汇总 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # 发布消息，channel是频道名称，message是消息内容，多个单词应该用引号 publish channel message # 订阅频道，channel是频道名称，可以同时指定多个频道 subscribe channel [channel ...] # 取消订阅频道，channel是频道名称，可以同时指定多个频道 unsubscribe [channel [channel ...]] # 使用模式的方式订阅频道，pattern是模式名称，可以同时指定多个模式。?表示匹配一个字符，*表示匹配任意多个字符 psubscribe pattern [pattern ...] # 取消订阅模式，pattern是模式名称，可以同时指定多个模式 punsubscribe [pattern [pattern ...]] 4.Java与消息队列的实战范例 确保pom.xml中包含以下依赖。\n'><link rel="shortcut icon" href=/favicon.png><meta name=baidu-site-verification content="codeva-XtyrR4VjKV"></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://s3.bmp.ovh/imgs/2024/04/25/1e5e17f5abe2b80d.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>Farb's Blog</a></h1><h2 class=site-description>像水一样努力，终会水滴石穿</h2></div></header><ol class=menu-social><li><a href=https://gitee.com/farb target=_blank title=Gitee rel=me><!doctype html><svg t="1713884778674" class="icon" viewBox="0 0 1024 1024" p-id="10647" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 1024A512 512 0 11512 0a512 512 0 010 1024zm259.2-568.896H480.32a25.28 25.28.0 00-25.28 25.28v63.232c0 13.952 11.328 25.28 25.28 25.28h177.024c13.952.0 25.28 11.328 25.28 25.28v12.672c0 41.856-33.92 75.84-75.84 75.84H366.592a25.28 25.28.0 01-25.28-25.28V417.216c0-41.92 33.92-75.84 75.84-75.84h353.92a25.28 25.28.0 0025.28-25.344l.064-63.168a25.28 25.28.0 00-25.216-25.28H417.152A189.632 189.632.0 00227.52 417.216v353.92c0 14.016 11.328 25.28 25.28 25.28h372.992a170.624 170.624.0 00170.624-170.624V480.384a25.28 25.28.0 00-25.28-25.28z" fill="#C71D23" p-id="10648"/></svg></a></li><li><a href=https://github.com/farb target=_blank title=GitHub rel=me><!doctype html><svg t="1713884694671" class="icon" viewBox="0 0 1024 1024" p-id="9399" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M64 512c0 195.2 124.8 361.6 300.8 422.4 22.4 6.4 19.2-9.6 19.2-22.4v-76.8c-134.4 16-140.8-73.6-150.4-89.6-19.2-32-60.8-38.4-48-54.4 32-16 64 3.2 99.2 57.6 25.6 38.4 76.8 32 105.6 25.6 6.4-22.4 19.2-44.8 35.2-60.8C281.6 691.2 224 604.8 224 502.4c0-48 16-96 48-131.2-22.4-60.8.0-115.2 3.2-121.6 57.6-6.4 118.4 41.6 124.8 44.8 32-9.6 70.4-12.8 112-12.8s80 6.4 112 12.8c12.8-9.6 67.2-48 121.6-44.8 3.2 6.4 25.6 57.6 6.4 118.4 32 38.4 48 83.2 48 131.2.0 102.4-57.6 188.8-201.6 214.4 22.4 22.4 38.4 54.4 38.4 92.8v112c0 9.6.0 19.2 16 19.2C832 876.8 960 710.4 960 512c0-246.4-201.6-448-448-448S64 265.6 64 512z" fill="#040000" p-id="9400"/></svg></a></li><li><a href=https://leetcode.cn/u/int2147483647 target=_blank title=力扣 rel=me><!doctype html><svg t="1713884461345" class="icon" viewBox="0 0 1024 1024" p-id="4333" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M701.28 766.86a58.9 58.9.0 0183.1 83.52l-102.24 102c-94.3 94.16-248 95.52-344 3.16-.56-.52-43.26-42.4-184.12-180.54-93.72-92-103.06-238.94-14.88-333.36l164.44-176C391.12 172 552.46 161.68 652.54 242.6l149.34 120.78a58.92 58.92.0 01-74 91.76L578.54 334.36c-52.34-42.34-144-36.52-189.06 11.84l-164.44 176c-42.94 46-38.22 120 11.26 168.54l183.26 179.7c49.86 48 130.48 47.3 179.42-1.58z" fill="#FFA116" p-id="4334"/><path d="M452.94 664.7a58.96 58.96.0 010-118h434a58.96 58.96.0 010 118z" fill="#B3B3B3" p-id="4335"/><path d="M534.22 18.68a58.9 58.9.0 1186 80.56L225.1 522.28c-42.92 46-38.22 120 11.24 168.54l182.46 178.9A58.92 58.92.0 01336.46 954L154.06 775.08c-93.7-92-103.04-238.94-14.84-333.36z" p-id="4336"/></svg></a></li><li><a href=https://www.cnblogs.com/farb target=_blank title=博客园 rel=me><!doctype html><svg t="1713884612994" class="icon" viewBox="0 0 1024 1024" p-id="8439" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M851.40363594 172.59636406c-187.46181844-187.46181844-491.34545437-187.46181844-678.80727188.0-187.46181844 187.46181844-187.46181844 491.34545437.0 678.80727188 187.46181844 187.46181844 491.34545437 187.46181844 678.80727188.0 187.46181844-187.46181844 187.46181844-491.34545437.0-678.80727188zM387.33090875 728.08727281a47.08363594 47.08363594.0 11-66.63272719-66.50181843 47.08363594 47.08363594.0 0166.63272719 66.50181843zm205.52727281 1.39636313a38.74909125 38.74909125.0 01-76.62545437-11.52h-.04363594a6.54545437 6.54545437.0 00-.04363688.30545531V717.92c.30545438-2.61818156 2.05090875-20.72727281-2.96727281-44.98909125a174.24 174.24.0 00-48.56727281-89.28 172.10181844 172.10181844.0 00-88.8-48.30545438 156.69818156 156.69818156.0 00-42.45818156-2.92363593 38.66181844 38.66181844.0 01-35.38909125-65.32363688 38.61818156 38.61818156.0 0121.12-10.8218175v-.2181825c4.45090875-.74181844 111.14181844-16.45090875 200.33454562 72.74181844 89.01818156 89.01818156 74.18181844 196.14545438 73.44 200.72727281zm175.2 7.59272812a38.74909125 38.74909125.0 01-65.67272719 21.3818175 39.49090875 39.49090875.0 01-11.65090875-33.73090875c.08727281-.34909125 5.10545437-37.48363594-5.06181843-88.97454562C672.36363594 568.37818157 640.37818156 508.85818156 590.72 458.85090875c-50.00727281-49.70181844-109.52727281-81.64363594-176.94545438-94.95272719-51.49090875-10.16727281-88.58181844-5.19272719-89.01818156-5.14909031h.21818156-.04363687a39.92727281 39.92727281.0 01-44.68363594-32.90181844 38.83636406 38.83636406.0 0132.20363594-44.37818156c1.92-.30545438 47.86909125-7.33090875 111.27272719 4.36363594a411.75272719 411.75272719.0 01106.25454562 34.95272718A425.76 425.76.0 01644.61090875 403.04l.91636406.96.96.87272719a425.89090875 425.89090875.0 0182.25454563 114.72c16.40727281 33.6 28.14545437 69.29454562 34.99636312 106.21090875 11.65090875 63.40363594 4.66909125 109.35272719 4.32 111.27272812z" fill="#1296db" p-id="8440"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>主页</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>搜索</span></a></li><li><a href=/%E9%93%BE%E6%8E%A5/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>链接</span></a></li><li class=menu-bottom-section><ol class=menu><li id=i18n-switch><svg class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/></svg>
+<select name=language title=language onchange="window.location.href=this.selectedOptions[0].value"><option value=https://farb.github.io/ selected>English</option><option value=https://farb.github.io/zh-cn/>中文</option></select></li><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><ol><li><a href=#一redis消息队列实战>一、Redis消息队列实战</a><ol><li><a href=#1消息队列与redis消息订阅发布模式>1.消息队列与Redis消息订阅发布模式</a></li><li><a href=#2消息订阅发布的命令和流程>2.消息订阅发布的命令和流程</a></li><li><a href=#3消息订阅发布的相关命令汇总>3.消息订阅发布的相关命令汇总</a></li><li><a href=#4java与消息队列的实战范例>4.Java与消息队列的实战范例</a></li></ol></li><li><a href=#二java实战redis分布式锁>二、Java实战Redis分布式锁</a><ol><li><a href=#1观察分布式锁的特性>1.观察分布式锁的特性</a></li><li><a href=#2加锁与解锁的redis命令分析>2.加锁与解锁的Redis命令分析</a></li><li><a href=#3java实现redis分布式锁>3.Java实现Redis分布式锁</a></li><li><a href=#三-java实现redis限流>三、 java实现Redis限流</a></li><li><a href=#1zset有序集合相关命令与限流>1.zset有序集合相关命令与限流</a></li><li><a href=#2java实现zset限流>2.java实现zset限流</a></li></ol></li><li><a href=#四redis压力测试实战>四.Redis压力测试实战</a></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/redis/ style=background-color:#2a9d8f;color:#fff>Redis</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/redis_in_action_09_redis_practical_cases/>基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>2024-08-18</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>10 minute read</time></div></footer></div></header><section class=article-content><p>源码链接： <a class=link href=https://gitee.com/farb/architect-practicer-code target=_blank rel=noopener>https://gitee.com/farb/architect-practicer-code</a></p><h3 id=一redis消息队列实战>一、Redis消息队列实战</h3><blockquote><p>实际项目中，模块间可以通过消息队列（Message queue,MQ）进行通信，MQ有各种实现，如RabbitMQ、Kafka等。使用场景比如：订单模块在处理好一个订单后可以把该订单对象放入消息队列，而记账模块则可以从消息队列中获取订单对象，进行记账。</p></blockquote><h4 id=1消息队列与redis消息订阅发布模式>1.消息队列与Redis消息订阅发布模式</h4><p>用消息队列来交互数据的好处是“解耦合”，比如订单模块和记账模块在交互数据时无需考虑对方的业务细节，一般会用现成的消息队列，如RabbitMQ、Kafka等。而Redis消息订阅发布模式也能实现消息队列的效果。</p><blockquote><p>Redis的消息订阅和发布模式是一种消息的通信模式，其中发布者（Publisher）可以向指定的频道（channel）发布消息，而订阅者（Subscriber）则可以订阅指定的频道，当有消息发布到该频道时，订阅者就会收到该消息。每个频道包含一个消息队列，当发布者发布消息时，消息会被推送到该频道的消息队列中，订阅者会从该队列中获取消息。</p></blockquote><p><img src=https://s3.bmp.ovh/imgs/2024/08/18/59bcc19d1652ae25.png loading=lazy></p><h4 id=2消息订阅发布的命令和流程>2.消息订阅发布的命令和流程</h4><p><img src=https://s3.bmp.ovh/imgs/2024/08/18/3c222d8834ae8cb6.png loading=lazy></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 启动一个redis服务端容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redisPublisher -p 6379:6379 redis
+</span></span><span class=line><span class=cl>563f5a099d06e078e77d4ae1ebefef01def94316203ed1db750a73c4afb5e4de
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取redis服务端容器的IP</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker inspect -f <span class=s2>&#34;{{.NetworkSettings.IPAddress}}&#34;</span> redisPublisher
+</span></span><span class=line><span class=cl>172.17.0.2
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 进入redis服务端容器，执行redis-cli命令</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redisPublisher bash
+</span></span><span class=line><span class=cl>root@563f5a099d06:/data# redis-cli
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 发布消息，channel是频道名称，message是消息内容。当前返回0，因为没有订阅者</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; publish channel message
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在另一个命令行窗口运行另一个容器redisSub1，使用redis-cli连接到redisPublisher容器所在的服务器，订阅MQChannel频道，当前返回1，表示订阅成功</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redisSub1 -p 6380:6380 redis
+</span></span><span class=line><span class=cl>bc7c2748c6a82e1b1c8c06cde89865ea6963c8dba8c16016e65c35be3d8c16bd
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redisSub1 bash
+</span></span><span class=line><span class=cl>root@bc7c2748c6a8:/data# redis-cli -h 172.17.0.2 -p <span class=m>6379</span>
+</span></span><span class=line><span class=cl>172.17.0.2:6379&gt; subscribe MQChannel
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;subscribe&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;MQChannel&#34;</span>
+</span></span><span class=line><span class=cl>3<span class=o>)</span> <span class=o>(</span>integer<span class=o>)</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>Reading messages... <span class=o>(</span>press Ctrl-C to quit or any key to <span class=nb>type</span> <span class=nb>command</span><span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 回到redisPublisher容器，发布消息（注意，多个单词应该用引号），当前返回1，表示消息发送给1个订阅者</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; publish MQChannel <span class=s2>&#34;Hello,MQ subscribers!&#34;</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>1</span> 
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在redisSub1容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)Hello,MQ subscribers!为消息内容</span>
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;message&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;MQChannel&#34;</span>
+</span></span><span class=line><span class=cl>3<span class=o>)</span> <span class=s2>&#34;Hello,MQ subscribers!&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在另一个命令行窗口再启动另一个redisSub2容器，订阅MQChannel频道，当前返回1，表示订阅成功</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redisSub2 redis
+</span></span><span class=line><span class=cl>8a70f31c6f2d461e95fafbe2f79c499d13ff3fe4a12415fdb67a78e8efd7b899
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redisSub2 bash
+</span></span><span class=line><span class=cl>root@8a70f31c6f2d:/data# redis-cli -h 172.17.0.2 -p <span class=m>6379</span>
+</span></span><span class=line><span class=cl>172.17.0.2:6379&gt; subscribe MQChannel
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;subscribe&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;MQChannel&#34;</span>
+</span></span><span class=line><span class=cl>3<span class=o>)</span> <span class=o>(</span>integer<span class=o>)</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>Reading messages... <span class=o>(</span>press Ctrl-C to quit or any key to <span class=nb>type</span> <span class=nb>command</span><span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 再次回到redisPublisher容器，发布消息，当前返回2，表示消息发送给2个订阅者</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; publish MQChannel <span class=s2>&#34;This is the 2nd message.&#34;</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 回到reidsSub1和redisSub2容器中，可以看到接收到以下消息，1)message为消息类型，2)MQChannel为频道名称，3)This is the 2nd message.为消息内容</span>
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;message&#34;</span> 
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;MQChannel&#34;</span>
+</span></span><span class=line><span class=cl>3<span class=o>)</span> <span class=s2>&#34;This is the 2nd message.&#34;</span>
+</span></span><span class=line><span class=cl>Reading messages... <span class=o>(</span>press Ctrl-C to quit or any key to <span class=nb>type</span> <span class=nb>command</span><span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=3消息订阅发布的相关命令汇总>3.消息订阅发布的相关命令汇总</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 发布消息，channel是频道名称，message是消息内容，多个单词应该用引号</span>
+</span></span><span class=line><span class=cl>publish channel message
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 订阅频道，channel是频道名称，可以同时指定多个频道</span>
+</span></span><span class=line><span class=cl>subscribe channel <span class=o>[</span>channel ...<span class=o>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 取消订阅频道，channel是频道名称，可以同时指定多个频道</span>
+</span></span><span class=line><span class=cl>unsubscribe <span class=o>[</span>channel <span class=o>[</span>channel ...<span class=o>]]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 使用模式的方式订阅频道，pattern是模式名称，可以同时指定多个模式。?表示匹配一个字符，*表示匹配任意多个字符</span>
+</span></span><span class=line><span class=cl>psubscribe pattern <span class=o>[</span>pattern ...<span class=o>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 取消订阅模式，pattern是模式名称，可以同时指定多个模式</span>
+</span></span><span class=line><span class=cl>punsubscribe <span class=o>[</span>pattern <span class=o>[</span>pattern ...<span class=o>]]</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=4java与消息队列的实战范例>4.Java与消息队列的实战范例</h4><p>确保pom.xml中包含以下依赖。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>redis.clients<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>jedis<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>3.3.0<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>com.alibaba<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>fastjson<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;version&gt;</span>1.2.83<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>创建一个Publisher类，用于发布消息。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>Publisher</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 主函数入口
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param args 命令行参数，本程序未使用
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 创建一个HashMap对象用于存储订单信息</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>HashMap</span><span class=o>&lt;</span><span class=n>String</span><span class=p>,</span><span class=n>String</span><span class=o>&gt;</span><span class=w> </span><span class=n>order</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 添加订单ID</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>order</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=s>&#34;id&#34;</span><span class=p>,</span><span class=s>&#34;1&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 添加订单所有者</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>order</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=s>&#34;owner&#34;</span><span class=p>,</span><span class=s>&#34;Farb&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 添加订单金额</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>order</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=s>&#34;amount&#34;</span><span class=p>,</span><span class=s>&#34;10000&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 将订单信息转换为JSON字符串格式</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>jsonString</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>JSON</span><span class=p>.</span><span class=na>toJSONString</span><span class=p>(</span><span class=n>order</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 创建Jedis对象，连接本地Redis服务器</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Jedis</span><span class=p>(</span><span class=s>&#34;127.0.0.1&#34;</span><span class=p>,</span><span class=w> </span><span class=n>6379</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 发布JSON字符串到指定的Redis频道上</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>publish</span><span class=p>(</span><span class=s>&#34;MQChannel&#34;</span><span class=p>,</span><span class=w> </span><span class=n>jsonString</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>创建一个Subscriber类，该类继承JedisPubSub抽象类，用于订阅消息、接收消息、取消订阅。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>Subscriber</span><span class=w> </span><span class=kd>extends</span><span class=w> </span><span class=n>JedisPubSub</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 主函数入口
+</span></span></span><span class=line><span class=cl><span class=cm>     *
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param args 命令行参数
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 创建一个订阅者实例</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Subscriber</span><span class=w> </span><span class=n>subscriber</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Subscriber</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 连接到本地的Redis服务器</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Jedis</span><span class=p>(</span><span class=s>&#34;localhost&#34;</span><span class=p>,</span><span class=w> </span><span class=n>6379</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 订阅名为&#34;MQChannel&#34;的频道</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>subscribe</span><span class=p>(</span><span class=n>subscriber</span><span class=p>,</span><span class=w> </span><span class=s>&#34;MQChannel&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Override</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>onSubscribe</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>channel</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>subscribedChannels</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;subscribe the channel&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>channel</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Override</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>onUnsubscribe</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>channel</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>subscribedChannels</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;unsubscribe the channel&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>channel</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 接收并处理来自指定频道的消息
+</span></span></span><span class=line><span class=cl><span class=cm>     * 该方法通过解析接收到的消息内容，将其转换为HashMap对象，以便后续处理
+</span></span></span><span class=line><span class=cl><span class=cm>     * 主要用于演示如何从消息中提取订单信息并进行相关操作
+</span></span></span><span class=line><span class=cl><span class=cm>     *
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param channel 消息所属的频道，用于标识消息的来源
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param message 原始的字符串消息内容，通常为JSON格式字符串，包含订单信息
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Override</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>onMessage</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>channel</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>message</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 将消息内容解析为HashMap对象，以便于访问其中的特定字段</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>HashMap</span><span class=o>&lt;</span><span class=n>String</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=o>&gt;</span><span class=w> </span><span class=n>orderMap</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>JSON</span><span class=p>.</span><span class=na>parseObject</span><span class=p>(</span><span class=n>message</span><span class=p>,</span><span class=w> </span><span class=n>HashMap</span><span class=p>.</span><span class=na>class</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 从订单Map中获取并打印订单的ID、所有者和账户信息</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;id=&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>orderMap</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=s>&#34;id&#34;</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;owner=&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>orderMap</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=s>&#34;owner&#34;</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;amount=&#34;</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>orderMap</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=s>&#34;amount&#34;</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=二java实战redis分布式锁>二、Java实战Redis分布式锁</h3><blockquote><p>在一台主机的多线程场景里，为了保护某个对象在同一时刻只能被一个线程访问，可以使用锁机制，即线程只有在获取该对象锁资源的前提下才能访问，在访问完以后需要立刻释放锁，以便其他线程继续使用该对象。
+扩展到多台主机，如果访问同一对象的线程来自分布式系统的多台主机，那么用来确保访问唯一性的锁就叫分布式锁。</p></blockquote><h4 id=1观察分布式锁的特性>1.观察分布式锁的特性</h4><p>分布式锁工作在分布式系统里的高并发场景里，除了具有“加锁”和“解锁”的功能外，还需具备如下两个特性：</p><ol><li>限时等待。哪怕加锁的主机系统崩溃导致无法再发出"解锁"指令，加载在对象上的分布式锁也能在一定时间后自动解锁；</li><li>需要确保加锁和解锁的主机必须唯一。比如主机1在发出“锁余额数据”指令的同时，发出“10秒后解锁”的指令，但是10秒后主机1并没有执行完操作余额数据的指令，此时主机1自动解锁，并且主机2得到了锁。当主机1执行完毕时，释放锁时，释放的是主机2的锁，而不是主机1的锁。</li></ol><h4 id=2加锁与解锁的redis命令分析>2.加锁与解锁的Redis命令分析</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 可以使用set和del实现加锁和解锁</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span> key value <span class=o>[</span>NX<span class=p>|</span>XX<span class=o>]</span> <span class=o>[</span>GET<span class=o>]</span> <span class=o>[</span>EX seconds<span class=p>|</span>PX milliseconds<span class=p>|</span>EXAT unix-time-seconds<span class=p>|</span>PXAT unix-time-milliseconds<span class=p>|</span>KEEPTTL<span class=o>]</span>
+</span></span><span class=line><span class=cl><span class=c1># NX：如果键不存在，则设置键值对；XX：如果键存在，则设置键值对；GET：返回上次的值；EX：设置键值对过期时间，单位为秒；PX：设置键值对过期时间，单位为毫秒；EXAT：设置键值对过期时间，指定时间戳；PXAT：设置键值对过期时间</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 如果flag不存在则设置为1，过期时间为60s</span>
+</span></span><span class=line><span class=cl>setnx flag <span class=m>1</span> ex <span class=m>60</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果多个线程用分布式竞争同一个资源，由于加入了nx参数，只有一个线程能成功设置，表示这个线程抢占到分布式锁，其他线程会返回0，表示设置失败。</span>
+</span></span><span class=line><span class=cl><span class=c1># set命令后用了ex参数指定了flag的生成时间，即使抢占到分布式锁的机器因为故障而无法发起del命令而实现解锁动作，该flag键也能在生存时间过期后自动删除，这样该线程对资源的占有就会自动释放，其他线程继续抢占。</span>
+</span></span><span class=line><span class=cl><span class=c1># 占有资源的线程使用完毕后可以通过del flag 命令释放锁，但需要注意的是，加锁和解锁的是同一台机器或同一个线程，避免解错锁。</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=3java实现redis分布式锁>3.Java实现Redis分布式锁</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>RedisLockUtil</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 尝试获取分布式锁
+</span></span></span><span class=line><span class=cl><span class=cm>     * 
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param jedis Jedis实例，用于操作Redis
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param key 锁的键名，通常为加锁的资源标识
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param sourceId 请求加锁的唯一标识，如当前线程ID
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param expireSeconds 锁的超时时间，单位为秒
+</span></span></span><span class=line><span class=cl><span class=cm>     * @return 返回true表示成功获取锁，返回false表示获取锁失败
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>boolean</span><span class=w> </span><span class=nf>tryGetDistributedLock</span><span class=p>(</span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>sourceId</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>expireSeconds</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 使用set命令的nx（仅当key不存在时设置）和ex（设置过期时间）选项来尝试获取分布式锁</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 如果锁获取成功，返回&#34;OK&#34;，否则返回null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 注意：set nx和设置过期时间expire必须写到一行命令，否则无法保证两个操作的原子性，导致始终无法释放锁</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>Objects</span><span class=p>.</span><span class=na>equals</span><span class=p>(</span><span class=n>jedis</span><span class=p>.</span><span class=na>set</span><span class=p>(</span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>sourceId</span><span class=p>,</span><span class=w> </span><span class=n>SetParams</span><span class=p>.</span><span class=na>setParams</span><span class=p>().</span><span class=na>nx</span><span class=p>().</span><span class=na>ex</span><span class=p>(</span><span class=n>expireSeconds</span><span class=p>)),</span><span class=w> </span><span class=s>&#34;OK&#34;</span><span class=p>))</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>sourceId</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=s>&#34; get distributed lock&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=kc>true</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=kc>false</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 释放分布式锁
+</span></span></span><span class=line><span class=cl><span class=cm>     * 
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param jedis Jedis实例，用于执行Redis操作
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param key 锁的键名，用于标识一个分布式锁
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param sourceId 锁的拥有者标识，用于确保只有锁的拥有者才能释放锁
+</span></span></span><span class=line><span class=cl><span class=cm>     * @return boolean 表示锁释放的结果，true表示成功释放，false表示释放失败
+</span></span></span><span class=line><span class=cl><span class=cm>     * 
+</span></span></span><span class=line><span class=cl><span class=cm>     * 通过使用Lua脚本在Redis服务器端校验并释放锁，以保证操作的原子性
+</span></span></span><span class=line><span class=cl><span class=cm>     * 脚本逻辑：检查锁的拥有者是否与传入的sourceId一致，如果一致则删除锁，返回1；否则返回0
+</span></span></span><span class=line><span class=cl><span class=cm>     * 这样可以防止其他客户端误释放了不属于自己的锁
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>boolean</span><span class=w> </span><span class=nf>releaseDistributedLock</span><span class=p>(</span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>sourceId</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 定义Lua脚本，用于在Redis服务器端检查并释放分布式锁</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>script</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&#34;if redis.call(&#39;get&#39;, KEYS[1]) == ARGV[1] then return redis.call(&#39;del&#39;, KEYS[1]) else return 0 end&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 执行Lua脚本，传入锁的键名和拥有者标识</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Object</span><span class=w> </span><span class=n>result</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>jedis</span><span class=p>.</span><span class=na>eval</span><span class=p>(</span><span class=n>script</span><span class=p>,</span><span class=w> </span><span class=n>1</span><span class=p>,</span><span class=w> </span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>sourceId</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 检查脚本执行结果，如果删除成功，则打印信息并返回true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=s>&#34;1&#34;</span><span class=p>.</span><span class=na>equals</span><span class=p>(</span><span class=n>result</span><span class=p>.</span><span class=na>toString</span><span class=p>()))</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>sourceId</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=s>&#34; release distributed lock&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>return</span><span class=w> </span><span class=kc>true</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 删除失败，返回false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=kc>false</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>DistributedRedisLockDemo</span><span class=w> </span><span class=kd>extends</span><span class=w> </span><span class=n>Thread</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kd>final</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>ACCOUNT_ID</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&#34;1234&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 程序入口主函数
+</span></span></span><span class=line><span class=cl><span class=cm>     * 该函数的目的是模拟并发环境下对分布式Redis锁的需求
+</span></span></span><span class=line><span class=cl><span class=cm>     * 通过创建并启动5个DistributedRedisLockDemo实例来模拟并发场景
+</span></span></span><span class=line><span class=cl><span class=cm>     * 每个实例启动一个线程尝试获取分布式锁，从而验证分布式锁在并发环境下的有效性和稳定性
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>5</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>new</span><span class=w> </span><span class=n>DistributedRedisLockDemo</span><span class=p>().</span><span class=na>start</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 设置账户信息的方法
+</span></span></span><span class=line><span class=cl><span class=cm>     * 此方法使用分布式锁来确保并发环境下账户信息的设置操作能够安全执行
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>setAccount</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 获取当前线程的名称，用作锁的标识</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>sourceId</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Thread</span><span class=p>.</span><span class=na>currentThread</span><span class=p>().</span><span class=na>getName</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 初始化锁获取标志为false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>boolean</span><span class=w> </span><span class=n>lockFlag</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=kc>false</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 创建Jedis实例，连接本地Redis服务器</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Jedis</span><span class=p>(</span><span class=s>&#34;127.0.0.1&#34;</span><span class=p>,</span><span class=w> </span><span class=n>6379</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>try</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=c1>// 尝试获取分布式锁，如果成功则执行业务逻辑，否则执行其他操作</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>lockFlag</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>RedisLockUtil</span><span class=p>.</span><span class=na>tryGetDistributedLock</span><span class=p>(</span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>ACCOUNT_ID</span><span class=p>,</span><span class=w> </span><span class=n>sourceId</span><span class=p>,</span><span class=w> </span><span class=n>10</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>lockFlag</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=c1>// 获取锁成功，执行业务逻辑</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>sourceId</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=s>&#34;获取锁成功，执行业务逻辑&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=c1>// 获取锁失败，执行其他操作</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>sourceId</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=s>&#34;获取锁失败&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w> </span><span class=k>catch</span><span class=w> </span><span class=p>(</span><span class=n>Exception</span><span class=w> </span><span class=n>ex</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>ex</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w> </span><span class=k>finally</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=c1>// 如果成功获取了锁，则在业务逻辑执行完毕后释放锁</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>lockFlag</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>RedisLockUtil</span><span class=p>.</span><span class=na>releaseDistributedLock</span><span class=p>(</span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>ACCOUNT_ID</span><span class=p>,</span><span class=w> </span><span class=n>sourceId</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>sourceId</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=s>&#34;释放锁成功&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nd>@Override</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>run</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>try</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>setAccount</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w> </span><span class=k>catch</span><span class=w> </span><span class=p>(</span><span class=n>Exception</span><span class=w> </span><span class=n>e</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>e</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// 运行结果：</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>0获取锁失败</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>3获取锁失败</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>1</span><span class=w> </span><span class=n>get</span><span class=w> </span><span class=n>distributed</span><span class=w> </span><span class=n>lock</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>2获取锁失败</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>4获取锁失败</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>1获取锁成功</span><span class=err>，</span><span class=n>执行业务逻辑</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>1</span><span class=w> </span><span class=n>release</span><span class=w> </span><span class=n>distributed</span><span class=w> </span><span class=n>lock</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Thread</span><span class=o>-</span><span class=n>1释放锁成功</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h4 id=三-java实现redis限流>三、 java实现Redis限流</h4><blockquote><p>限流的含义是指在给定的时间内，对某一个资源进行访问的次数不能超过一定的阈值，否则就拒绝访问。比如秒杀模块中，需要确保10s内发往支付模块的请求数量小于500个。限流的作用就是防止某个时间段内的请求数过多，造成模块因高并发而不可用。</p></blockquote><h4 id=1zset有序集合相关命令与限流>1.zset有序集合相关命令与限流</h4><p>有序集合（zset）是一种特殊类型的集合，它包含一个或多个成员，每个成员都关联有一个分数（score）。有序集合的成员按分数值从小到大排列。有序集合的成员是唯一的，分数可以是整数也可以是浮点数。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 向有序集合添加元素</span>
+</span></span><span class=line><span class=cl><span class=c1># 在限流场景中，可以将score存储为时间戳，这样zset就可以根据时间戳的score排序</span>
+</span></span><span class=line><span class=cl>zadd key score member
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 删除键为key，score在min和max之间的所有元素</span>
+</span></span><span class=line><span class=cl><span class=c1># 通过这个操作，可以排除限流时间范围外的数据，在此基础上，通过zcard统计有序集合中元素的数量</span>
+</span></span><span class=line><span class=cl>zremrangeByScore key min max
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取键为key的zset中元素的数量</span>
+</span></span><span class=line><span class=cl>zcard key
+</span></span></code></pre></td></tr></table></div></div><h4 id=2java实现zset限流>2.java实现zset限流</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>LimitRequestDemo</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 主函数，用于演示如何使用Jedis操作Redis进行限流控制
+</span></span></span><span class=line><span class=cl><span class=cm>     * 该函数首先连接到本地的Redis服务器，然后删除已有的请求类型键，
+</span></span></span><span class=line><span class=cl><span class=cm>     * 接着循环5次，每次调用canVisit方法来模拟一次访问请求，并进行限流判断
+</span></span></span><span class=line><span class=cl><span class=cm>     * 
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param args 命令行参数，本例中未使用
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 创建Jedis实例，连接本地Redis服务器</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Jedis</span><span class=p>(</span><span class=s>&#34;localhost&#34;</span><span class=p>,</span><span class=w> </span><span class=n>6379</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 定义请求类型为支付请求</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>requestType</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&#34;PayRequest&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 删除现有的请求类型键，以确保开始时环境干净</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>del</span><span class=p>(</span><span class=n>requestType</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 循环5次，模拟5次访问请求</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>5</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=c1>// 调用canVisit方法，传入Jedis实例，请求类型，资源限制（100），以及时间窗口（3秒）</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>canVisit</span><span class=p>(</span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>requestType</span><span class=p>,</span><span class=w> </span><span class=n>100</span><span class=p>,</span><span class=w> </span><span class=n>3</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=cm>/**
+</span></span></span><span class=line><span class=cl><span class=cm>     * 判断是否可以访问
+</span></span></span><span class=line><span class=cl><span class=cm>     * 使用Redis的有序集合zset来记录请求的时间戳，通过清除超过时间窗口的请求记录来限制请求频率。
+</span></span></span><span class=line><span class=cl><span class=cm>     * 如果在指定时间窗口内的请求数量超过限制，则提示请求过于频繁。
+</span></span></span><span class=line><span class=cl><span class=cm>     *
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param jedis       Jedis实例，用于操作Redis数据库
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param requestType 请求类型，用于区分不同类型的请求并分别限流
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param limitTime   单位为秒的时间窗口长度，用于定义多久算作一次请求
+</span></span></span><span class=line><span class=cl><span class=cm>     * @param limitCount  在指定时间窗口内允许的最大请求数量
+</span></span></span><span class=line><span class=cl><span class=cm>     */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>canVisit</span><span class=p>(</span><span class=n>Jedis</span><span class=w> </span><span class=n>jedis</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>requestType</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>limitTime</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>limitCount</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 获取当前时间戳</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>long</span><span class=w> </span><span class=n>currentTimeMillis</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>System</span><span class=p>.</span><span class=na>currentTimeMillis</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 将当前时间戳添加到指定请求类型的有序集合中</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>zadd</span><span class=p>(</span><span class=n>requestType</span><span class=p>,</span><span class=w> </span><span class=n>currentTimeMillis</span><span class=p>,</span><span class=w> </span><span class=n>Long</span><span class=p>.</span><span class=na>toString</span><span class=p>(</span><span class=n>currentTimeMillis</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 移除超过时间窗口的请求时间戳</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>zremrangeByScore</span><span class=p>(</span><span class=n>requestType</span><span class=p>,</span><span class=w> </span><span class=n>0</span><span class=p>,</span><span class=w> </span><span class=n>currentTimeMillis</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>limitTime</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>1000</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 获取当前时间窗口内的请求数量</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>Long</span><span class=w> </span><span class=n>totalCount</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>jedis</span><span class=p>.</span><span class=na>zcard</span><span class=p>(</span><span class=n>requestType</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 为请求类型的集合设置过期时间，防止数据溢出</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>jedis</span><span class=p>.</span><span class=na>expire</span><span class=p>(</span><span class=n>requestType</span><span class=p>,</span><span class=w> </span><span class=n>limitTime</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c1>// 判断请求数是否超过限制</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>totalCount</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>limitCount</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;请求过于频繁，请稍后再试&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=s>&#34;请求成功&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// 运行结果：</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>请求成功</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>请求成功</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>请求成功</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>请求过于频繁</span><span class=err>，</span><span class=n>请稍后再试</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>请求过于频繁</span><span class=err>，</span><span class=n>请稍后再试</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=四redis压力测试实战>四.Redis压力测试实战</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span><span class=lnt>91
+</span><span class=lnt>92
+</span><span class=lnt>93
+</span><span class=lnt>94
+</span><span class=lnt>95
+</span><span class=lnt>96
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl> redis-benchmark <span class=o>[</span>option<span class=o>]</span> <span class=o>[</span>optiion value<span class=o>]</span>
+</span></span><span class=line><span class=cl> <span class=c1># option是参数项，option value是参数值</span>
+</span></span><span class=line><span class=cl> <span class=c1># -h 指定redis服务器地址</span>
+</span></span><span class=line><span class=cl> <span class=c1># -p 指定redis服务器端口</span>
+</span></span><span class=line><span class=cl> <span class=c1># -c 指定并发连接数</span>
+</span></span><span class=line><span class=cl> <span class=c1># -n 指定请求次数  </span>
+</span></span><span class=line><span class=cl> <span class=c1># -q 强制退出Redis,显示时只给出“每秒能处理的请求数”这个值</span>
+</span></span><span class=line><span class=cl> <span class=c1># -t 指定测试的命令，默认执行所有命令</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redisDemo bash
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 对本机6379端口的redis服务器进行压测，执行set和get命令各2000次</span>
+</span></span><span class=line><span class=cl>root@563f5a099d06:/data# redis-benchmark -h 127.0.0.1 -p <span class=m>6379</span> -t set,get -n <span class=m>2000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2000次请求set的压测结果，0.01s处理完成</span>
+</span></span><span class=line><span class=cl><span class=o>======</span> <span class=nv>SET</span> <span class=o>======</span>
+</span></span><span class=line><span class=cl>  <span class=m>2000</span> requests completed in 0.01 seconds
+</span></span><span class=line><span class=cl>  <span class=m>50</span> parallel clients
+</span></span><span class=line><span class=cl>  <span class=m>3</span> bytes payload
+</span></span><span class=line><span class=cl>  keep alive: <span class=m>1</span>
+</span></span><span class=line><span class=cl>  host configuration <span class=s2>&#34;save&#34;</span>: <span class=m>3600</span> <span class=m>1</span> <span class=m>300</span> <span class=m>100</span> <span class=m>60</span> <span class=m>10000</span>
+</span></span><span class=line><span class=cl>  host configuration <span class=s2>&#34;appendonly&#34;</span>: no
+</span></span><span class=line><span class=cl>  multi-thread: no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示了n%的请求处理时间</span>
+</span></span><span class=line><span class=cl>Latency by percentile distribution:
+</span></span><span class=line><span class=cl>0.000% &lt;<span class=o>=</span> 0.039 milliseconds <span class=o>(</span>cumulative count 1<span class=o>)</span>
+</span></span><span class=line><span class=cl>50.000% &lt;<span class=o>=</span> 0.095 milliseconds <span class=o>(</span>cumulative count 1043<span class=o>)</span>
+</span></span><span class=line><span class=cl>75.000% &lt;<span class=o>=</span> 0.111 milliseconds <span class=o>(</span>cumulative count 1677<span class=o>)</span>
+</span></span><span class=line><span class=cl>87.500% &lt;<span class=o>=</span> 0.119 milliseconds <span class=o>(</span>cumulative count 1775<span class=o>)</span>
+</span></span><span class=line><span class=cl>93.750% &lt;<span class=o>=</span> 0.167 milliseconds <span class=o>(</span>cumulative count 1887<span class=o>)</span>
+</span></span><span class=line><span class=cl>96.875% &lt;<span class=o>=</span> 0.207 milliseconds <span class=o>(</span>cumulative count 1942<span class=o>)</span>
+</span></span><span class=line><span class=cl>98.438% &lt;<span class=o>=</span> 0.247 milliseconds <span class=o>(</span>cumulative count 1976<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.219% &lt;<span class=o>=</span> 0.271 milliseconds <span class=o>(</span>cumulative count 1986<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.609% &lt;<span class=o>=</span> 0.295 milliseconds <span class=o>(</span>cumulative count 1994<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.805% &lt;<span class=o>=</span> 0.303 milliseconds <span class=o>(</span>cumulative count 1997<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.902% &lt;<span class=o>=</span> 0.319 milliseconds <span class=o>(</span>cumulative count 1999<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.951% &lt;<span class=o>=</span> 0.327 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>100.000% &lt;<span class=o>=</span> 0.327 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Cumulative distribution of latencies:
+</span></span><span class=line><span class=cl>73.050% &lt;<span class=o>=</span> 0.103 milliseconds <span class=o>(</span>cumulative count 1461<span class=o>)</span>
+</span></span><span class=line><span class=cl>97.100% &lt;<span class=o>=</span> 0.207 milliseconds <span class=o>(</span>cumulative count 1942<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.850% &lt;<span class=o>=</span> 0.303 milliseconds <span class=o>(</span>cumulative count 1997<span class=o>)</span>
+</span></span><span class=line><span class=cl>100.000% &lt;<span class=o>=</span> 0.407 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 汇总信息，吞吐量：每秒28.6万次请求</span>
+</span></span><span class=line><span class=cl>Summary:
+</span></span><span class=line><span class=cl>  throughput summary: 285714.28 requests per second
+</span></span><span class=line><span class=cl>  latency summary <span class=o>(</span>msec<span class=o>)</span>:
+</span></span><span class=line><span class=cl>          avg       min       p50       p95       p99       max
+</span></span><span class=line><span class=cl>        0.103     0.032     0.095     0.175     0.255     0.327
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#以下时get的压测结果，与上面类似</span>
+</span></span><span class=line><span class=cl><span class=o>======</span> <span class=nv>GET</span> <span class=o>======</span>
+</span></span><span class=line><span class=cl>  <span class=m>2000</span> requests completed in 0.01 seconds
+</span></span><span class=line><span class=cl>  <span class=m>50</span> parallel clients
+</span></span><span class=line><span class=cl>  <span class=m>3</span> bytes payload
+</span></span><span class=line><span class=cl>  keep alive: <span class=m>1</span>
+</span></span><span class=line><span class=cl>  host configuration <span class=s2>&#34;save&#34;</span>: <span class=m>3600</span> <span class=m>1</span> <span class=m>300</span> <span class=m>100</span> <span class=m>60</span> <span class=m>10000</span>
+</span></span><span class=line><span class=cl>  host configuration <span class=s2>&#34;appendonly&#34;</span>: no
+</span></span><span class=line><span class=cl>  multi-thread: no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Latency by percentile distribution:
+</span></span><span class=line><span class=cl>0.000% &lt;<span class=o>=</span> 0.039 milliseconds <span class=o>(</span>cumulative count 2<span class=o>)</span>
+</span></span><span class=line><span class=cl>50.000% &lt;<span class=o>=</span> 0.103 milliseconds <span class=o>(</span>cumulative count 1211<span class=o>)</span>
+</span></span><span class=line><span class=cl>75.000% &lt;<span class=o>=</span> 0.119 milliseconds <span class=o>(</span>cumulative count 1512<span class=o>)</span>
+</span></span><span class=line><span class=cl>87.500% &lt;<span class=o>=</span> 0.159 milliseconds <span class=o>(</span>cumulative count 1751<span class=o>)</span>
+</span></span><span class=line><span class=cl>93.750% &lt;<span class=o>=</span> 0.223 milliseconds <span class=o>(</span>cumulative count 1878<span class=o>)</span>
+</span></span><span class=line><span class=cl>96.875% &lt;<span class=o>=</span> 0.407 milliseconds <span class=o>(</span>cumulative count 1938<span class=o>)</span>
+</span></span><span class=line><span class=cl>98.438% &lt;<span class=o>=</span> 0.759 milliseconds <span class=o>(</span>cumulative count 1969<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.219% &lt;<span class=o>=</span> 0.935 milliseconds <span class=o>(</span>cumulative count 1985<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.609% &lt;<span class=o>=</span> 0.967 milliseconds <span class=o>(</span>cumulative count 1993<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.805% &lt;<span class=o>=</span> 0.999 milliseconds <span class=o>(</span>cumulative count 1997<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.902% &lt;<span class=o>=</span> 1.071 milliseconds <span class=o>(</span>cumulative count 1999<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.951% &lt;<span class=o>=</span> 1.079 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>100.000% &lt;<span class=o>=</span> 1.079 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Cumulative distribution of latencies:
+</span></span><span class=line><span class=cl>60.550% &lt;<span class=o>=</span> 0.103 milliseconds <span class=o>(</span>cumulative count 1211<span class=o>)</span>
+</span></span><span class=line><span class=cl>92.650% &lt;<span class=o>=</span> 0.207 milliseconds <span class=o>(</span>cumulative count 1853<span class=o>)</span>
+</span></span><span class=line><span class=cl>96.450% &lt;<span class=o>=</span> 0.303 milliseconds <span class=o>(</span>cumulative count 1929<span class=o>)</span>
+</span></span><span class=line><span class=cl>96.900% &lt;<span class=o>=</span> 0.407 milliseconds <span class=o>(</span>cumulative count 1938<span class=o>)</span>
+</span></span><span class=line><span class=cl>97.250% &lt;<span class=o>=</span> 0.503 milliseconds <span class=o>(</span>cumulative count 1945<span class=o>)</span>
+</span></span><span class=line><span class=cl>97.650% &lt;<span class=o>=</span> 0.607 milliseconds <span class=o>(</span>cumulative count 1953<span class=o>)</span>
+</span></span><span class=line><span class=cl>98.000% &lt;<span class=o>=</span> 0.703 milliseconds <span class=o>(</span>cumulative count 1960<span class=o>)</span>
+</span></span><span class=line><span class=cl>98.600% &lt;<span class=o>=</span> 0.807 milliseconds <span class=o>(</span>cumulative count 1972<span class=o>)</span>
+</span></span><span class=line><span class=cl>98.950% &lt;<span class=o>=</span> 0.903 milliseconds <span class=o>(</span>cumulative count 1979<span class=o>)</span>
+</span></span><span class=line><span class=cl>99.900% &lt;<span class=o>=</span> 1.007 milliseconds <span class=o>(</span>cumulative count 1998<span class=o>)</span>
+</span></span><span class=line><span class=cl>100.000% &lt;<span class=o>=</span> 1.103 milliseconds <span class=o>(</span>cumulative count 2000<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Summary:
+</span></span><span class=line><span class=cl>  throughput summary: 249999.98 requests per second
+</span></span><span class=line><span class=cl>  latency summary <span class=o>(</span>msec<span class=o>)</span>:
+</span></span><span class=line><span class=cl>          avg       min       p50       p95       p99       max
+</span></span><span class=line><span class=cl>        0.131     0.032     0.103     0.247     0.919     1.079
+</span></span></code></pre></td></tr></table></div></div><p>再执行一个压测命令查看一下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 20个并发连接，2000次请求，没有指定-t参数，默认执行所有命令，使用-q参数，只显示每秒处理的请求数，如果去掉-q，则会显示每条命令的详细信息。</span>
+</span></span><span class=line><span class=cl>root@563f5a099d06:/data# redis-benchmark -h localhost -p <span class=m>6379</span> -c <span class=m>20</span> -n <span class=m>2000</span> -q
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示每秒处理的请求数，以及50%的请求处理耗时</span>
+</span></span><span class=line><span class=cl>PING_INLINE: 285714.28 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>PING_MBULK: 285714.28 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>SET: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>GET: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>INCR: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>LPUSH: 285714.28 requests per second, <span class=nv>p50</span><span class=o>=</span>0.039 msec
+</span></span><span class=line><span class=cl>RPUSH: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>LPOP: 222222.23 requests per second, <span class=nv>p50</span><span class=o>=</span>0.039 msec
+</span></span><span class=line><span class=cl>RPOP: 285714.28 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>SADD: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>HSET: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>SPOP: 222222.23 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>ZADD: 222222.23 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>ZPOPMIN: 222222.23 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>LPUSH <span class=o>(</span>needed to benchmark LRANGE<span class=o>)</span>: 249999.98 requests per second, <span class=nv>p50</span><span class=o>=</span>0.047 msec
+</span></span><span class=line><span class=cl>LRANGE_100 <span class=o>(</span>first <span class=m>100</span> elements<span class=o>)</span>: 90909.09 requests per second, <span class=nv>p50</span><span class=o>=</span>0.119 msec
+</span></span><span class=line><span class=cl>LRANGE_300 <span class=o>(</span>first <span class=m>300</span> elements<span class=o>)</span>: 35714.29 requests per second, <span class=nv>p50</span><span class=o>=</span>0.279 msec
+</span></span><span class=line><span class=cl>LRANGE_500 <span class=o>(</span>first <span class=m>500</span> elements<span class=o>)</span>: 25000.00 requests per second, <span class=nv>p50</span><span class=o>=</span>0.391 msec
+</span></span><span class=line><span class=cl>LRANGE_600 <span class=o>(</span>first <span class=m>600</span> elements<span class=o>)</span>: 21505.38 requests per second, <span class=nv>p50</span><span class=o>=</span>0.455 msec
+</span></span><span class=line><span class=cl>MSET <span class=o>(</span><span class=m>10</span> keys<span class=o>)</span>: 333333.34 requests per second, <span class=nv>p50</span><span class=o>=</span>0.039 msec
+</span></span><span class=line><span class=cl>XADD: 285714.28 requests per second, <span class=nv>p50</span><span class=o>=</span>0.039 msec
+</span></span></code></pre></td></tr></table></div></div></section><footer class=article-footer><section class=article-tags><a href=/tags/redis/>Redis</a>
+<a href=/tags/docker/>Docker</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section>页面浏览量<span id=busuanzi_value_page_pv>Loading</span></section><section><strong>如果觉得我的博客能帮助到你，欢迎点击右侧的赞助进行投喂。如有技术咨询，也可以加本人好友。</strong></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/redis_in_action_13_redis_springcloud/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringCloud微服务整合</h2></div></a></article><article><a href=/p/redis_in_action_12_redis_springboot/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringBoot整合</h2></div></a></article><article><a href=/p/redis_in_action_11_lua/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Lua脚本</h2></div></a></article><article><a href=/p/redis_in_action_10_mysql_mycat/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Mysql集群和MyCat分库分表组件</h2></div></a></article><article><a href=/p/redis_in_action_08_java_mysql_redis/><div class=article-details><h2 class=article-title>基于Docker的Redis实战--Java整合Mysql和Redis</h2></div></a></article></div></div></aside><script src=//unpkg.com/@waline/client@v2/dist/waline.js></script><link href=//unpkg.com/@waline/client@v2/dist/waline.css rel=stylesheet><div id=waline class=waline-container></div><style>.waline-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding);--waline-font-size:var(--article-font-size)}.waline-container .wl-count{color:var(--card-text-color-main)}</style><script>Waline.init({avatar:"",dark:'html[data-scheme="dark"]',el:"#waline",emoji:["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"],lang:"zh-cn",locale:{admin:"Admin",placeholder:null},placeholder:"",requiredMeta:["name","email"],serverURL:"https://blog.comment.farb.top",visitor:""})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 Farb's Blog</section><section class=powerby>总访客数：<span id=busuanzi_value_site_uv style=margin-right:10px>Loading</span> 总访问量：<span id=busuanzi_value_site_pv style=margin-right:10px>Loading</span>
+<a href=https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io style=color:blue target=_blank>实时统计</a><br><span id=span_show_age style=margin-right:30px><br>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script><script src=https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js></script><script>new tctip({top:"20%",button:{id:8,type:"zanzhu"},list:[{type:"alipay",qrImg:"https://github.com/user-attachments/assets/3ac3da80-aa15-4ab7-bee7-7292a08fcda1"},{type:"wechat",qrImg:"https://github.com/user-attachments/assets/efc07320-351b-45f3-9a89-a938050da4ef"},{type:"weixin",name:"加好友",icon:"https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png",qrImg:"https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg",desc:"微信:beingBetterSelf"}]}).init()</script><script defer src=https://cn.vercount.one/js></script><script defer src=https://analytics.eu.umami.is/script.js data-website-id=0a12e949-0500-4ff1-872c-b8969b376add></script><script defer language=javascript>var uptime_1="本站已经开心运行 ",uptime_2=" 天 ",uptime_3=" 小时 ",uptime_4=" 分 ",uptime_5=" 秒";function show_date_time(){window.setTimeout(show_date_time,1e3),BirthDay=new Date("4/08/2024 22:54:23"),today=new Date,timeold=today.getTime()-BirthDay.getTime(),sectimeold=timeold/1e3,secondsold=Math.floor(sectimeold),msPerDay=24*60*60*1e3,e_daysold=timeold/msPerDay,daysold=Math.floor(e_daysold),e_hrsold=(e_daysold-daysold)*24,hrsold=Math.floor(e_hrsold),e_minsold=(e_hrsold-hrsold)*60,minsold=Math.floor((e_hrsold-hrsold)*60),seconds=Math.floor((e_minsold-minsold)*60),document.getElementById("span_show_age").innerHTML=uptime_1+daysold+uptime_2+hrsold+uptime_3+minsold+uptime_4+seconds+uptime_5}show_date_time()</script></body></html>

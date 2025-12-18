@@ -1,0 +1,1055 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content='Redis服务器管理客户端的命令 获取或设置客户端的名字 1 2 3 4 5 6 7 8 9 10 PS D:\\code\\blogs\\farb.github.io> docker start firstRedis firstRedis PS D:\\code\\blogs\\farb.github.io> docker exec -it firstRedis /bin/bash root@380d98e7beb9:/data# redis-cli 127.0.0.1:6379> client getname # 获取客户端名称 (nil) 127.0.0.1:6379> client setname client1 # 设置客户端名称 OK 127.0.0.1:6379> client getname "client1" 通过client list查看客户端信息 1 2 3 4 5 6 7 8 9 10 11 12 13 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=133 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # id:客户端的编号 # addr:客户端的地址 # name:客户端名称 # age:客户端的连接时长，单位是s # idle：客户端的空闲时长，单位是s # db：客户端用到的服务器数据库索引号，默认每个redis服务器有16个数据库，且默认使用0号数据库 # cmd: 客户端最近执行的命令 # user:登录服务器用到的用户名 # 如果有多个客户端连接，则返回多行 通过client pause暂停客户端的命令 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 client pause timeout [WRITE|ALL] # 如果服务端压力过大，则可暂停执行客户端的命令 # timeout表示暂停的毫秒数 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> set name val2 OK (3.89s) # 客户端暂停10s后，执行set命令时不会立即执行，而是会卡住，最后返回结果和卡住的时间。 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> get name "val2" (2.71s) # 默认参数为ALL，读写都会暂停 # 如果只指定写的命令暂停，那么读的命令不会暂停 127.0.0.1:6379> client pause 10000 write OK 127.0.0.1:6379> get name "val2" 127.0.0.1:6379> set name val3 OK (4.15s) 通过client kill中断客户端的连接 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 client kill ip:port|[ID client-id]|[TYPE NORMAL|MASTER|SLAVE|REPLICA|PUBSUB]|[USER username]|[ADDR ip:port]|[LADDR ip:port]|[SKIPME YES|NO] [[ID client-id]|[TYPE NORMAL|MAS # 可以看到终端客户端的连接支持很多参数 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=1420 idle=391 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=set user=default redir=-1 resp=2 lib-name= lib-ver= id=4 addr=127.0.0.1:41212 laddr=127.0.0.1:6379 fd=9 name= age=179 idle=179 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=command|docs user=default redir=-1 resp=2 lib-name= lib-ver= id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=8 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= 127.0.0.1:6379> client kill 127.0.0.1:32982 OK 127.0.0.1:6379> client kill 127.0.0.1:41212 OK 127.0.0.1:6379> client list id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=190 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # 查看中断的客户端，执行get命令时，发现报错。 127.0.0.1:6379> get name Error: Broken pipe not connected> shutdown关闭服务器和客户端 1 2 127.0.0.1:6379> shutdown # shutdown 会终止服务器上的所有客户端连接，并终止服务器 查看Redis服务器的详细信息 info命令查看服务器信息 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 127.0.0.1:6379> info # Server 服务端信息 redis_version:7.2.5 redis_git_sha1:00000000 redis_git_dirty:0 redis_build_id:c2b7a5cd72a5634f redis_mode:standalone os:Linux 5.15.153.1-microsoft-standard-WSL2 x86_64 arch_bits:64 monotonic_clock:POSIX clock_gettime multiplexing_api:epoll atomicvar_api:c11-builtin gcc_version:12.2.0 process_id:1 process_supervised:no run_id:7284acf78bb2982dc66fec7c06a0fcb79ab0865a tcp_port:6379 server_time_usec:1721658345403020 uptime_in_seconds:21 uptime_in_days:0 hz:10 configured_hz:10 lru_clock:10382313 executable:/data/redis-server config_file: io_threads_active:0 listener0:name=tcp,bind=*,bind=-::*,port=6379 # Clients 已连接的客户端信息 connected_clients:1 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 # Memory 服务器内存的相关信息 used_memory:917080 used_memory_human:895.59K used_memory_rss:14802944 used_memory_rss_human:14.12M used_memory_peak:1135136 used_memory_peak_human:1.08M used_memory_peak_perc:80.79% used_memory_overhead:868656 used_memory_startup:865744 used_memory_dataset:48424 used_memory_dataset_perc:94.33% allocator_allocated:1456640 allocator_active:1572864 allocator_resident:7090176 total_system_memory:16626606080 total_system_memory_human:15.48G used_memory_lua:31744 used_memory_vm_eval:31744 used_memory_lua_human:31.00K used_memory_scripts_eval:0 number_of_cached_scripts:0 number_of_functions:0 number_of_libraries:0 used_memory_vm_functions:32768 used_memory_vm_total:64512 used_memory_vm_total_human:63.00K used_memory_functions:184 used_memory_scripts:184 used_memory_scripts_human:184B maxmemory:0 maxmemory_human:0B maxmemory_policy:noeviction allocator_frag_ratio:1.08 allocator_frag_bytes:116224 allocator_rss_ratio:4.51 allocator_rss_bytes:5517312 rss_overhead_ratio:2.09 rss_overhead_bytes:7712768 mem_fragmentation_ratio:16.55 mem_fragmentation_bytes:13908752 mem_not_counted_for_evict:0 mem_replication_backlog:0 mem_total_replication_buffers:0 mem_clients_slaves:0 mem_clients_normal:1928 mem_cluster_links:0 mem_aof_buffer:0 mem_allocator:jemalloc-5.3.0 active_defrag_running:0 lazyfree_pending_objects:0 lazyfreed_objects:0 # Persistence 持久化相关信息 loading:0 async_loading:0 current_cow_peak:0 current_cow_size:0 current_cow_size_age:0 current_fork_perc:0.00 current_save_keys_processed:0 current_save_keys_total:0 rdb_changes_since_last_save:0 rdb_bgsave_in_progress:0 rdb_last_save_time:1721658324 rdb_last_bgsave_status:ok rdb_last_bgsave_time_sec:-1 rdb_current_bgsave_time_sec:-1 rdb_saves:0 rdb_last_cow_size:0 rdb_last_load_keys_expired:0 rdb_last_load_keys_loaded:16 aof_enabled:0 aof_rewrite_in_progress:0 aof_rewrite_scheduled:0 aof_last_rewrite_time_sec:-1 aof_current_rewrite_time_sec:-1 aof_last_bgrewrite_status:ok aof_rewrites:0 aof_rewrites_consecutive_failures:0 aof_last_write_status:ok aof_last_cow_size:0 module_fork_in_progress:0 module_fork_last_cow_size:0 # Stats 服务器相关的统计信息 total_connections_received:1 total_commands_processed:1 instantaneous_ops_per_sec:0 total_net_input_bytes:41 total_net_output_bytes:205205 total_net_repl_input_bytes:0 total_net_repl_output_bytes:0 instantaneous_input_kbps:0.00 instantaneous_output_kbps:0.00 instantaneous_input_repl_kbps:0.00 instantaneous_output_repl_kbps:0.00 # 拒绝连接数，超过最大连接数后，连接会被拒绝 rejected_connections:0 sync_full:0 sync_partial_ok:0 sync_partial_err:0 expired_keys:0 expired_stale_perc:0.00 expired_time_cap_reached_count:0 expire_cycle_cpu_milliseconds:0 evicted_keys:0 evicted_clients:0 total_eviction_exceeded_time:0 current_eviction_exceeded_time:0 keyspace_hits:0 keyspace_misses:0 pubsub_channels:0 pubsub_patterns:0 pubsubshard_channels:0 latest_fork_usec:0 total_forks:0 migrate_cached_sockets:0 slave_expires_tracked_keys:0 active_defrag_hits:0 active_defrag_misses:0 active_defrag_key_hits:0 active_defrag_key_misses:0 total_active_defrag_time:0 current_active_defrag_time:0 tracking_total_keys:0 tracking_total_items:0 tracking_total_prefixes:0 unexpected_error_replies:0 total_error_replies:0 dump_payload_sanitizations:0 total_reads_processed:2 total_writes_processed:3 io_threaded_reads_processed:0 io_threaded_writes_processed:0 reply_buffer_shrinks:1 reply_buffer_expands:0 eventloop_cycles:213 eventloop_duration_sum:13918 eventloop_duration_cmd_sum:389 instantaneous_eventloop_cycles_per_sec:9 instantaneous_eventloop_duration_usec:62 acl_access_denied_auth:0 acl_access_denied_cmd:0 acl_access_denied_key:0 acl_access_denied_channel:0 # Replication 数据库主从复制相关的信息 role:master connected_slaves:0 master_failover_state:no-failover master_replid:35faf12e5068ef7be8ccb60da6198a1964e11907 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:0 second_repl_offset:-1 repl_backlog_active:0 repl_backlog_size:1048576 repl_backlog_first_byte_offset:0 repl_backlog_histlen:0 # CPU Redis服务器所在机器的相关信息 used_cpu_sys:0.009357 used_cpu_user:0.019368 used_cpu_sys_children:0.000207 used_cpu_user_children:0.000866 used_cpu_sys_main_thread:0.027521 used_cpu_user_main_thread:0.000000 # Modules # Errorstats # Cluster 集群相关信息 cluster_enabled:0 # Keyspace 包含了和数据库相关的统计信息，如键数量和超时时间等 db0:keys=16,expires=0,avg_ttl=0 查看客户端连接状况 1 2 3 4 5 6 7 8 9 10 11 12 127.0.0.1:6379> info clients # Clients connected_clients:1 #已连接的客户端数 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 观察最大连接数 1 2 3 4 5 6 7 8 # 通过info Clients可以看到默认的最大客户端连接数是10000 # 也可以通过config get获取 127.0.0.1:6379> config get maxclients 1) "maxclients" 2) "10000" # 如果发现1w个连接不够用，可以设置大一些 config set maxclients 200000 value 查看每秒执行多少指令 1 2 3 4 5 # Info stats中下列项表示每秒执行的操作 instantaneous_ops_per_sec:0 # 当发现集群里面Redis服务器的该数值过大或过小，就需要观察负载均衡的相关配置 # 当发现数据库压力过大而该值较小时，就需要调整缓存策略 观察内存用量 Redis在内存中缓存数据，如果缓存数据过多，或者大量键没有设置过期时间，就会造成内存使用过大，从而导致OOM。\n'><title>基于Docker的Redis实战--实践Redis服务器和客户端的操作</title><link rel=canonical href=https://farb.github.io/p/redis_in_action_04_server_and_client/><link rel=stylesheet href=/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css><meta property='og:title' content="基于Docker的Redis实战--实践Redis服务器和客户端的操作"><meta property='og:description' content='Redis服务器管理客户端的命令 获取或设置客户端的名字 1 2 3 4 5 6 7 8 9 10 PS D:\\code\\blogs\\farb.github.io> docker start firstRedis firstRedis PS D:\\code\\blogs\\farb.github.io> docker exec -it firstRedis /bin/bash root@380d98e7beb9:/data# redis-cli 127.0.0.1:6379> client getname # 获取客户端名称 (nil) 127.0.0.1:6379> client setname client1 # 设置客户端名称 OK 127.0.0.1:6379> client getname "client1" 通过client list查看客户端信息 1 2 3 4 5 6 7 8 9 10 11 12 13 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=133 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # id:客户端的编号 # addr:客户端的地址 # name:客户端名称 # age:客户端的连接时长，单位是s # idle：客户端的空闲时长，单位是s # db：客户端用到的服务器数据库索引号，默认每个redis服务器有16个数据库，且默认使用0号数据库 # cmd: 客户端最近执行的命令 # user:登录服务器用到的用户名 # 如果有多个客户端连接，则返回多行 通过client pause暂停客户端的命令 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 client pause timeout [WRITE|ALL] # 如果服务端压力过大，则可暂停执行客户端的命令 # timeout表示暂停的毫秒数 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> set name val2 OK (3.89s) # 客户端暂停10s后，执行set命令时不会立即执行，而是会卡住，最后返回结果和卡住的时间。 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> get name "val2" (2.71s) # 默认参数为ALL，读写都会暂停 # 如果只指定写的命令暂停，那么读的命令不会暂停 127.0.0.1:6379> client pause 10000 write OK 127.0.0.1:6379> get name "val2" 127.0.0.1:6379> set name val3 OK (4.15s) 通过client kill中断客户端的连接 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 client kill ip:port|[ID client-id]|[TYPE NORMAL|MASTER|SLAVE|REPLICA|PUBSUB]|[USER username]|[ADDR ip:port]|[LADDR ip:port]|[SKIPME YES|NO] [[ID client-id]|[TYPE NORMAL|MAS # 可以看到终端客户端的连接支持很多参数 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=1420 idle=391 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=set user=default redir=-1 resp=2 lib-name= lib-ver= id=4 addr=127.0.0.1:41212 laddr=127.0.0.1:6379 fd=9 name= age=179 idle=179 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=command|docs user=default redir=-1 resp=2 lib-name= lib-ver= id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=8 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= 127.0.0.1:6379> client kill 127.0.0.1:32982 OK 127.0.0.1:6379> client kill 127.0.0.1:41212 OK 127.0.0.1:6379> client list id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=190 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # 查看中断的客户端，执行get命令时，发现报错。 127.0.0.1:6379> get name Error: Broken pipe not connected> shutdown关闭服务器和客户端 1 2 127.0.0.1:6379> shutdown # shutdown 会终止服务器上的所有客户端连接，并终止服务器 查看Redis服务器的详细信息 info命令查看服务器信息 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 127.0.0.1:6379> info # Server 服务端信息 redis_version:7.2.5 redis_git_sha1:00000000 redis_git_dirty:0 redis_build_id:c2b7a5cd72a5634f redis_mode:standalone os:Linux 5.15.153.1-microsoft-standard-WSL2 x86_64 arch_bits:64 monotonic_clock:POSIX clock_gettime multiplexing_api:epoll atomicvar_api:c11-builtin gcc_version:12.2.0 process_id:1 process_supervised:no run_id:7284acf78bb2982dc66fec7c06a0fcb79ab0865a tcp_port:6379 server_time_usec:1721658345403020 uptime_in_seconds:21 uptime_in_days:0 hz:10 configured_hz:10 lru_clock:10382313 executable:/data/redis-server config_file: io_threads_active:0 listener0:name=tcp,bind=*,bind=-::*,port=6379 # Clients 已连接的客户端信息 connected_clients:1 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 # Memory 服务器内存的相关信息 used_memory:917080 used_memory_human:895.59K used_memory_rss:14802944 used_memory_rss_human:14.12M used_memory_peak:1135136 used_memory_peak_human:1.08M used_memory_peak_perc:80.79% used_memory_overhead:868656 used_memory_startup:865744 used_memory_dataset:48424 used_memory_dataset_perc:94.33% allocator_allocated:1456640 allocator_active:1572864 allocator_resident:7090176 total_system_memory:16626606080 total_system_memory_human:15.48G used_memory_lua:31744 used_memory_vm_eval:31744 used_memory_lua_human:31.00K used_memory_scripts_eval:0 number_of_cached_scripts:0 number_of_functions:0 number_of_libraries:0 used_memory_vm_functions:32768 used_memory_vm_total:64512 used_memory_vm_total_human:63.00K used_memory_functions:184 used_memory_scripts:184 used_memory_scripts_human:184B maxmemory:0 maxmemory_human:0B maxmemory_policy:noeviction allocator_frag_ratio:1.08 allocator_frag_bytes:116224 allocator_rss_ratio:4.51 allocator_rss_bytes:5517312 rss_overhead_ratio:2.09 rss_overhead_bytes:7712768 mem_fragmentation_ratio:16.55 mem_fragmentation_bytes:13908752 mem_not_counted_for_evict:0 mem_replication_backlog:0 mem_total_replication_buffers:0 mem_clients_slaves:0 mem_clients_normal:1928 mem_cluster_links:0 mem_aof_buffer:0 mem_allocator:jemalloc-5.3.0 active_defrag_running:0 lazyfree_pending_objects:0 lazyfreed_objects:0 # Persistence 持久化相关信息 loading:0 async_loading:0 current_cow_peak:0 current_cow_size:0 current_cow_size_age:0 current_fork_perc:0.00 current_save_keys_processed:0 current_save_keys_total:0 rdb_changes_since_last_save:0 rdb_bgsave_in_progress:0 rdb_last_save_time:1721658324 rdb_last_bgsave_status:ok rdb_last_bgsave_time_sec:-1 rdb_current_bgsave_time_sec:-1 rdb_saves:0 rdb_last_cow_size:0 rdb_last_load_keys_expired:0 rdb_last_load_keys_loaded:16 aof_enabled:0 aof_rewrite_in_progress:0 aof_rewrite_scheduled:0 aof_last_rewrite_time_sec:-1 aof_current_rewrite_time_sec:-1 aof_last_bgrewrite_status:ok aof_rewrites:0 aof_rewrites_consecutive_failures:0 aof_last_write_status:ok aof_last_cow_size:0 module_fork_in_progress:0 module_fork_last_cow_size:0 # Stats 服务器相关的统计信息 total_connections_received:1 total_commands_processed:1 instantaneous_ops_per_sec:0 total_net_input_bytes:41 total_net_output_bytes:205205 total_net_repl_input_bytes:0 total_net_repl_output_bytes:0 instantaneous_input_kbps:0.00 instantaneous_output_kbps:0.00 instantaneous_input_repl_kbps:0.00 instantaneous_output_repl_kbps:0.00 # 拒绝连接数，超过最大连接数后，连接会被拒绝 rejected_connections:0 sync_full:0 sync_partial_ok:0 sync_partial_err:0 expired_keys:0 expired_stale_perc:0.00 expired_time_cap_reached_count:0 expire_cycle_cpu_milliseconds:0 evicted_keys:0 evicted_clients:0 total_eviction_exceeded_time:0 current_eviction_exceeded_time:0 keyspace_hits:0 keyspace_misses:0 pubsub_channels:0 pubsub_patterns:0 pubsubshard_channels:0 latest_fork_usec:0 total_forks:0 migrate_cached_sockets:0 slave_expires_tracked_keys:0 active_defrag_hits:0 active_defrag_misses:0 active_defrag_key_hits:0 active_defrag_key_misses:0 total_active_defrag_time:0 current_active_defrag_time:0 tracking_total_keys:0 tracking_total_items:0 tracking_total_prefixes:0 unexpected_error_replies:0 total_error_replies:0 dump_payload_sanitizations:0 total_reads_processed:2 total_writes_processed:3 io_threaded_reads_processed:0 io_threaded_writes_processed:0 reply_buffer_shrinks:1 reply_buffer_expands:0 eventloop_cycles:213 eventloop_duration_sum:13918 eventloop_duration_cmd_sum:389 instantaneous_eventloop_cycles_per_sec:9 instantaneous_eventloop_duration_usec:62 acl_access_denied_auth:0 acl_access_denied_cmd:0 acl_access_denied_key:0 acl_access_denied_channel:0 # Replication 数据库主从复制相关的信息 role:master connected_slaves:0 master_failover_state:no-failover master_replid:35faf12e5068ef7be8ccb60da6198a1964e11907 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:0 second_repl_offset:-1 repl_backlog_active:0 repl_backlog_size:1048576 repl_backlog_first_byte_offset:0 repl_backlog_histlen:0 # CPU Redis服务器所在机器的相关信息 used_cpu_sys:0.009357 used_cpu_user:0.019368 used_cpu_sys_children:0.000207 used_cpu_user_children:0.000866 used_cpu_sys_main_thread:0.027521 used_cpu_user_main_thread:0.000000 # Modules # Errorstats # Cluster 集群相关信息 cluster_enabled:0 # Keyspace 包含了和数据库相关的统计信息，如键数量和超时时间等 db0:keys=16,expires=0,avg_ttl=0 查看客户端连接状况 1 2 3 4 5 6 7 8 9 10 11 12 127.0.0.1:6379> info clients # Clients connected_clients:1 #已连接的客户端数 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 观察最大连接数 1 2 3 4 5 6 7 8 # 通过info Clients可以看到默认的最大客户端连接数是10000 # 也可以通过config get获取 127.0.0.1:6379> config get maxclients 1) "maxclients" 2) "10000" # 如果发现1w个连接不够用，可以设置大一些 config set maxclients 200000 value 查看每秒执行多少指令 1 2 3 4 5 # Info stats中下列项表示每秒执行的操作 instantaneous_ops_per_sec:0 # 当发现集群里面Redis服务器的该数值过大或过小，就需要观察负载均衡的相关配置 # 当发现数据库压力过大而该值较小时，就需要调整缓存策略 观察内存用量 Redis在内存中缓存数据，如果缓存数据过多，或者大量键没有设置过期时间，就会造成内存使用过大，从而导致OOM。\n'><meta property='og:url' content='https://farb.github.io/p/redis_in_action_04_server_and_client/'><meta property='og:site_name' content="Farb's Blog"><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='redis'><meta property='article:tag' content='docker'><meta property='article:published_time' content='2024-07-22T00:00:00+00:00'><meta property='article:modified_time' content='2024-07-22T00:00:00+00:00'><meta name=twitter:title content="基于Docker的Redis实战--实践Redis服务器和客户端的操作"><meta name=twitter:description content='Redis服务器管理客户端的命令 获取或设置客户端的名字 1 2 3 4 5 6 7 8 9 10 PS D:\\code\\blogs\\farb.github.io> docker start firstRedis firstRedis PS D:\\code\\blogs\\farb.github.io> docker exec -it firstRedis /bin/bash root@380d98e7beb9:/data# redis-cli 127.0.0.1:6379> client getname # 获取客户端名称 (nil) 127.0.0.1:6379> client setname client1 # 设置客户端名称 OK 127.0.0.1:6379> client getname "client1" 通过client list查看客户端信息 1 2 3 4 5 6 7 8 9 10 11 12 13 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=133 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # id:客户端的编号 # addr:客户端的地址 # name:客户端名称 # age:客户端的连接时长，单位是s # idle：客户端的空闲时长，单位是s # db：客户端用到的服务器数据库索引号，默认每个redis服务器有16个数据库，且默认使用0号数据库 # cmd: 客户端最近执行的命令 # user:登录服务器用到的用户名 # 如果有多个客户端连接，则返回多行 通过client pause暂停客户端的命令 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 client pause timeout [WRITE|ALL] # 如果服务端压力过大，则可暂停执行客户端的命令 # timeout表示暂停的毫秒数 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> set name val2 OK (3.89s) # 客户端暂停10s后，执行set命令时不会立即执行，而是会卡住，最后返回结果和卡住的时间。 127.0.0.1:6379> client pause 10000 OK 127.0.0.1:6379> get name "val2" (2.71s) # 默认参数为ALL，读写都会暂停 # 如果只指定写的命令暂停，那么读的命令不会暂停 127.0.0.1:6379> client pause 10000 write OK 127.0.0.1:6379> get name "val2" 127.0.0.1:6379> set name val3 OK (4.15s) 通过client kill中断客户端的连接 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 client kill ip:port|[ID client-id]|[TYPE NORMAL|MASTER|SLAVE|REPLICA|PUBSUB]|[USER username]|[ADDR ip:port]|[LADDR ip:port]|[SKIPME YES|NO] [[ID client-id]|[TYPE NORMAL|MAS # 可以看到终端客户端的连接支持很多参数 127.0.0.1:6379> client list id=3 addr=127.0.0.1:32982 laddr=127.0.0.1:6379 fd=8 name=client1 age=1420 idle=391 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=set user=default redir=-1 resp=2 lib-name= lib-ver= id=4 addr=127.0.0.1:41212 laddr=127.0.0.1:6379 fd=9 name= age=179 idle=179 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=0 qbuf-free=0 argv-mem=0 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=1928 events=r cmd=command|docs user=default redir=-1 resp=2 lib-name= lib-ver= id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=8 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= 127.0.0.1:6379> client kill 127.0.0.1:32982 OK 127.0.0.1:6379> client kill 127.0.0.1:41212 OK 127.0.0.1:6379> client list id=5 addr=127.0.0.1:41528 laddr=127.0.0.1:6379 fd=10 name= age=190 idle=0 flags=N db=0 sub=0 psub=0 ssub=0 multi=-1 qbuf=26 qbuf-free=20448 argv-mem=10 multi-mem=0 rbs=1024 rbp=0 obl=0 oll=0 omem=0 tot-mem=22426 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver= # 查看中断的客户端，执行get命令时，发现报错。 127.0.0.1:6379> get name Error: Broken pipe not connected> shutdown关闭服务器和客户端 1 2 127.0.0.1:6379> shutdown # shutdown 会终止服务器上的所有客户端连接，并终止服务器 查看Redis服务器的详细信息 info命令查看服务器信息 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 127.0.0.1:6379> info # Server 服务端信息 redis_version:7.2.5 redis_git_sha1:00000000 redis_git_dirty:0 redis_build_id:c2b7a5cd72a5634f redis_mode:standalone os:Linux 5.15.153.1-microsoft-standard-WSL2 x86_64 arch_bits:64 monotonic_clock:POSIX clock_gettime multiplexing_api:epoll atomicvar_api:c11-builtin gcc_version:12.2.0 process_id:1 process_supervised:no run_id:7284acf78bb2982dc66fec7c06a0fcb79ab0865a tcp_port:6379 server_time_usec:1721658345403020 uptime_in_seconds:21 uptime_in_days:0 hz:10 configured_hz:10 lru_clock:10382313 executable:/data/redis-server config_file: io_threads_active:0 listener0:name=tcp,bind=*,bind=-::*,port=6379 # Clients 已连接的客户端信息 connected_clients:1 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 # Memory 服务器内存的相关信息 used_memory:917080 used_memory_human:895.59K used_memory_rss:14802944 used_memory_rss_human:14.12M used_memory_peak:1135136 used_memory_peak_human:1.08M used_memory_peak_perc:80.79% used_memory_overhead:868656 used_memory_startup:865744 used_memory_dataset:48424 used_memory_dataset_perc:94.33% allocator_allocated:1456640 allocator_active:1572864 allocator_resident:7090176 total_system_memory:16626606080 total_system_memory_human:15.48G used_memory_lua:31744 used_memory_vm_eval:31744 used_memory_lua_human:31.00K used_memory_scripts_eval:0 number_of_cached_scripts:0 number_of_functions:0 number_of_libraries:0 used_memory_vm_functions:32768 used_memory_vm_total:64512 used_memory_vm_total_human:63.00K used_memory_functions:184 used_memory_scripts:184 used_memory_scripts_human:184B maxmemory:0 maxmemory_human:0B maxmemory_policy:noeviction allocator_frag_ratio:1.08 allocator_frag_bytes:116224 allocator_rss_ratio:4.51 allocator_rss_bytes:5517312 rss_overhead_ratio:2.09 rss_overhead_bytes:7712768 mem_fragmentation_ratio:16.55 mem_fragmentation_bytes:13908752 mem_not_counted_for_evict:0 mem_replication_backlog:0 mem_total_replication_buffers:0 mem_clients_slaves:0 mem_clients_normal:1928 mem_cluster_links:0 mem_aof_buffer:0 mem_allocator:jemalloc-5.3.0 active_defrag_running:0 lazyfree_pending_objects:0 lazyfreed_objects:0 # Persistence 持久化相关信息 loading:0 async_loading:0 current_cow_peak:0 current_cow_size:0 current_cow_size_age:0 current_fork_perc:0.00 current_save_keys_processed:0 current_save_keys_total:0 rdb_changes_since_last_save:0 rdb_bgsave_in_progress:0 rdb_last_save_time:1721658324 rdb_last_bgsave_status:ok rdb_last_bgsave_time_sec:-1 rdb_current_bgsave_time_sec:-1 rdb_saves:0 rdb_last_cow_size:0 rdb_last_load_keys_expired:0 rdb_last_load_keys_loaded:16 aof_enabled:0 aof_rewrite_in_progress:0 aof_rewrite_scheduled:0 aof_last_rewrite_time_sec:-1 aof_current_rewrite_time_sec:-1 aof_last_bgrewrite_status:ok aof_rewrites:0 aof_rewrites_consecutive_failures:0 aof_last_write_status:ok aof_last_cow_size:0 module_fork_in_progress:0 module_fork_last_cow_size:0 # Stats 服务器相关的统计信息 total_connections_received:1 total_commands_processed:1 instantaneous_ops_per_sec:0 total_net_input_bytes:41 total_net_output_bytes:205205 total_net_repl_input_bytes:0 total_net_repl_output_bytes:0 instantaneous_input_kbps:0.00 instantaneous_output_kbps:0.00 instantaneous_input_repl_kbps:0.00 instantaneous_output_repl_kbps:0.00 # 拒绝连接数，超过最大连接数后，连接会被拒绝 rejected_connections:0 sync_full:0 sync_partial_ok:0 sync_partial_err:0 expired_keys:0 expired_stale_perc:0.00 expired_time_cap_reached_count:0 expire_cycle_cpu_milliseconds:0 evicted_keys:0 evicted_clients:0 total_eviction_exceeded_time:0 current_eviction_exceeded_time:0 keyspace_hits:0 keyspace_misses:0 pubsub_channels:0 pubsub_patterns:0 pubsubshard_channels:0 latest_fork_usec:0 total_forks:0 migrate_cached_sockets:0 slave_expires_tracked_keys:0 active_defrag_hits:0 active_defrag_misses:0 active_defrag_key_hits:0 active_defrag_key_misses:0 total_active_defrag_time:0 current_active_defrag_time:0 tracking_total_keys:0 tracking_total_items:0 tracking_total_prefixes:0 unexpected_error_replies:0 total_error_replies:0 dump_payload_sanitizations:0 total_reads_processed:2 total_writes_processed:3 io_threaded_reads_processed:0 io_threaded_writes_processed:0 reply_buffer_shrinks:1 reply_buffer_expands:0 eventloop_cycles:213 eventloop_duration_sum:13918 eventloop_duration_cmd_sum:389 instantaneous_eventloop_cycles_per_sec:9 instantaneous_eventloop_duration_usec:62 acl_access_denied_auth:0 acl_access_denied_cmd:0 acl_access_denied_key:0 acl_access_denied_channel:0 # Replication 数据库主从复制相关的信息 role:master connected_slaves:0 master_failover_state:no-failover master_replid:35faf12e5068ef7be8ccb60da6198a1964e11907 master_replid2:0000000000000000000000000000000000000000 master_repl_offset:0 second_repl_offset:-1 repl_backlog_active:0 repl_backlog_size:1048576 repl_backlog_first_byte_offset:0 repl_backlog_histlen:0 # CPU Redis服务器所在机器的相关信息 used_cpu_sys:0.009357 used_cpu_user:0.019368 used_cpu_sys_children:0.000207 used_cpu_user_children:0.000866 used_cpu_sys_main_thread:0.027521 used_cpu_user_main_thread:0.000000 # Modules # Errorstats # Cluster 集群相关信息 cluster_enabled:0 # Keyspace 包含了和数据库相关的统计信息，如键数量和超时时间等 db0:keys=16,expires=0,avg_ttl=0 查看客户端连接状况 1 2 3 4 5 6 7 8 9 10 11 12 127.0.0.1:6379> info clients # Clients connected_clients:1 #已连接的客户端数 cluster_connections:0 maxclients:10000 client_recent_max_input_buffer:8 client_recent_max_output_buffer:0 blocked_clients:0 tracking_clients:0 clients_in_timeout_table:0 total_blocking_keys:0 total_blocking_keys_on_nokey:0 观察最大连接数 1 2 3 4 5 6 7 8 # 通过info Clients可以看到默认的最大客户端连接数是10000 # 也可以通过config get获取 127.0.0.1:6379> config get maxclients 1) "maxclients" 2) "10000" # 如果发现1w个连接不够用，可以设置大一些 config set maxclients 200000 value 查看每秒执行多少指令 1 2 3 4 5 # Info stats中下列项表示每秒执行的操作 instantaneous_ops_per_sec:0 # 当发现集群里面Redis服务器的该数值过大或过小，就需要观察负载均衡的相关配置 # 当发现数据库压力过大而该值较小时，就需要调整缓存策略 观察内存用量 Redis在内存中缓存数据，如果缓存数据过多，或者大量键没有设置过期时间，就会造成内存使用过大，从而导致OOM。\n'><link rel="shortcut icon" href=/favicon.png><meta name=baidu-site-verification content="codeva-XtyrR4VjKV"></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://s3.bmp.ovh/imgs/2024/04/25/1e5e17f5abe2b80d.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>Farb's Blog</a></h1><h2 class=site-description>像水一样努力，终会水滴石穿</h2></div></header><ol class=menu-social><li><a href=https://gitee.com/farb target=_blank title=Gitee rel=me><!doctype html><svg t="1713884778674" class="icon" viewBox="0 0 1024 1024" p-id="10647" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 1024A512 512 0 11512 0a512 512 0 010 1024zm259.2-568.896H480.32a25.28 25.28.0 00-25.28 25.28v63.232c0 13.952 11.328 25.28 25.28 25.28h177.024c13.952.0 25.28 11.328 25.28 25.28v12.672c0 41.856-33.92 75.84-75.84 75.84H366.592a25.28 25.28.0 01-25.28-25.28V417.216c0-41.92 33.92-75.84 75.84-75.84h353.92a25.28 25.28.0 0025.28-25.344l.064-63.168a25.28 25.28.0 00-25.216-25.28H417.152A189.632 189.632.0 00227.52 417.216v353.92c0 14.016 11.328 25.28 25.28 25.28h372.992a170.624 170.624.0 00170.624-170.624V480.384a25.28 25.28.0 00-25.28-25.28z" fill="#C71D23" p-id="10648"/></svg></a></li><li><a href=https://github.com/farb target=_blank title=GitHub rel=me><!doctype html><svg t="1713884694671" class="icon" viewBox="0 0 1024 1024" p-id="9399" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M64 512c0 195.2 124.8 361.6 300.8 422.4 22.4 6.4 19.2-9.6 19.2-22.4v-76.8c-134.4 16-140.8-73.6-150.4-89.6-19.2-32-60.8-38.4-48-54.4 32-16 64 3.2 99.2 57.6 25.6 38.4 76.8 32 105.6 25.6 6.4-22.4 19.2-44.8 35.2-60.8C281.6 691.2 224 604.8 224 502.4c0-48 16-96 48-131.2-22.4-60.8.0-115.2 3.2-121.6 57.6-6.4 118.4 41.6 124.8 44.8 32-9.6 70.4-12.8 112-12.8s80 6.4 112 12.8c12.8-9.6 67.2-48 121.6-44.8 3.2 6.4 25.6 57.6 6.4 118.4 32 38.4 48 83.2 48 131.2.0 102.4-57.6 188.8-201.6 214.4 22.4 22.4 38.4 54.4 38.4 92.8v112c0 9.6.0 19.2 16 19.2C832 876.8 960 710.4 960 512c0-246.4-201.6-448-448-448S64 265.6 64 512z" fill="#040000" p-id="9400"/></svg></a></li><li><a href=https://leetcode.cn/u/int2147483647 target=_blank title=力扣 rel=me><!doctype html><svg t="1713884461345" class="icon" viewBox="0 0 1024 1024" p-id="4333" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M701.28 766.86a58.9 58.9.0 0183.1 83.52l-102.24 102c-94.3 94.16-248 95.52-344 3.16-.56-.52-43.26-42.4-184.12-180.54-93.72-92-103.06-238.94-14.88-333.36l164.44-176C391.12 172 552.46 161.68 652.54 242.6l149.34 120.78a58.92 58.92.0 01-74 91.76L578.54 334.36c-52.34-42.34-144-36.52-189.06 11.84l-164.44 176c-42.94 46-38.22 120 11.26 168.54l183.26 179.7c49.86 48 130.48 47.3 179.42-1.58z" fill="#FFA116" p-id="4334"/><path d="M452.94 664.7a58.96 58.96.0 010-118h434a58.96 58.96.0 010 118z" fill="#B3B3B3" p-id="4335"/><path d="M534.22 18.68a58.9 58.9.0 1186 80.56L225.1 522.28c-42.92 46-38.22 120 11.24 168.54l182.46 178.9A58.92 58.92.0 01336.46 954L154.06 775.08c-93.7-92-103.04-238.94-14.84-333.36z" p-id="4336"/></svg></a></li><li><a href=https://www.cnblogs.com/farb target=_blank title=博客园 rel=me><!doctype html><svg t="1713884612994" class="icon" viewBox="0 0 1024 1024" p-id="8439" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M851.40363594 172.59636406c-187.46181844-187.46181844-491.34545437-187.46181844-678.80727188.0-187.46181844 187.46181844-187.46181844 491.34545437.0 678.80727188 187.46181844 187.46181844 491.34545437 187.46181844 678.80727188.0 187.46181844-187.46181844 187.46181844-491.34545437.0-678.80727188zM387.33090875 728.08727281a47.08363594 47.08363594.0 11-66.63272719-66.50181843 47.08363594 47.08363594.0 0166.63272719 66.50181843zm205.52727281 1.39636313a38.74909125 38.74909125.0 01-76.62545437-11.52h-.04363594a6.54545437 6.54545437.0 00-.04363688.30545531V717.92c.30545438-2.61818156 2.05090875-20.72727281-2.96727281-44.98909125a174.24 174.24.0 00-48.56727281-89.28 172.10181844 172.10181844.0 00-88.8-48.30545438 156.69818156 156.69818156.0 00-42.45818156-2.92363593 38.66181844 38.66181844.0 01-35.38909125-65.32363688 38.61818156 38.61818156.0 0121.12-10.8218175v-.2181825c4.45090875-.74181844 111.14181844-16.45090875 200.33454562 72.74181844 89.01818156 89.01818156 74.18181844 196.14545438 73.44 200.72727281zm175.2 7.59272812a38.74909125 38.74909125.0 01-65.67272719 21.3818175 39.49090875 39.49090875.0 01-11.65090875-33.73090875c.08727281-.34909125 5.10545437-37.48363594-5.06181843-88.97454562C672.36363594 568.37818157 640.37818156 508.85818156 590.72 458.85090875c-50.00727281-49.70181844-109.52727281-81.64363594-176.94545438-94.95272719-51.49090875-10.16727281-88.58181844-5.19272719-89.01818156-5.14909031h.21818156-.04363687a39.92727281 39.92727281.0 01-44.68363594-32.90181844 38.83636406 38.83636406.0 0132.20363594-44.37818156c1.92-.30545438 47.86909125-7.33090875 111.27272719 4.36363594a411.75272719 411.75272719.0 01106.25454562 34.95272718A425.76 425.76.0 01644.61090875 403.04l.91636406.96.96.87272719a425.89090875 425.89090875.0 0182.25454563 114.72c16.40727281 33.6 28.14545437 69.29454562 34.99636312 106.21090875 11.65090875 63.40363594 4.66909125 109.35272719 4.32 111.27272812z" fill="#1296db" p-id="8440"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>主页</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>搜索</span></a></li><li><a href=/%E9%93%BE%E6%8E%A5/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>链接</span></a></li><li class=menu-bottom-section><ol class=menu><li id=i18n-switch><svg class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/></svg>
+<select name=language title=language onchange="window.location.href=this.selectedOptions[0].value"><option value=https://farb.github.io/ selected>English</option><option value=https://farb.github.io/zh-cn/>中文</option></select></li><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><ol><li><a href=#redis服务器管理客户端的命令>Redis服务器管理客户端的命令</a><ol><li><a href=#获取或设置客户端的名字>获取或设置客户端的名字</a></li><li><a href=#通过client-list查看客户端信息>通过client list查看客户端信息</a></li><li><a href=#通过client-pause暂停客户端的命令>通过client pause暂停客户端的命令</a></li><li><a href=#通过client-kill中断客户端的连接>通过client kill中断客户端的连接</a></li><li><a href=#shutdown关闭服务器和客户端>shutdown关闭服务器和客户端</a></li></ol></li><li><a href=#查看redis服务器的详细信息>查看Redis服务器的详细信息</a><ol><li><a href=#info命令查看服务器信息>info命令查看服务器信息</a></li><li><a href=#查看客户端连接状况>查看客户端连接状况</a></li><li><a href=#观察最大连接数>观察最大连接数</a></li><li><a href=#查看每秒执行多少指令>查看每秒执行多少指令</a></li><li><a href=#观察内存用量>观察内存用量</a></li><li><a href=#用command命令查看redis命令>用command命令查看Redis命令</a></li></ol></li><li><a href=#查看并修改服务器的常用配置>查看并修改服务器的常用配置</a><ol><li><a href=#查看服务器的配置>查看服务器的配置</a></li><li><a href=#修改服务器配置>修改服务器配置</a></li><li><a href=#用config-rewrite命令改写redis配置文件>用config rewrite命令改写Redis配置文件</a></li><li><a href=#启动redis服务器时加载配置文件>启动Redis服务器时加载配置文件</a></li></ol></li><li><a href=#多个客户端连接远端服务器>多个客户端连接远端服务器</a><ol><li><a href=#多个redis客户端连接远端服务器>多个Redis客户端连接远端服务器</a></li><li><a href=#通过docker-inspect观察ip地址>通过docker inspect观察IP地址</a></li><li><a href=#查看所有客户端>查看所有客户端</a></li><li><a href=#通过info查看服务器状态>通过info查看服务器状态</a></li></ol></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/redis/ style=background-color:#2a9d8f;color:#fff>Redis</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/redis_in_action_04_server_and_client/>基于Docker的Redis实战--实践Redis服务器和客户端的操作</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>2024-07-22</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>9 minute read</time></div></footer></div></header><section class=article-content><h3 id=redis服务器管理客户端的命令>Redis服务器管理客户端的命令</h3><h4 id=获取或设置客户端的名字>获取或设置客户端的名字</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker start firstRedis
+</span></span><span class=line><span class=cl>firstRedis
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it firstRedis /bin/bash
+</span></span><span class=line><span class=cl>root@380d98e7beb9:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client getname <span class=c1># 获取客户端名称</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>nil<span class=o>)</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client setname client1 <span class=c1># 设置客户端名称</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client getname
+</span></span><span class=line><span class=cl><span class=s2>&#34;client1&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=通过client-list查看客户端信息>通过client list查看客户端信息</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; client list
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>3</span> <span class=nv>addr</span><span class=o>=</span>127.0.0.1:32982 <span class=nv>laddr</span><span class=o>=</span>127.0.0.1:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>8</span> <span class=nv>name</span><span class=o>=</span>client1 <span class=nv>age</span><span class=o>=</span><span class=m>133</span> <span class=nv>idle</span><span class=o>=</span><span class=m>0</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>26</span> qbuf-free<span class=o>=</span><span class=m>20448</span> argv-mem<span class=o>=</span><span class=m>10</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>22426</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>client<span class=p>|</span>list <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># id:客户端的编号</span>
+</span></span><span class=line><span class=cl><span class=c1># addr:客户端的地址</span>
+</span></span><span class=line><span class=cl><span class=c1># name:客户端名称</span>
+</span></span><span class=line><span class=cl><span class=c1># age:客户端的连接时长，单位是s</span>
+</span></span><span class=line><span class=cl><span class=c1># idle：客户端的空闲时长，单位是s</span>
+</span></span><span class=line><span class=cl><span class=c1># db：客户端用到的服务器数据库索引号，默认每个redis服务器有16个数据库，且默认使用0号数据库</span>
+</span></span><span class=line><span class=cl><span class=c1># cmd: 客户端最近执行的命令</span>
+</span></span><span class=line><span class=cl><span class=c1># user:登录服务器用到的用户名</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 如果有多个客户端连接，则返回多行</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=通过client-pause暂停客户端的命令>通过client pause暂停客户端的命令</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl> client pause timeout <span class=o>[</span>WRITE<span class=p>|</span>ALL<span class=o>]</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果服务端压力过大，则可暂停执行客户端的命令</span>
+</span></span><span class=line><span class=cl><span class=c1># timeout表示暂停的毫秒数</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client pause <span class=m>10000</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> name val2
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl><span class=o>(</span>3.89s<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 客户端暂停10s后，执行set命令时不会立即执行，而是会卡住，最后返回结果和卡住的时间。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client pause <span class=m>10000</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get name
+</span></span><span class=line><span class=cl><span class=s2>&#34;val2&#34;</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>2.71s<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 默认参数为ALL，读写都会暂停</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果只指定写的命令暂停，那么读的命令不会暂停</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client pause <span class=m>10000</span> write
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get name
+</span></span><span class=line><span class=cl><span class=s2>&#34;val2&#34;</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> name val3
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl><span class=o>(</span>4.15s<span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=通过client-kill中断客户端的连接>通过client kill中断客户端的连接</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>client <span class=nb>kill</span> ip:port<span class=p>|</span><span class=o>[</span>ID client-id<span class=o>]</span><span class=p>|</span><span class=o>[</span>TYPE NORMAL<span class=p>|</span>MASTER<span class=p>|</span>SLAVE<span class=p>|</span>REPLICA<span class=p>|</span>PUBSUB<span class=o>]</span><span class=p>|</span><span class=o>[</span>USER username<span class=o>]</span><span class=p>|</span><span class=o>[</span>ADDR ip:port<span class=o>]</span><span class=p>|</span><span class=o>[</span>LADDR ip:port<span class=o>]</span><span class=p>|</span><span class=o>[</span>SKIPME YES<span class=p>|</span>NO<span class=o>]</span> <span class=o>[[</span>ID client-id<span class=o>]</span><span class=p>|</span><span class=o>[</span>TYPE NORMAL<span class=p>|</span>MAS
+</span></span><span class=line><span class=cl><span class=c1># 可以看到终端客户端的连接支持很多参数</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client list
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>3</span> <span class=nv>addr</span><span class=o>=</span>127.0.0.1:32982 <span class=nv>laddr</span><span class=o>=</span>127.0.0.1:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>8</span> <span class=nv>name</span><span class=o>=</span>client1 <span class=nv>age</span><span class=o>=</span><span class=m>1420</span> <span class=nv>idle</span><span class=o>=</span><span class=m>391</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>0</span> qbuf-free<span class=o>=</span><span class=m>0</span> argv-mem<span class=o>=</span><span class=m>0</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>1928</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span><span class=nb>set</span> <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>4</span> <span class=nv>addr</span><span class=o>=</span>127.0.0.1:41212 <span class=nv>laddr</span><span class=o>=</span>127.0.0.1:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>9</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>179</span> <span class=nv>idle</span><span class=o>=</span><span class=m>179</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>0</span> qbuf-free<span class=o>=</span><span class=m>0</span> argv-mem<span class=o>=</span><span class=m>0</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>1928</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>command<span class=p>|</span>docs <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>5</span> <span class=nv>addr</span><span class=o>=</span>127.0.0.1:41528 <span class=nv>laddr</span><span class=o>=</span>127.0.0.1:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>10</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>8</span> <span class=nv>idle</span><span class=o>=</span><span class=m>0</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>26</span> qbuf-free<span class=o>=</span><span class=m>20448</span> argv-mem<span class=o>=</span><span class=m>10</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>22426</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>client<span class=p>|</span>list <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client <span class=nb>kill</span> 127.0.0.1:32982
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client <span class=nb>kill</span> 127.0.0.1:41212
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; client list
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>5</span> <span class=nv>addr</span><span class=o>=</span>127.0.0.1:41528 <span class=nv>laddr</span><span class=o>=</span>127.0.0.1:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>10</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>190</span> <span class=nv>idle</span><span class=o>=</span><span class=m>0</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>26</span> qbuf-free<span class=o>=</span><span class=m>20448</span> argv-mem<span class=o>=</span><span class=m>10</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>22426</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>client<span class=p>|</span>list <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看中断的客户端，执行get命令时，发现报错。</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get name
+</span></span><span class=line><span class=cl>Error: Broken pipe
+</span></span><span class=line><span class=cl>not connected&gt;
+</span></span></code></pre></td></tr></table></div></div><h4 id=shutdown关闭服务器和客户端>shutdown关闭服务器和客户端</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; shutdown
+</span></span><span class=line><span class=cl><span class=c1># shutdown 会终止服务器上的所有客户端连接，并终止服务器</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=查看redis服务器的详细信息>查看Redis服务器的详细信息</h3><h4 id=info命令查看服务器信息>info命令查看服务器信息</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span><span class=lnt>202
+</span><span class=lnt>203
+</span><span class=lnt>204
+</span><span class=lnt>205
+</span><span class=lnt>206
+</span><span class=lnt>207
+</span><span class=lnt>208
+</span><span class=lnt>209
+</span><span class=lnt>210
+</span><span class=lnt>211
+</span><span class=lnt>212
+</span><span class=lnt>213
+</span><span class=lnt>214
+</span><span class=lnt>215
+</span><span class=lnt>216
+</span><span class=lnt>217
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; info
+</span></span><span class=line><span class=cl><span class=c1># Server 服务端信息</span>
+</span></span><span class=line><span class=cl>redis_version:7.2.5
+</span></span><span class=line><span class=cl>redis_git_sha1:00000000
+</span></span><span class=line><span class=cl>redis_git_dirty:0
+</span></span><span class=line><span class=cl>redis_build_id:c2b7a5cd72a5634f
+</span></span><span class=line><span class=cl>redis_mode:standalone
+</span></span><span class=line><span class=cl>os:Linux 5.15.153.1-microsoft-standard-WSL2 x86_64
+</span></span><span class=line><span class=cl>arch_bits:64
+</span></span><span class=line><span class=cl>monotonic_clock:POSIX clock_gettime
+</span></span><span class=line><span class=cl>multiplexing_api:epoll
+</span></span><span class=line><span class=cl>atomicvar_api:c11-builtin
+</span></span><span class=line><span class=cl>gcc_version:12.2.0
+</span></span><span class=line><span class=cl>process_id:1
+</span></span><span class=line><span class=cl>process_supervised:no
+</span></span><span class=line><span class=cl>run_id:7284acf78bb2982dc66fec7c06a0fcb79ab0865a
+</span></span><span class=line><span class=cl>tcp_port:6379
+</span></span><span class=line><span class=cl>server_time_usec:1721658345403020
+</span></span><span class=line><span class=cl>uptime_in_seconds:21
+</span></span><span class=line><span class=cl>uptime_in_days:0
+</span></span><span class=line><span class=cl>hz:10
+</span></span><span class=line><span class=cl>configured_hz:10
+</span></span><span class=line><span class=cl>lru_clock:10382313
+</span></span><span class=line><span class=cl>executable:/data/redis-server
+</span></span><span class=line><span class=cl>config_file:
+</span></span><span class=line><span class=cl>io_threads_active:0
+</span></span><span class=line><span class=cl>listener0:name<span class=o>=</span>tcp,bind<span class=o>=</span>*,bind<span class=o>=</span>-::*,port<span class=o>=</span><span class=m>6379</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Clients 已连接的客户端信息</span>
+</span></span><span class=line><span class=cl>connected_clients:1
+</span></span><span class=line><span class=cl>cluster_connections:0
+</span></span><span class=line><span class=cl>maxclients:10000
+</span></span><span class=line><span class=cl>client_recent_max_input_buffer:8
+</span></span><span class=line><span class=cl>client_recent_max_output_buffer:0
+</span></span><span class=line><span class=cl>blocked_clients:0
+</span></span><span class=line><span class=cl>tracking_clients:0
+</span></span><span class=line><span class=cl>clients_in_timeout_table:0
+</span></span><span class=line><span class=cl>total_blocking_keys:0
+</span></span><span class=line><span class=cl>total_blocking_keys_on_nokey:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Memory 服务器内存的相关信息</span>
+</span></span><span class=line><span class=cl>used_memory:917080
+</span></span><span class=line><span class=cl>used_memory_human:895.59K
+</span></span><span class=line><span class=cl>used_memory_rss:14802944
+</span></span><span class=line><span class=cl>used_memory_rss_human:14.12M
+</span></span><span class=line><span class=cl>used_memory_peak:1135136
+</span></span><span class=line><span class=cl>used_memory_peak_human:1.08M
+</span></span><span class=line><span class=cl>used_memory_peak_perc:80.79%
+</span></span><span class=line><span class=cl>used_memory_overhead:868656
+</span></span><span class=line><span class=cl>used_memory_startup:865744
+</span></span><span class=line><span class=cl>used_memory_dataset:48424
+</span></span><span class=line><span class=cl>used_memory_dataset_perc:94.33%
+</span></span><span class=line><span class=cl>allocator_allocated:1456640
+</span></span><span class=line><span class=cl>allocator_active:1572864
+</span></span><span class=line><span class=cl>allocator_resident:7090176
+</span></span><span class=line><span class=cl>total_system_memory:16626606080
+</span></span><span class=line><span class=cl>total_system_memory_human:15.48G
+</span></span><span class=line><span class=cl>used_memory_lua:31744
+</span></span><span class=line><span class=cl>used_memory_vm_eval:31744
+</span></span><span class=line><span class=cl>used_memory_lua_human:31.00K
+</span></span><span class=line><span class=cl>used_memory_scripts_eval:0
+</span></span><span class=line><span class=cl>number_of_cached_scripts:0
+</span></span><span class=line><span class=cl>number_of_functions:0
+</span></span><span class=line><span class=cl>number_of_libraries:0
+</span></span><span class=line><span class=cl>used_memory_vm_functions:32768
+</span></span><span class=line><span class=cl>used_memory_vm_total:64512
+</span></span><span class=line><span class=cl>used_memory_vm_total_human:63.00K
+</span></span><span class=line><span class=cl>used_memory_functions:184
+</span></span><span class=line><span class=cl>used_memory_scripts:184
+</span></span><span class=line><span class=cl>used_memory_scripts_human:184B
+</span></span><span class=line><span class=cl>maxmemory:0
+</span></span><span class=line><span class=cl>maxmemory_human:0B
+</span></span><span class=line><span class=cl>maxmemory_policy:noeviction
+</span></span><span class=line><span class=cl>allocator_frag_ratio:1.08
+</span></span><span class=line><span class=cl>allocator_frag_bytes:116224
+</span></span><span class=line><span class=cl>allocator_rss_ratio:4.51
+</span></span><span class=line><span class=cl>allocator_rss_bytes:5517312
+</span></span><span class=line><span class=cl>rss_overhead_ratio:2.09
+</span></span><span class=line><span class=cl>rss_overhead_bytes:7712768
+</span></span><span class=line><span class=cl>mem_fragmentation_ratio:16.55
+</span></span><span class=line><span class=cl>mem_fragmentation_bytes:13908752
+</span></span><span class=line><span class=cl>mem_not_counted_for_evict:0
+</span></span><span class=line><span class=cl>mem_replication_backlog:0
+</span></span><span class=line><span class=cl>mem_total_replication_buffers:0
+</span></span><span class=line><span class=cl>mem_clients_slaves:0
+</span></span><span class=line><span class=cl>mem_clients_normal:1928
+</span></span><span class=line><span class=cl>mem_cluster_links:0
+</span></span><span class=line><span class=cl>mem_aof_buffer:0
+</span></span><span class=line><span class=cl>mem_allocator:jemalloc-5.3.0
+</span></span><span class=line><span class=cl>active_defrag_running:0
+</span></span><span class=line><span class=cl>lazyfree_pending_objects:0
+</span></span><span class=line><span class=cl>lazyfreed_objects:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Persistence 持久化相关信息</span>
+</span></span><span class=line><span class=cl>loading:0
+</span></span><span class=line><span class=cl>async_loading:0
+</span></span><span class=line><span class=cl>current_cow_peak:0
+</span></span><span class=line><span class=cl>current_cow_size:0
+</span></span><span class=line><span class=cl>current_cow_size_age:0
+</span></span><span class=line><span class=cl>current_fork_perc:0.00
+</span></span><span class=line><span class=cl>current_save_keys_processed:0
+</span></span><span class=line><span class=cl>current_save_keys_total:0
+</span></span><span class=line><span class=cl>rdb_changes_since_last_save:0
+</span></span><span class=line><span class=cl>rdb_bgsave_in_progress:0
+</span></span><span class=line><span class=cl>rdb_last_save_time:1721658324
+</span></span><span class=line><span class=cl>rdb_last_bgsave_status:ok
+</span></span><span class=line><span class=cl>rdb_last_bgsave_time_sec:-1
+</span></span><span class=line><span class=cl>rdb_current_bgsave_time_sec:-1
+</span></span><span class=line><span class=cl>rdb_saves:0
+</span></span><span class=line><span class=cl>rdb_last_cow_size:0
+</span></span><span class=line><span class=cl>rdb_last_load_keys_expired:0
+</span></span><span class=line><span class=cl>rdb_last_load_keys_loaded:16
+</span></span><span class=line><span class=cl>aof_enabled:0
+</span></span><span class=line><span class=cl>aof_rewrite_in_progress:0
+</span></span><span class=line><span class=cl>aof_rewrite_scheduled:0
+</span></span><span class=line><span class=cl>aof_last_rewrite_time_sec:-1
+</span></span><span class=line><span class=cl>aof_current_rewrite_time_sec:-1
+</span></span><span class=line><span class=cl>aof_last_bgrewrite_status:ok
+</span></span><span class=line><span class=cl>aof_rewrites:0
+</span></span><span class=line><span class=cl>aof_rewrites_consecutive_failures:0
+</span></span><span class=line><span class=cl>aof_last_write_status:ok
+</span></span><span class=line><span class=cl>aof_last_cow_size:0
+</span></span><span class=line><span class=cl>module_fork_in_progress:0
+</span></span><span class=line><span class=cl>module_fork_last_cow_size:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Stats 服务器相关的统计信息</span>
+</span></span><span class=line><span class=cl>total_connections_received:1
+</span></span><span class=line><span class=cl>total_commands_processed:1
+</span></span><span class=line><span class=cl>instantaneous_ops_per_sec:0
+</span></span><span class=line><span class=cl>total_net_input_bytes:41
+</span></span><span class=line><span class=cl>total_net_output_bytes:205205
+</span></span><span class=line><span class=cl>total_net_repl_input_bytes:0
+</span></span><span class=line><span class=cl>total_net_repl_output_bytes:0
+</span></span><span class=line><span class=cl>instantaneous_input_kbps:0.00
+</span></span><span class=line><span class=cl>instantaneous_output_kbps:0.00
+</span></span><span class=line><span class=cl>instantaneous_input_repl_kbps:0.00
+</span></span><span class=line><span class=cl>instantaneous_output_repl_kbps:0.00
+</span></span><span class=line><span class=cl> <span class=c1># 拒绝连接数，超过最大连接数后，连接会被拒绝</span>
+</span></span><span class=line><span class=cl>rejected_connections:0
+</span></span><span class=line><span class=cl>sync_full:0
+</span></span><span class=line><span class=cl>sync_partial_ok:0
+</span></span><span class=line><span class=cl>sync_partial_err:0
+</span></span><span class=line><span class=cl>expired_keys:0
+</span></span><span class=line><span class=cl>expired_stale_perc:0.00
+</span></span><span class=line><span class=cl>expired_time_cap_reached_count:0
+</span></span><span class=line><span class=cl>expire_cycle_cpu_milliseconds:0
+</span></span><span class=line><span class=cl>evicted_keys:0
+</span></span><span class=line><span class=cl>evicted_clients:0
+</span></span><span class=line><span class=cl>total_eviction_exceeded_time:0
+</span></span><span class=line><span class=cl>current_eviction_exceeded_time:0
+</span></span><span class=line><span class=cl>keyspace_hits:0
+</span></span><span class=line><span class=cl>keyspace_misses:0
+</span></span><span class=line><span class=cl>pubsub_channels:0
+</span></span><span class=line><span class=cl>pubsub_patterns:0
+</span></span><span class=line><span class=cl>pubsubshard_channels:0
+</span></span><span class=line><span class=cl>latest_fork_usec:0
+</span></span><span class=line><span class=cl>total_forks:0
+</span></span><span class=line><span class=cl>migrate_cached_sockets:0
+</span></span><span class=line><span class=cl>slave_expires_tracked_keys:0
+</span></span><span class=line><span class=cl>active_defrag_hits:0
+</span></span><span class=line><span class=cl>active_defrag_misses:0
+</span></span><span class=line><span class=cl>active_defrag_key_hits:0
+</span></span><span class=line><span class=cl>active_defrag_key_misses:0
+</span></span><span class=line><span class=cl>total_active_defrag_time:0
+</span></span><span class=line><span class=cl>current_active_defrag_time:0
+</span></span><span class=line><span class=cl>tracking_total_keys:0
+</span></span><span class=line><span class=cl>tracking_total_items:0
+</span></span><span class=line><span class=cl>tracking_total_prefixes:0
+</span></span><span class=line><span class=cl>unexpected_error_replies:0
+</span></span><span class=line><span class=cl>total_error_replies:0
+</span></span><span class=line><span class=cl>dump_payload_sanitizations:0
+</span></span><span class=line><span class=cl>total_reads_processed:2
+</span></span><span class=line><span class=cl>total_writes_processed:3
+</span></span><span class=line><span class=cl>io_threaded_reads_processed:0
+</span></span><span class=line><span class=cl>io_threaded_writes_processed:0
+</span></span><span class=line><span class=cl>reply_buffer_shrinks:1
+</span></span><span class=line><span class=cl>reply_buffer_expands:0
+</span></span><span class=line><span class=cl>eventloop_cycles:213
+</span></span><span class=line><span class=cl>eventloop_duration_sum:13918
+</span></span><span class=line><span class=cl>eventloop_duration_cmd_sum:389
+</span></span><span class=line><span class=cl>instantaneous_eventloop_cycles_per_sec:9
+</span></span><span class=line><span class=cl>instantaneous_eventloop_duration_usec:62
+</span></span><span class=line><span class=cl>acl_access_denied_auth:0
+</span></span><span class=line><span class=cl>acl_access_denied_cmd:0
+</span></span><span class=line><span class=cl>acl_access_denied_key:0
+</span></span><span class=line><span class=cl>acl_access_denied_channel:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Replication 数据库主从复制相关的信息</span>
+</span></span><span class=line><span class=cl>role:master
+</span></span><span class=line><span class=cl>connected_slaves:0
+</span></span><span class=line><span class=cl>master_failover_state:no-failover
+</span></span><span class=line><span class=cl>master_replid:35faf12e5068ef7be8ccb60da6198a1964e11907
+</span></span><span class=line><span class=cl>master_replid2:0000000000000000000000000000000000000000
+</span></span><span class=line><span class=cl>master_repl_offset:0
+</span></span><span class=line><span class=cl>second_repl_offset:-1
+</span></span><span class=line><span class=cl>repl_backlog_active:0
+</span></span><span class=line><span class=cl>repl_backlog_size:1048576
+</span></span><span class=line><span class=cl>repl_backlog_first_byte_offset:0
+</span></span><span class=line><span class=cl>repl_backlog_histlen:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># CPU Redis服务器所在机器的相关信息</span>
+</span></span><span class=line><span class=cl>used_cpu_sys:0.009357
+</span></span><span class=line><span class=cl>used_cpu_user:0.019368
+</span></span><span class=line><span class=cl>used_cpu_sys_children:0.000207
+</span></span><span class=line><span class=cl>used_cpu_user_children:0.000866
+</span></span><span class=line><span class=cl>used_cpu_sys_main_thread:0.027521
+</span></span><span class=line><span class=cl>used_cpu_user_main_thread:0.000000
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Modules</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Errorstats</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Cluster 集群相关信息</span>
+</span></span><span class=line><span class=cl>cluster_enabled:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Keyspace 包含了和数据库相关的统计信息，如键数量和超时时间等</span>
+</span></span><span class=line><span class=cl>db0:keys<span class=o>=</span>16,expires<span class=o>=</span>0,avg_ttl<span class=o>=</span><span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=查看客户端连接状况>查看客户端连接状况</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; info clients
+</span></span><span class=line><span class=cl><span class=c1># Clients</span>
+</span></span><span class=line><span class=cl>connected_clients:1 <span class=c1>#已连接的客户端数</span>
+</span></span><span class=line><span class=cl>cluster_connections:0
+</span></span><span class=line><span class=cl>maxclients:10000
+</span></span><span class=line><span class=cl>client_recent_max_input_buffer:8
+</span></span><span class=line><span class=cl>client_recent_max_output_buffer:0
+</span></span><span class=line><span class=cl>blocked_clients:0
+</span></span><span class=line><span class=cl>tracking_clients:0
+</span></span><span class=line><span class=cl>clients_in_timeout_table:0
+</span></span><span class=line><span class=cl>total_blocking_keys:0
+</span></span><span class=line><span class=cl>total_blocking_keys_on_nokey:0
+</span></span></code></pre></td></tr></table></div></div><h4 id=观察最大连接数>观察最大连接数</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 通过info Clients可以看到默认的最大客户端连接数是10000</span>
+</span></span><span class=line><span class=cl><span class=c1># 也可以通过config get获取</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get maxclients
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;maxclients&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;10000&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 如果发现1w个连接不够用，可以设置大一些</span>
+</span></span><span class=line><span class=cl> config <span class=nb>set</span> maxclients <span class=m>200000</span> value 
+</span></span></code></pre></td></tr></table></div></div><h4 id=查看每秒执行多少指令>查看每秒执行多少指令</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># Info stats中下列项表示每秒执行的操作</span>
+</span></span><span class=line><span class=cl>instantaneous_ops_per_sec:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 当发现集群里面Redis服务器的该数值过大或过小，就需要观察负载均衡的相关配置</span>
+</span></span><span class=line><span class=cl><span class=c1># 当发现数据库压力过大而该值较小时，就需要调整缓存策略</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=观察内存用量>观察内存用量</h4><p>Redis在内存中缓存数据，如果缓存数据过多，或者大量键没有设置过期时间，就会造成内存使用过大，从而导致OOM。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; info memory
+</span></span><span class=line><span class=cl><span class=c1># Memory</span>
+</span></span><span class=line><span class=cl>used_memory:964832
+</span></span><span class=line><span class=cl>used_memory_human:942.22K
+</span></span><span class=line><span class=cl>used_memory_rss:15634432
+</span></span><span class=line><span class=cl>used_memory_rss_human:14.91M
+</span></span><span class=line><span class=cl>used_memory_peak:1185104
+</span></span><span class=line><span class=cl>used_memory_peak_human:1.13M
+</span></span><span class=line><span class=cl>used_memory_peak_perc:81.41%
+</span></span><span class=line><span class=cl>used_memory_overhead:868656
+</span></span><span class=line><span class=cl>used_memory_startup:865744
+</span></span><span class=line><span class=cl>used_memory_dataset:96176
+</span></span><span class=line><span class=cl>used_memory_dataset_perc:97.06%
+</span></span><span class=line><span class=cl>allocator_allocated:1795584
+</span></span><span class=line><span class=cl>allocator_active:1949696
+</span></span><span class=line><span class=cl>allocator_resident:7467008
+</span></span><span class=line><span class=cl>total_system_memory:16626606080
+</span></span><span class=line><span class=cl>total_system_memory_human:15.48G
+</span></span><span class=line><span class=cl>used_memory_lua:31744
+</span></span><span class=line><span class=cl>used_memory_vm_eval:31744
+</span></span><span class=line><span class=cl>used_memory_lua_human:31.00K
+</span></span><span class=line><span class=cl>used_memory_scripts_eval:0
+</span></span><span class=line><span class=cl>number_of_cached_scripts:0
+</span></span><span class=line><span class=cl>number_of_functions:0
+</span></span><span class=line><span class=cl>number_of_libraries:0
+</span></span><span class=line><span class=cl>used_memory_vm_functions:32768
+</span></span><span class=line><span class=cl>used_memory_vm_total:64512
+</span></span><span class=line><span class=cl>used_memory_vm_total_human:63.00K
+</span></span><span class=line><span class=cl>used_memory_functions:184
+</span></span><span class=line><span class=cl>used_memory_scripts:184
+</span></span><span class=line><span class=cl>used_memory_scripts_human:184B
+</span></span><span class=line><span class=cl>maxmemory:0
+</span></span><span class=line><span class=cl>maxmemory_human:0B
+</span></span><span class=line><span class=cl>maxmemory_policy:noeviction
+</span></span><span class=line><span class=cl>allocator_frag_ratio:1.09
+</span></span><span class=line><span class=cl>allocator_frag_bytes:154112
+</span></span><span class=line><span class=cl>allocator_rss_ratio:3.83
+</span></span><span class=line><span class=cl>allocator_rss_bytes:5517312
+</span></span><span class=line><span class=cl>rss_overhead_ratio:2.09
+</span></span><span class=line><span class=cl>rss_overhead_bytes:8167424
+</span></span><span class=line><span class=cl>mem_fragmentation_ratio:16.56
+</span></span><span class=line><span class=cl>mem_fragmentation_bytes:14690272
+</span></span><span class=line><span class=cl>mem_not_counted_for_evict:0
+</span></span><span class=line><span class=cl>mem_replication_backlog:0
+</span></span><span class=line><span class=cl>mem_total_replication_buffers:0
+</span></span><span class=line><span class=cl>mem_clients_slaves:0
+</span></span><span class=line><span class=cl>mem_clients_normal:1928
+</span></span><span class=line><span class=cl>mem_cluster_links:0
+</span></span><span class=line><span class=cl>mem_aof_buffer:0
+</span></span><span class=line><span class=cl>mem_allocator:jemalloc-5.3.0
+</span></span><span class=line><span class=cl>active_defrag_running:0
+</span></span><span class=line><span class=cl>lazyfree_pending_objects:0
+</span></span><span class=line><span class=cl>lazyfreed_objects:0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># used_memory_human:操作系统分配给Redis多少内存</span>
+</span></span><span class=line><span class=cl><span class=c1># used_memory_peak_human:1.13M Redis服务器用到的内存峰值</span>
+</span></span><span class=line><span class=cl><span class=c1># used_memory_lua_human:31.00K Lua脚本所占用的内存</span>
+</span></span><span class=line><span class=cl><span class=c1># used_memory_scripts_human:184B 脚本所占用的内存</span>
+</span></span><span class=line><span class=cl><span class=c1># mem_clients_slaves:0 客户端因主从复制而使用的内存用量</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=用command命令查看redis命令>用command命令查看Redis命令</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=nb>command</span> 
+</span></span><span class=line><span class=cl><span class=c1># 返回服务器保护的所有命令信息</span>
+</span></span><span class=line><span class=cl><span class=nb>command</span> count
+</span></span><span class=line><span class=cl><span class=c1># 统计当前Redis服务器命令个数</span>
+</span></span><span class=line><span class=cl><span class=nb>command</span> info <span class=o>[</span>command-name <span class=o>[</span>command-name ...<span class=o>]]</span> 
+</span></span><span class=line><span class=cl><span class=c1># 获取指定命令的详细信息</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> <span class=nb>command</span> getkeys <span class=nb>command</span> <span class=o>[</span>arg <span class=o>[</span>arg ...<span class=o>]]</span>
+</span></span><span class=line><span class=cl> <span class=c1># 获取指定命令的所有键</span>
+</span></span><span class=line><span class=cl> 127.0.0.1:6379&gt; <span class=nb>command</span> getkeys <span class=nb>set</span> name farb
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;name&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=查看并修改服务器的常用配置>查看并修改服务器的常用配置</h3><h4 id=查看服务器的配置>查看服务器的配置</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>config get *
+</span></span><span class=line><span class=cl><span class=c1># 获取所有的服务器配置</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取以p开头的配置，支持通配符模糊匹配</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get p*
+</span></span><span class=line><span class=cl> 1<span class=o>)</span> <span class=s2>&#34;proc-title-template&#34;</span>
+</span></span><span class=line><span class=cl> 2<span class=o>)</span> <span class=s2>&#34;{title} {listen-addr} {server-mode}&#34;</span>
+</span></span><span class=line><span class=cl> 3<span class=o>)</span> <span class=s2>&#34;proto-max-bulk-len&#34;</span>
+</span></span><span class=line><span class=cl> 4<span class=o>)</span> <span class=s2>&#34;536870912&#34;</span>
+</span></span><span class=line><span class=cl> 5<span class=o>)</span> <span class=s2>&#34;port&#34;</span>
+</span></span><span class=line><span class=cl> 6<span class=o>)</span> <span class=s2>&#34;6379&#34;</span>
+</span></span><span class=line><span class=cl> 7<span class=o>)</span> <span class=s2>&#34;protected-mode&#34;</span>
+</span></span><span class=line><span class=cl> 8<span class=o>)</span> <span class=s2>&#34;no&#34;</span>
+</span></span><span class=line><span class=cl> 9<span class=o>)</span> <span class=s2>&#34;pidfile&#34;</span>
+</span></span><span class=line><span class=cl>10<span class=o>)</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>11<span class=o>)</span> <span class=s2>&#34;propagation-error-behavior&#34;</span>
+</span></span><span class=line><span class=cl>12<span class=o>)</span> <span class=s2>&#34;ignore&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=修改服务器配置>修改服务器配置</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>config <span class=nb>set</span> parameter value <span class=o>[</span>parameter value ...<span class=o>]</span>
+</span></span><span class=line><span class=cl><span class=c1># parameter是配置项，value是值，支持多个项一起配置</span>
+</span></span><span class=line><span class=cl><span class=c1># 通过config set命令修改的配置无需重启即可生效</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config <span class=nb>set</span> requirepass <span class=m>123456</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl><span class=c1># 默认连接到Redis服务器不需要密码，此处设置密码</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; quit
+</span></span><span class=line><span class=cl>root@380d98e7beb9:/data# redis-cli
+</span></span><span class=line><span class=cl><span class=c1># 退出并重新登录客户端后，获取配置发现提示没有权限</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get p*
+</span></span><span class=line><span class=cl><span class=o>(</span>error<span class=o>)</span> NOAUTH Authentication required.
+</span></span><span class=line><span class=cl><span class=c1># 使用auth password登录</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; auth <span class=m>123456</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get req*
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;requirepass&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;123456&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 先关闭Redis服务器，从而docker容器自动关闭</span>
+</span></span><span class=line><span class=cl><span class=c1># 再启动容器并进入，然后查看密码，发现密码已清空</span>
+</span></span><span class=line><span class=cl><span class=c1># 从而说明，config set虽然不需要重启服务器生效，但是重启服务器之后设置就会失效</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; shutdown
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker start firstRedis
+</span></span><span class=line><span class=cl>firstRedis
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it firstRedis /bin/bash
+</span></span><span class=line><span class=cl>root@380d98e7beb9:/data# redis-cli          
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get requirepass
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;requirepass&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=用config-rewrite命令改写redis配置文件>用config rewrite命令改写Redis配置文件</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 执行完config set之后，再执行config rewrite就会将配置保存到redis.conf文件</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果配置文件不存在就会报错</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config <span class=nb>set</span> requirepass <span class=m>123456</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config rewrite
+</span></span><span class=line><span class=cl><span class=o>(</span>error<span class=o>)</span> ERR The server is running without a config file
+</span></span><span class=line><span class=cl><span class=c1># 下面说明如何生成reids.conf</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=启动redis服务器时加载配置文件>启动Redis服务器时加载配置文件</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 1.创建文件 D:\ArchitectPracticer\Redis\RedisConf\redis.conf 并设置内容如下</span>
+</span></span><span class=line><span class=cl>port <span class=m>6379</span>
+</span></span><span class=line><span class=cl><span class=nb>bind</span> 127.0.0.1
+</span></span><span class=line><span class=cl>timeout <span class=m>300</span>
+</span></span><span class=line><span class=cl><span class=c1># port为端口号，bind为绑定的ip,timeout为连上的客户端空闲300s后，服务器将终止该客户端的连接，这些均是默认值</span>
+</span></span><span class=line><span class=cl><span class=c1># 上面的路径和文件名都是可以改变的</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2.使用redis.conf配置文件启动容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redisWithConfig -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\r</span>edis.conf:/redisConfig/redis.conf -p 6379:6379 redis:latest redis-server/redisConfig/redis.conf 
+</span></span><span class=line><span class=cl>d2944577be148ee004cce434a72db5e5a3d9264d0129130c1e61616fc199a5cf
+</span></span><span class=line><span class=cl>docker: Error response from daemon: driver failed programming external connectivity on endpoint redisWithConfig <span class=o>(</span>82c4756e055f9861e0804672db4e0b9ac108558b6e7e8e85b3f15af71319e932<span class=o>)</span>: Bind <span class=k>for</span> 0.0.0.0:6379 failed: port is already allocated.
+</span></span><span class=line><span class=cl><span class=c1># 因为之前已经创建了一个firstRedis容器占用了6379端口，所以先要删除之前的容器</span>
+</span></span><span class=line><span class=cl>docker rm firstRedis
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redisWithConfig -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\r</span>edis.conf:/redisConfig/redis.conf -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf 
+</span></span><span class=line><span class=cl>ca7280d0f6de05f0d26067e21b68ed9a231480f66b051a456662305fcfedda88
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker ps
+</span></span><span class=line><span class=cl>CONTAINER ID   IMAGE          COMMAND                   CREATED         STATUS         PORTS                    NAMES
+</span></span><span class=line><span class=cl>ca7280d0f6de   redis:latest   <span class=s2>&#34;docker-entrypoint.s…&#34;</span>   <span class=m>3</span> seconds ago   Up <span class=m>2</span> seconds   0.0.0.0:6379-&gt;6379/tcp   redisWithConfig
+</span></span><span class=line><span class=cl><span class=c1># -itd指定以分离的交互式终端运行，</span>
+</span></span><span class=line><span class=cl><span class=c1># --name设置容器的名称</span>
+</span></span><span class=line><span class=cl><span class=c1># -v 指定本机和Docker内目录的映射关系，注意先本机路径，再docker路径</span>
+</span></span><span class=line><span class=cl><span class=c1># -p 指定docker的6379端口映射到主机的6379端口，注意先docker，再本机</span>
+</span></span><span class=line><span class=cl><span class=c1># redis:latest 为最新的redis镜像</span>
+</span></span><span class=line><span class=cl><span class=c1># 再用redis-server /redisConfig/redis.conf指定启动容器时默认运行的命令</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3.验证保存配置</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it redisWithConfig /bin/bash
+</span></span><span class=line><span class=cl>root@ca7280d0f6de:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config get requirepass
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;requirepass&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config <span class=nb>set</span> requirepass <span class=m>123456</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; config rewrite
+</span></span><span class=line><span class=cl>OK
+</span></span></code></pre></td></tr></table></div></div><h3 id=多个客户端连接远端服务器>多个客户端连接远端服务器</h3><h4 id=多个redis客户端连接远端服务器>多个Redis客户端连接远端服务器</h4><p><strong>启动三个容器，一个容器启动Redis服务器，两个容器启动两个Redis客户端，模拟两个客户端远程连接到服务器</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 启动一个容器，保护Redis服务器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redis-server redis:latest
+</span></span><span class=line><span class=cl>bbd384d02e177ab6b65ca7f0670707d250b16ec0bf1596c75d0db879ed9e2065
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 启动客户端1，并设置值</span>
+</span></span><span class=line><span class=cl><span class=c1># --link redis-server:server 参数项连接到了redis-server服务器上，:server表示服务器的别名</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -it --name redis-client1 --link redis-server:server redis:latest /bin/bash
+</span></span><span class=line><span class=cl>root@10038abf0e0f:/data# redis-cli -h server -p <span class=m>6379</span>
+</span></span><span class=line><span class=cl>server:6379&gt; <span class=nb>set</span> name farbguo
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl><span class=c1># 启动客户端2，并读取值</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -it --name redis-client2 --link redis-server:server redis:latest /bin/bash
+</span></span><span class=line><span class=cl>root@b8d623344268:/data# redis-cli -h server -p <span class=m>6379</span>
+</span></span><span class=line><span class=cl>server:6379&gt; get name
+</span></span><span class=line><span class=cl><span class=s2>&#34;farbguo&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=通过docker-inspect观察ip地址>通过docker inspect观察IP地址</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>docker inspect redis-client1
+</span></span><span class=line><span class=cl><span class=c1># 在redis-server所在容器中查看客户端1的信息，会返回很长信息，下面仅截取部分。</span>
+</span></span><span class=line><span class=cl>     <span class=s2>&#34;Networks&#34;</span>: <span class=o>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;bridge&#34;</span>: <span class=o>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;IPAMConfig&#34;</span>: null,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;Links&#34;</span>: null,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;Aliases&#34;</span>: null,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;MacAddress&#34;</span>: <span class=s2>&#34;02:42:ac:11:00:04&#34;</span>,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;NetworkID&#34;</span>: <span class=s2>&#34;aa279f1a1aca3000771c18447f8fa16439fc4339cf3522f19bfad3abf7cbbba9&#34;</span>,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;EndpointID&#34;</span>: <span class=s2>&#34;f8e8ef3128c0f83b00a89b7ad53d5ee8f3916b50a44b718fbef478ea1b57a895&#34;</span>,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;Gateway&#34;</span>: <span class=s2>&#34;172.17.0.1&#34;</span>,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;IPAddress&#34;</span>: <span class=s2>&#34;172.17.0.4&#34;</span>,
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;IPPrefixLen&#34;</span>: 16,
+</span></span></code></pre></td></tr></table></div></div><h4 id=查看所有客户端>查看所有客户端</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 在redis-client2容器上查看所有客户端</span>
+</span></span><span class=line><span class=cl>server:6379&gt; client list
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>4</span> <span class=nv>addr</span><span class=o>=</span>172.17.0.5:38928 <span class=nv>laddr</span><span class=o>=</span>172.17.0.3:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>9</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>892</span> <span class=nv>idle</span><span class=o>=</span><span class=m>0</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>26</span> qbuf-free<span class=o>=</span><span class=m>20448</span> argv-mem<span class=o>=</span><span class=m>10</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>22426</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>client<span class=p>|</span>list <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>5</span> <span class=nv>addr</span><span class=o>=</span>172.17.0.4:59982 <span class=nv>laddr</span><span class=o>=</span>172.17.0.3:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>8</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>5</span> <span class=nv>idle</span><span class=o>=</span><span class=m>5</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>0</span> qbuf-free<span class=o>=</span><span class=m>0</span> argv-mem<span class=o>=</span><span class=m>0</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>1928</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>command<span class=p>|</span>docs <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 以上发现，id为4的客户端name为空，下面修改之后就有值了。</span>
+</span></span><span class=line><span class=cl>server:6379&gt; client setname client2
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>server:6379&gt; client getname
+</span></span><span class=line><span class=cl><span class=s2>&#34;client2&#34;</span>
+</span></span><span class=line><span class=cl>server:6379&gt; client list
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>4</span> <span class=nv>addr</span><span class=o>=</span>172.17.0.5:38928 <span class=nv>laddr</span><span class=o>=</span>172.17.0.3:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>9</span> <span class=nv>name</span><span class=o>=</span>client2 <span class=nv>age</span><span class=o>=</span><span class=m>992</span> <span class=nv>idle</span><span class=o>=</span><span class=m>0</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>26</span> qbuf-free<span class=o>=</span><span class=m>20448</span> argv-mem<span class=o>=</span><span class=m>10</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>22426</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>client<span class=p>|</span>list <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span><span class=line><span class=cl><span class=nv>id</span><span class=o>=</span><span class=m>5</span> <span class=nv>addr</span><span class=o>=</span>172.17.0.4:59982 <span class=nv>laddr</span><span class=o>=</span>172.17.0.3:6379 <span class=nv>fd</span><span class=o>=</span><span class=m>8</span> <span class=nv>name</span><span class=o>=</span> <span class=nv>age</span><span class=o>=</span><span class=m>105</span> <span class=nv>idle</span><span class=o>=</span><span class=m>105</span> <span class=nv>flags</span><span class=o>=</span>N <span class=nv>db</span><span class=o>=</span><span class=m>0</span> <span class=nv>sub</span><span class=o>=</span><span class=m>0</span> <span class=nv>psub</span><span class=o>=</span><span class=m>0</span> <span class=nv>ssub</span><span class=o>=</span><span class=m>0</span> <span class=nv>multi</span><span class=o>=</span>-1 <span class=nv>qbuf</span><span class=o>=</span><span class=m>0</span> qbuf-free<span class=o>=</span><span class=m>0</span> argv-mem<span class=o>=</span><span class=m>0</span> multi-mem<span class=o>=</span><span class=m>0</span> <span class=nv>rbs</span><span class=o>=</span><span class=m>1024</span> <span class=nv>rbp</span><span class=o>=</span><span class=m>0</span> <span class=nv>obl</span><span class=o>=</span><span class=m>0</span> <span class=nv>oll</span><span class=o>=</span><span class=m>0</span> <span class=nv>omem</span><span class=o>=</span><span class=m>0</span> tot-mem<span class=o>=</span><span class=m>1928</span> <span class=nv>events</span><span class=o>=</span>r <span class=nv>cmd</span><span class=o>=</span>command<span class=p>|</span>docs <span class=nv>user</span><span class=o>=</span>default <span class=nv>redir</span><span class=o>=</span>-1 <span class=nv>resp</span><span class=o>=</span><span class=m>2</span> lib-name<span class=o>=</span> lib-ver<span class=o>=</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=通过info查看服务器状态>通过info查看服务器状态</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 可以在任何一台客户端上查看服务器状态信息，</span>
+</span></span><span class=line><span class=cl><span class=c1># 通过info section命令，可以查看每个配置节点的信息</span>
+</span></span><span class=line><span class=cl>server:6379&gt; info keyspace
+</span></span><span class=line><span class=cl><span class=c1># Keyspace</span>
+</span></span><span class=line><span class=cl>db0:keys<span class=o>=</span>1,expires<span class=o>=</span>0,avg_ttl<span class=o>=</span><span class=m>0</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>注意：在任何一个客户端使用shutdown命令都可以关闭服务器和所有连接的客户端。生产环境务必注意，否则可能造成数据丢失，导致事故</strong></p></section><footer class=article-footer><section class=article-tags><a href=/tags/redis/>Redis</a>
+<a href=/tags/docker/>Docker</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section>页面浏览量<span id=busuanzi_value_page_pv>Loading</span></section><section><strong>如果觉得我的博客能帮助到你，欢迎点击右侧的赞助进行投喂。如有技术咨询，也可以加本人好友。</strong></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/redis_in_action_13_redis_springcloud/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringCloud微服务整合</h2></div></a></article><article><a href=/p/redis_in_action_12_redis_springboot/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringBoot整合</h2></div></a></article><article><a href=/p/redis_in_action_11_lua/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Lua脚本</h2></div></a></article><article><a href=/p/redis_in_action_10_mysql_mycat/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Mysql集群和MyCat分库分表组件</h2></div></a></article><article><a href=/p/redis_in_action_09_redis_practical_cases/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例</h2></div></a></article></div></div></aside><script src=//unpkg.com/@waline/client@v2/dist/waline.js></script><link href=//unpkg.com/@waline/client@v2/dist/waline.css rel=stylesheet><div id=waline class=waline-container></div><style>.waline-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding);--waline-font-size:var(--article-font-size)}.waline-container .wl-count{color:var(--card-text-color-main)}</style><script>Waline.init({avatar:"",dark:'html[data-scheme="dark"]',el:"#waline",emoji:["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"],lang:"zh-cn",locale:{admin:"Admin",placeholder:null},placeholder:"",requiredMeta:["name","email"],serverURL:"https://blog.comment.farb.top",visitor:""})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 Farb's Blog</section><section class=powerby>总访客数：<span id=busuanzi_value_site_uv style=margin-right:10px>Loading</span> 总访问量：<span id=busuanzi_value_site_pv style=margin-right:10px>Loading</span>
+<a href=https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io style=color:blue target=_blank>实时统计</a><br><span id=span_show_age style=margin-right:30px><br>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script><script src=https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js></script><script>new tctip({top:"20%",button:{id:8,type:"zanzhu"},list:[{type:"alipay",qrImg:"https://github.com/user-attachments/assets/3ac3da80-aa15-4ab7-bee7-7292a08fcda1"},{type:"wechat",qrImg:"https://github.com/user-attachments/assets/efc07320-351b-45f3-9a89-a938050da4ef"},{type:"weixin",name:"加好友",icon:"https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png",qrImg:"https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg",desc:"微信:beingBetterSelf"}]}).init()</script><script defer src=https://cn.vercount.one/js></script><script defer src=https://analytics.eu.umami.is/script.js data-website-id=0a12e949-0500-4ff1-872c-b8969b376add></script><script defer language=javascript>var uptime_1="本站已经开心运行 ",uptime_2=" 天 ",uptime_3=" 小时 ",uptime_4=" 分 ",uptime_5=" 秒";function show_date_time(){window.setTimeout(show_date_time,1e3),BirthDay=new Date("4/08/2024 22:54:23"),today=new Date,timeold=today.getTime()-BirthDay.getTime(),sectimeold=timeold/1e3,secondsold=Math.floor(sectimeold),msPerDay=24*60*60*1e3,e_daysold=timeold/msPerDay,daysold=Math.floor(e_daysold),e_hrsold=(e_daysold-daysold)*24,hrsold=Math.floor(e_hrsold),e_minsold=(e_hrsold-hrsold)*60,minsold=Math.floor((e_hrsold-hrsold)*60),seconds=Math.floor((e_minsold-minsold)*60),document.getElementById("span_show_age").innerHTML=uptime_1+daysold+uptime_2+hrsold+uptime_3+minsold+uptime_4+seconds+uptime_5}show_date_time()</script></body></html>

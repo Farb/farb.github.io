@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>SpringCloud on Farb's Blog</title><link>https://farb.github.io/categories/springcloud/</link><description>Recent content in SpringCloud on Farb's Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sat, 07 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://farb.github.io/categories/springcloud/index.xml" rel="self" type="application/rss+xml"/><item><title>SpringCloud Alibaba 入门实战</title><link>https://farb.github.io/p/springcloudalibaba_01_introduction/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/springcloudalibaba_01_introduction/</guid><description>&lt;p&gt;源码链接： &lt;a class="link" href="https://gitee.com/farb/architect-practicer-code" target="_blank" rel="noopener"
+&gt;https://gitee.com/farb/architect-practicer-code&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="单体架构soa与微服务"&gt;单体架构、SOA与微服务
+&lt;/h2&gt;&lt;h3 id="单体架构"&gt;单体架构
+&lt;/h3&gt;&lt;p&gt;一个系统的所有模块在一个工程中开发，部署时将所有代码打包。&lt;/p&gt;
+&lt;p&gt;优点：业务初期，功能简单，开发成本低，效率高。&lt;/p&gt;
+&lt;p&gt;缺点：随着业务量不断增大，会出现如下问题：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;代码复杂度高：所有代码杂糅在一起，依赖紧密，修改一处可能导致其他地方出现问题。&lt;/li&gt;
+&lt;li&gt;体积大，部署慢：假设一个完整的包是500M，如果只改了一行代码，也需要重新部署整个包。&lt;/li&gt;
+&lt;li&gt;程序出错影响服务稳定性：某个功能的bug可能导致整个进程的崩溃，影响服务可用性。&lt;/li&gt;
+&lt;li&gt;阻碍技术的更新：一般来说单体架构只能使用同一个技术栈，比如纯java或纯c#。&lt;/li&gt;
+&lt;li&gt;集群扩容不合理：因为单体架构所有模块一起部署，假如只是用户模块需要扩容，但是其他模块也跟着扩容，造成资源浪费，而且扩容时间较长。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="soa-service-oriented-architecture"&gt;SOA （Service Oriented Architecture）
+&lt;/h3&gt;&lt;p&gt;微服务是SOA体系结构不断演进的结果。SOA和微服务本质上都在拆分服务，为了降低耦合，提升代码的复用性。但微服务更突出服务的独立性，是更细粒度地划分服务。拆分粒度没有统一标准，需要自己权衡利弊。&lt;/p&gt;
+&lt;h3 id="微服务"&gt;微服务
+&lt;/h3&gt;&lt;p&gt;微服务是一种架构风格，它把一个复杂的系统拆分成多个小的服务，每个服务只做一件事情，服务之间互相调用。&lt;/p&gt;
+&lt;p&gt;优点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;代码复杂度低：根据业务细粒度拆分成多个小服务，业务功能清晰，代码体积小，便于理解维护。&lt;/li&gt;
+&lt;li&gt;技术选型不受限：单个服务可以根据自身业务选择合适的技术栈。&lt;/li&gt;
+&lt;li&gt;独立部署：如果修改一个后台服务，修改完毕后只需要部署这一个服务即可，其他服务不动，影响范围小，也减少了测试和部署的时间。&lt;/li&gt;
+&lt;li&gt;服务的可伸缩性：根据业务发展，哪个服务承载量到达了上限，就多部署一些节点，反之，哪些业务量不大，就减少一些节点。&lt;/li&gt;
+&lt;li&gt;错误隔离：当某个服务出现故障时，不会影响其他服务，不会影响整个系统。比如后台管理服务出现故障，不会影响用户服务。&lt;/li&gt;
+&lt;li&gt;容易分库：每个服务独立部署，也可以独立连接一个数据库，省去单体架构的分库成本。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;p&gt;万事万物都是一分为二的，有好必然有坏。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;构建微服务系统复杂：构建微服务系统需要很多技术，比如注册中心、配置中心、服务调用、服务网关、消息总线、监控中心、分布式事务等。需要考虑网络延迟和网络故障的影响。&lt;/li&gt;
+&lt;li&gt;服务依赖：假如三个服务A、B、C,A调用B,B调用C，如果C不得已必须修改，可能B要修改，A可能也因为B的修改也要修改。&lt;/li&gt;
+&lt;li&gt;数据一致性问题：各个服务都是独立的进程，传统的数据库事务失效，假设A调用B，恰好遇到网络延迟或网络抖动等网络故障，A服务数据回滚，而B数据可能已经修改保存。&lt;/li&gt;
+&lt;li&gt;排除故障困难：微服务调用链较长，可能涉及跨多个服务，因此要定位线上问题，不得不同时查看多个服务问题。&lt;/li&gt;
+&lt;li&gt;运维和部署：要检查和监控多个服务的健康状态，快速部署多个服务，以及根据服务的负载情况进行动态伸缩，都是不小的挑战。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="微服务所需要的技术栈"&gt;微服务所需要的技术栈
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;服务注册与发现：当调用接口服务时，首先从服务注册中心获取被调用服务的真实地址，然后调用具体某个服务，调用方不需要知道真实地址。这样很容易实现目标服务的负载均衡，服务之间也实现了解耦。&lt;/li&gt;
+&lt;li&gt;服务调用：调用方真正调用目标服务的技术（HTTP,RPC）&lt;/li&gt;
+&lt;li&gt;服务熔断、限流、降级：保证服务的稳定性。&lt;/li&gt;
+&lt;li&gt;负载均衡：决定调用服务集群中的哪个服务。&lt;/li&gt;
+&lt;li&gt;配置中心：集中式管理项目的配置，方便修改，解决重复配置，实时生效。&lt;/li&gt;
+&lt;li&gt;消息队列：服务之间可以异步、解耦，减少调用链路。&lt;/li&gt;
+&lt;li&gt;服务网关：可以用来做认证，灰度发布等。&lt;/li&gt;
+&lt;li&gt;服务监控：监控服务的健康状态&lt;/li&gt;
+&lt;li&gt;消息总线：事件传播与通知，解耦微服务依赖关系，数据一致性维护，异步通信等&lt;/li&gt;
+&lt;li&gt;分布式链路追踪：查看接口调用链路，排除故障&lt;/li&gt;
+&lt;li&gt;自动化构建部署：CI/CD&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="spring-cloud-alibaba是什么"&gt;Spring Cloud Alibaba是什么？
+&lt;/h2&gt;&lt;p&gt;引用官网的一段话：https://sca.aliyun.com/docs/2023/overview/what-is-sca&lt;/p&gt;
+&lt;p&gt;Spring Cloud Alibaba 致力于提供微服务开发的一站式解决方案。此项目包含开发分布式应用服务的必需组件，方便开发者通过 Spring Cloud 编程模型轻松使用这些组件来开发分布式应用服务。&lt;/p&gt;
+&lt;p&gt;依托 Spring Cloud Alibaba，您只需要添加一些注解和少量配置，就可以将 Spring Cloud 应用接入阿里分布式应用解决方案，通过阿里中间件来迅速搭建分布式应用系统。&lt;/p&gt;
+&lt;p&gt;Spring Cloud Alibaba 提供的主要组件包括：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Nacos：服务注册中心、配置中心、服务元数据存储中心。&lt;/li&gt;
+&lt;li&gt;Sentinel：流量控制、熔断降级、系统负载保护。&lt;/li&gt;
+&lt;li&gt;Seata：分布式事务解决方案。&lt;/li&gt;
+&lt;li&gt;dubbo：远程调用RPC框架。&lt;/li&gt;
+&lt;li&gt;RocketMQ：阿里的开源分布式消息中间件，高性能、高可用、高吞吐量的金融级消息中间件。&lt;/li&gt;
+&lt;li&gt;OSS(收费): 文件存储服务&lt;/li&gt;
+&lt;li&gt;ScheduleX(收费)：分布式任务调度。&lt;/li&gt;
+&lt;li&gt;SMS(收费): 短信服务。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="spring-cloud-微服务体系"&gt;Spring Cloud 微服务体系
+&lt;/h2&gt;&lt;p&gt;Spring Cloud 是分布式微服务架构的一站式解决方案，它提供了一套简单易用的编程模型，使我们能在 Spring Boot 的基础上轻松地实现微服务系统的构建。 Spring Cloud 提供以微服务为核心的分布式系统构建标准。&lt;/p&gt;
+&lt;p&gt;Spring Cloud 本身并不是一个开箱即用的框架，它是一套微服务规范，共有两代实现。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Spring Cloud Netflix 是 Spring Cloud 的第一代实现，主要由 Eureka、Ribbon、Feign、Hystrix 等组件组成。&lt;/li&gt;
+&lt;li&gt;Spring Cloud Alibaba 是 Spring Cloud 的第二代实现，主要由 Nacos、Sentinel、Seata 等组件组成。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA78O91" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/07/pA78O91.png"
+loading="lazy"
+alt="pA78O91.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="spring-cloud-alibaba-定位"&gt;Spring Cloud Alibaba 定位
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA7Gi4A" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/07/pA7Gi4A.png"
+loading="lazy"
+alt="pA7Gi4A.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Spring Cloud Alibaba 是阿里巴巴结合自身丰富的微服务实践而推出的微服务开发的一站式解决方案，是 Spring Cloud 第二代实现的主要组成部分。吸收了 Spring Cloud Netflix 微服务框架的核心架构思想，并进行了高性能改进。自 Spring Cloud Netflix 进入停更维护后，Spring Cloud Alibaba 逐渐代替它成为主流的微服务框架。&lt;/p&gt;
+&lt;p&gt;同时 Spring Cloud Alibaba 也是国内首个进入 Spring 社区的开源项目。2018 年 7 月，Spring Cloud Alibaba 正式开源，并进入 Spring Cloud 孵化器中孵化；2019 年 7 月，Spring Cloud 官方宣布 Spring Cloud Alibaba 毕业，并将仓库迁移到 Alibaba Github OSS 下。&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA74NUe" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/08/pA74NUe.png"
+loading="lazy"
+alt="pA74NUe.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="关于spring-cloud-alibaba各个组件的版本兼容问题"&gt;关于Spring Cloud Alibaba各个组件的版本兼容问题
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://sca.aliyun.com/docs/2023/overview/version-explain" target="_blank" rel="noopener"
+&gt;https://sca.aliyun.com/docs/2023/overview/version-explain&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA7GA3t" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/07/pA7GA3t.png"
+loading="lazy"
+alt="pA7GA3t.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="spring-cloud-alibaba-快速开始"&gt;Spring Cloud Alibaba 快速开始
+&lt;/h2&gt;&lt;h3 id="安装运行nacos服务"&gt;安装运行Nacos服务
+&lt;/h3&gt;&lt;p&gt;根据官网文档，下载压缩包或者直接使用docker镜像都可以。 &lt;a class="link" href="https://nacos.io/download/nacos-server/" target="_blank" rel="noopener"
+&gt;https://nacos.io/download/nacos-server/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;然后以standalone的方式运行Nacos服务，我这里以官方bat脚本运行，传入参数standalone，运行成功如下所示：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;span class="lnt"&gt;17
+&lt;/span&gt;&lt;span class="lnt"&gt;18
+&lt;/span&gt;&lt;span class="lnt"&gt;19
+&lt;/span&gt;&lt;span class="lnt"&gt;20
+&lt;/span&gt;&lt;span class="lnt"&gt;21
+&lt;/span&gt;&lt;span class="lnt"&gt;22
+&lt;/span&gt;&lt;span class="lnt"&gt;23
+&lt;/span&gt;&lt;span class="lnt"&gt;24
+&lt;/span&gt;&lt;span class="lnt"&gt;25
+&lt;/span&gt;&lt;span class="lnt"&gt;26
+&lt;/span&gt;&lt;span class="lnt"&gt;27
+&lt;/span&gt;&lt;span class="lnt"&gt;28
+&lt;/span&gt;&lt;span class="lnt"&gt;29
+&lt;/span&gt;&lt;span class="lnt"&gt;30
+&lt;/span&gt;&lt;span class="lnt"&gt;31
+&lt;/span&gt;&lt;span class="lnt"&gt;32
+&lt;/span&gt;&lt;span class="lnt"&gt;33
+&lt;/span&gt;&lt;span class="lnt"&gt;34
+&lt;/span&gt;&lt;span class="lnt"&gt;35
+&lt;/span&gt;&lt;span class="lnt"&gt;36
+&lt;/span&gt;&lt;span class="lnt"&gt;37
+&lt;/span&gt;&lt;span class="lnt"&gt;38
+&lt;/span&gt;&lt;span class="lnt"&gt;39
+&lt;/span&gt;&lt;span class="lnt"&gt;40
+&lt;/span&gt;&lt;span class="lnt"&gt;41
+&lt;/span&gt;&lt;span class="lnt"&gt;42
+&lt;/span&gt;&lt;span class="lnt"&gt;43
+&lt;/span&gt;&lt;span class="lnt"&gt;44
+&lt;/span&gt;&lt;span class="lnt"&gt;45
+&lt;/span&gt;&lt;span class="lnt"&gt;46
+&lt;/span&gt;&lt;span class="lnt"&gt;47
+&lt;/span&gt;&lt;span class="lnt"&gt;48
+&lt;/span&gt;&lt;span class="lnt"&gt;49
+&lt;/span&gt;&lt;span class="lnt"&gt;50
+&lt;/span&gt;&lt;span class="lnt"&gt;51
+&lt;/span&gt;&lt;span class="lnt"&gt;52
+&lt;/span&gt;&lt;span class="lnt"&gt;53
+&lt;/span&gt;&lt;span class="lnt"&gt;54
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;D:&lt;span class="se"&gt;\A&lt;/span&gt;rchitectPracticer&lt;span class="se"&gt;\M&lt;/span&gt;icroServiceTools&lt;span class="se"&gt;\n&lt;/span&gt;acos-server-2.4.3&lt;span class="se"&gt;\n&lt;/span&gt;acos&lt;span class="se"&gt;\b&lt;/span&gt;in&amp;gt;startup.cmd -m standalone
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;&amp;#34;nacos is starting with standalone&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ,--.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ,--.&lt;span class="s1"&gt;&amp;#39;|
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt; ,--,: : | Nacos 2.4.3
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt;,`--.&amp;#39;&lt;/span&gt;&lt;span class="sb"&gt;`&lt;/span&gt;&lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39; : ,---. Running in stand alone mode, All function modules
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt;| : : | | &amp;#39;&lt;/span&gt; ,&lt;span class="s1"&gt;&amp;#39;\ .--.--. Port: 8848
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt;: | \ | : ,--.--. ,---. / / | / / &amp;#39;&lt;/span&gt; Pid: &lt;span class="m"&gt;22544&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;|&lt;/span&gt; : &lt;span class="s1"&gt;&amp;#39; &amp;#39;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; / &lt;span class="se"&gt;\ &lt;/span&gt; / &lt;span class="se"&gt;\.&lt;/span&gt; &lt;span class="p"&gt;;&lt;/span&gt; ,. :&lt;span class="p"&gt;|&lt;/span&gt; : /&lt;span class="sb"&gt;`&lt;/span&gt;./ Console: http://192.168.31.227:8848/nacos/index.html
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt;&amp;#39; &amp;#39;&lt;/span&gt; &lt;span class="p"&gt;;&lt;/span&gt;. &lt;span class="p"&gt;;&lt;/span&gt;.--. .-. &lt;span class="p"&gt;|&lt;/span&gt; / / &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt;: :&lt;span class="p"&gt;|&lt;/span&gt; : &lt;span class="p"&gt;;&lt;/span&gt;_
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="se"&gt;\ &lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="se"&gt;\_&lt;/span&gt;_&lt;span class="se"&gt;\/&lt;/span&gt;: . .. &lt;span class="s1"&gt;&amp;#39; / &amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; .&lt;span class="p"&gt;;&lt;/span&gt; : &lt;span class="se"&gt;\ &lt;/span&gt; &lt;span class="se"&gt;\ &lt;/span&gt; &lt;span class="sb"&gt;`&lt;/span&gt;. https://nacos.io
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt;&amp;#39; : | ; .&amp;#39;&lt;/span&gt; ,&lt;span class="s2"&gt;&amp;#34; .--.; |&amp;#39; ; :__| : | `----. \
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;| | &amp;#39;`--&amp;#39; / / ,. |&amp;#39; | &amp;#39;.&amp;#39;|\ \ / / /`--&amp;#39; /
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;&amp;#39; : | ; : .&amp;#39; \ : : `----&amp;#39; &amp;#39;--&amp;#39;. /
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;; |.&amp;#39; | , .-./\ \ / `--&amp;#39;---&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;&amp;#39;---&amp;#39; `--`---&amp;#39; `----&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:26,565 INFO Tomcat initialized with port(s): 8848 (http)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:26,977 INFO Root WebApplicationContext: initialization completed in 3424 ms
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,041 INFO Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@4cad79bc, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2c63762b, org.springframework.security.web.context.SecurityContextPersistenceFilter@726934e2, org.springframework.security.web.header.HeaderWriterFilter@1163a27, org.springframework.security.web.csrf.CsrfFilter@3b55dd15, org.springframework.security.web.authentication.logout.LogoutFilter@3f6bf8aa, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@e280403, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@42f85fa4, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@7a9eccc4, org.springframework.security.web.session.SessionManagementFilter@92d1782, org.springframework.security.web.access.ExceptionTranslationFilter@28a9494b]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,288 INFO Adding welcome page: class path resource [static/index.html]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,783 INFO Exposing 1 endpoint(s) beneath base path &amp;#39;/actuator&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,789 WARN You are asking Spring Security to ignore Ant [pattern=&amp;#39;/**&amp;#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 INFO Will not secure Ant [pattern=&amp;#39;/**&amp;#39;]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&amp;#39;/prometheus&amp;#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&amp;#39;/prometheus&amp;#39;]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&amp;#39;/prometheus/namespaceId/{namespaceId}&amp;#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&amp;#39;/prometheus/namespaceId/{namespaceId}&amp;#39;]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&amp;#39;/prometheus/namespaceId/{namespaceId}/service/{service}&amp;#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&amp;#39;/prometheus/namespaceId/{namespaceId}/service/{service}&amp;#39;]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,867 INFO Tomcat started on port(s): 8848 (http) with context path &amp;#39;/nacos&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,867 INFO No TaskScheduler/ScheduledExecutorService bean found for scheduled processing
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:31,901 INFO Nacos started successfully in stand alone mode. use embedded storage
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:42,783 INFO Initializing Servlet &amp;#39;dispatcherServlet&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s2"&gt;2024-12-06 21:27:42,785 INFO Completed initialization in 1 ms
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;然后可以浏览器中打开 http://192.168.31.227:8848/nacos或localhost:8848/nacos 查看Nacos管理界面是否可以查看。&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA70w5T" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/07/pA70w5T.png"
+loading="lazy"
+alt="pA70w5T.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id="创建微服务"&gt;创建微服务
+&lt;/h3&gt;&lt;p&gt;接下来就是创建微服务，启动，查看服务是否注册。&lt;/p&gt;
+&lt;p&gt;我这里使用的是当前最新的SpringCloudAlibaba依赖版本2023.0.3.2，支持的springboot版本是3.2.4。&lt;/p&gt;
+&lt;p&gt;创建一个父模块SpringCloudAlibabaPractice，只管理公共pom配置，如下：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;span class="lnt"&gt;17
+&lt;/span&gt;&lt;span class="lnt"&gt;18
+&lt;/span&gt;&lt;span class="lnt"&gt;19
+&lt;/span&gt;&lt;span class="lnt"&gt;20
+&lt;/span&gt;&lt;span class="lnt"&gt;21
+&lt;/span&gt;&lt;span class="lnt"&gt;22
+&lt;/span&gt;&lt;span class="lnt"&gt;23
+&lt;/span&gt;&lt;span class="lnt"&gt;24
+&lt;/span&gt;&lt;span class="lnt"&gt;25
+&lt;/span&gt;&lt;span class="lnt"&gt;26
+&lt;/span&gt;&lt;span class="lnt"&gt;27
+&lt;/span&gt;&lt;span class="lnt"&gt;28
+&lt;/span&gt;&lt;span class="lnt"&gt;29
+&lt;/span&gt;&lt;span class="lnt"&gt;30
+&lt;/span&gt;&lt;span class="lnt"&gt;31
+&lt;/span&gt;&lt;span class="lnt"&gt;32
+&lt;/span&gt;&lt;span class="lnt"&gt;33
+&lt;/span&gt;&lt;span class="lnt"&gt;34
+&lt;/span&gt;&lt;span class="lnt"&gt;35
+&lt;/span&gt;&lt;span class="lnt"&gt;36
+&lt;/span&gt;&lt;span class="lnt"&gt;37
+&lt;/span&gt;&lt;span class="lnt"&gt;38
+&lt;/span&gt;&lt;span class="lnt"&gt;39
+&lt;/span&gt;&lt;span class="lnt"&gt;40
+&lt;/span&gt;&lt;span class="lnt"&gt;41
+&lt;/span&gt;&lt;span class="lnt"&gt;42
+&lt;/span&gt;&lt;span class="lnt"&gt;43
+&lt;/span&gt;&lt;span class="lnt"&gt;44
+&lt;/span&gt;&lt;span class="lnt"&gt;45
+&lt;/span&gt;&lt;span class="lnt"&gt;46
+&lt;/span&gt;&lt;span class="lnt"&gt;47
+&lt;/span&gt;&lt;span class="lnt"&gt;48
+&lt;/span&gt;&lt;span class="lnt"&gt;49
+&lt;/span&gt;&lt;span class="lnt"&gt;50
+&lt;/span&gt;&lt;span class="lnt"&gt;51
+&lt;/span&gt;&lt;span class="lnt"&gt;52
+&lt;/span&gt;&lt;span class="lnt"&gt;53
+&lt;/span&gt;&lt;span class="lnt"&gt;54
+&lt;/span&gt;&lt;span class="lnt"&gt;55
+&lt;/span&gt;&lt;span class="lnt"&gt;56
+&lt;/span&gt;&lt;span class="lnt"&gt;57
+&lt;/span&gt;&lt;span class="lnt"&gt;58
+&lt;/span&gt;&lt;span class="lnt"&gt;59
+&lt;/span&gt;&lt;span class="lnt"&gt;60
+&lt;/span&gt;&lt;span class="lnt"&gt;61
+&lt;/span&gt;&lt;span class="lnt"&gt;62
+&lt;/span&gt;&lt;span class="lnt"&gt;63
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;&amp;lt;?xml version=&amp;#34;1.0&amp;#34; encoding=&amp;#34;UTF-8&amp;#34;?&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;&amp;lt;project&lt;/span&gt; &lt;span class="na"&gt;xmlns=&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;http://maven.apache.org/POM/4.0.0&amp;#34;&lt;/span&gt; &lt;span class="na"&gt;xmlns:xsi=&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;http://www.w3.org/2001/XMLSchema-instance&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="na"&gt;xsi:schemaLocation=&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd&amp;#34;&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;modelVersion&amp;gt;&lt;/span&gt;4.0.0&lt;span class="nt"&gt;&amp;lt;/modelVersion&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;top.farb&lt;span class="nt"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;SpringCloudAlibabaPractice&lt;span class="nt"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;version&amp;gt;&lt;/span&gt;0.0.1-SNAPSHOT&lt;span class="nt"&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;name&amp;gt;&lt;/span&gt;SpringCloudAlibabaPractice&lt;span class="nt"&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;description&amp;gt;&lt;/span&gt;SpringCloudAlibabaPractice&lt;span class="nt"&gt;&amp;lt;/description&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;packaging&amp;gt;&lt;/span&gt;pom&lt;span class="nt"&gt;&amp;lt;/packaging&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;properties&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;java.version&amp;gt;&lt;/span&gt;17&lt;span class="nt"&gt;&amp;lt;/java.version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;project.build.sourceEncoding&amp;gt;&lt;/span&gt;UTF-8&lt;span class="nt"&gt;&amp;lt;/project.build.sourceEncoding&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;project.reporting.outputEncoding&amp;gt;&lt;/span&gt;UTF-8&lt;span class="nt"&gt;&amp;lt;/project.reporting.outputEncoding&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;spring-boot.version&amp;gt;&lt;/span&gt;3.2.4&lt;span class="nt"&gt;&amp;lt;/spring-boot.version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;spring-cloud-alibaba.version&amp;gt;&lt;/span&gt;2023.0.3.2&lt;span class="nt"&gt;&amp;lt;/spring-cloud-alibaba.version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/properties&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c"&gt;&amp;lt;!-- 后面所有演示模块都会以子模块的形式加入--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;modules&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;FirstServiceDemo&lt;span class="nt"&gt;&amp;lt;/module&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/modules&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c"&gt;&amp;lt;!-- 这里加一下子模块基本都会使用的依赖，避免子模块重复添加--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependencies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.boot&lt;span class="nt"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-boot-starter-web&lt;span class="nt"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependencies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependencyManagement&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependencies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.boot&lt;span class="nt"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-boot-dependencies&lt;span class="nt"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;version&amp;gt;&lt;/span&gt;${spring-boot.version}&lt;span class="nt"&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;type&amp;gt;&lt;/span&gt;pom&lt;span class="nt"&gt;&amp;lt;/type&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;scope&amp;gt;&lt;/span&gt;import&lt;span class="nt"&gt;&amp;lt;/scope&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;com.alibaba.cloud&lt;span class="nt"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-cloud-alibaba-dependencies&lt;span class="nt"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;version&amp;gt;&lt;/span&gt;2023.0.3.2&lt;span class="nt"&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;type&amp;gt;&lt;/span&gt;pom&lt;span class="nt"&gt;&amp;lt;/type&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;scope&amp;gt;&lt;/span&gt;import&lt;span class="nt"&gt;&amp;lt;/scope&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependencies&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/dependencyManagement&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;build&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;plugins&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;plugin&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.apache.maven.plugins&lt;span class="nt"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;maven-compiler-plugin&lt;span class="nt"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;version&amp;gt;&lt;/span&gt;3.8.1&lt;span class="nt"&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;source&amp;gt;&lt;/span&gt;17&lt;span class="nt"&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;target&amp;gt;&lt;/span&gt;17&lt;span class="nt"&gt;&amp;lt;/target&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;encoding&amp;gt;&lt;/span&gt;UTF-8&lt;span class="nt"&gt;&amp;lt;/encoding&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/plugin&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/plugins&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;lt;/build&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;&amp;lt;/project&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;然后，创建一个子模块，例如FirstServiceDemo，只有一个Springboot启动类就行，再加一个application.yml如下：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yml" data-lang="yml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;server&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;port&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;8080&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;&lt;/span&gt;&lt;span class="nt"&gt;spring&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;application&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;name&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;first-service&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;cloud&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;nacos&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;discovery&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;server-addr&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;localhost:8848&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# nacos注册中心地址&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;namespace&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# 如果为空，则使用public命名空间，否则需要配置nacos的命名空间id&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;启动应用，可以到nacos控制台页面看到服务已经注册成功。&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://imgse.com/i/pA70w5T" target="_blank" rel="noopener"
+&gt;&lt;img src="https://s21.ax1x.com/2024/12/07/pA70w5T.png"
+loading="lazy"
+alt="pA70w5T.png"
+&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;至此，基本的框架就搭建好了。后面的实战会以这个作为基础。&lt;/p&gt;</description></item></channel></rss>

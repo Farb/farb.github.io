@@ -1,0 +1,275 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="源码链接： https://gitee.com/farb/architect-practicer-code\n单体架构、SOA与微服务 单体架构 一个系统的所有模块在一个工程中开发，部署时将所有代码打包。\n优点：业务初期，功能简单，开发成本低，效率高。\n缺点：随着业务量不断增大，会出现如下问题：\n代码复杂度高：所有代码杂糅在一起，依赖紧密，修改一处可能导致其他地方出现问题。 体积大，部署慢：假设一个完整的包是500M，如果只改了一行代码，也需要重新部署整个包。 程序出错影响服务稳定性：某个功能的bug可能导致整个进程的崩溃，影响服务可用性。 阻碍技术的更新：一般来说单体架构只能使用同一个技术栈，比如纯java或纯c#。 集群扩容不合理：因为单体架构所有模块一起部署，假如只是用户模块需要扩容，但是其他模块也跟着扩容，造成资源浪费，而且扩容时间较长。 SOA （Service Oriented Architecture） 微服务是SOA体系结构不断演进的结果。SOA和微服务本质上都在拆分服务，为了降低耦合，提升代码的复用性。但微服务更突出服务的独立性，是更细粒度地划分服务。拆分粒度没有统一标准，需要自己权衡利弊。\n微服务 微服务是一种架构风格，它把一个复杂的系统拆分成多个小的服务，每个服务只做一件事情，服务之间互相调用。\n优点：\n代码复杂度低：根据业务细粒度拆分成多个小服务，业务功能清晰，代码体积小，便于理解维护。 技术选型不受限：单个服务可以根据自身业务选择合适的技术栈。 独立部署：如果修改一个后台服务，修改完毕后只需要部署这一个服务即可，其他服务不动，影响范围小，也减少了测试和部署的时间。 服务的可伸缩性：根据业务发展，哪个服务承载量到达了上限，就多部署一些节点，反之，哪些业务量不大，就减少一些节点。 错误隔离：当某个服务出现故障时，不会影响其他服务，不会影响整个系统。比如后台管理服务出现故障，不会影响用户服务。 容易分库：每个服务独立部署，也可以独立连接一个数据库，省去单体架构的分库成本。 缺点：\n万事万物都是一分为二的，有好必然有坏。\n构建微服务系统复杂：构建微服务系统需要很多技术，比如注册中心、配置中心、服务调用、服务网关、消息总线、监控中心、分布式事务等。需要考虑网络延迟和网络故障的影响。 服务依赖：假如三个服务A、B、C,A调用B,B调用C，如果C不得已必须修改，可能B要修改，A可能也因为B的修改也要修改。 数据一致性问题：各个服务都是独立的进程，传统的数据库事务失效，假设A调用B，恰好遇到网络延迟或网络抖动等网络故障，A服务数据回滚，而B数据可能已经修改保存。 排除故障困难：微服务调用链较长，可能涉及跨多个服务，因此要定位线上问题，不得不同时查看多个服务问题。 运维和部署：要检查和监控多个服务的健康状态，快速部署多个服务，以及根据服务的负载情况进行动态伸缩，都是不小的挑战。 微服务所需要的技术栈 服务注册与发现：当调用接口服务时，首先从服务注册中心获取被调用服务的真实地址，然后调用具体某个服务，调用方不需要知道真实地址。这样很容易实现目标服务的负载均衡，服务之间也实现了解耦。 服务调用：调用方真正调用目标服务的技术（HTTP,RPC） 服务熔断、限流、降级：保证服务的稳定性。 负载均衡：决定调用服务集群中的哪个服务。 配置中心：集中式管理项目的配置，方便修改，解决重复配置，实时生效。 消息队列：服务之间可以异步、解耦，减少调用链路。 服务网关：可以用来做认证，灰度发布等。 服务监控：监控服务的健康状态 消息总线：事件传播与通知，解耦微服务依赖关系，数据一致性维护，异步通信等 分布式链路追踪：查看接口调用链路，排除故障 自动化构建部署：CI/CD Spring Cloud Alibaba是什么？ 引用官网的一段话：https://sca.aliyun.com/docs/2023/overview/what-is-sca\nSpring Cloud Alibaba 致力于提供微服务开发的一站式解决方案。此项目包含开发分布式应用服务的必需组件，方便开发者通过 Spring Cloud 编程模型轻松使用这些组件来开发分布式应用服务。\n依托 Spring Cloud Alibaba，您只需要添加一些注解和少量配置，就可以将 Spring Cloud 应用接入阿里分布式应用解决方案，通过阿里中间件来迅速搭建分布式应用系统。\nSpring Cloud Alibaba 提供的主要组件包括：\nNacos：服务注册中心、配置中心、服务元数据存储中心。 Sentinel：流量控制、熔断降级、系统负载保护。 Seata：分布式事务解决方案。 dubbo：远程调用RPC框架。 RocketMQ：阿里的开源分布式消息中间件，高性能、高可用、高吞吐量的金融级消息中间件。 OSS(收费): 文件存储服务 ScheduleX(收费)：分布式任务调度。 SMS(收费): 短信服务。 Spring Cloud 微服务体系 Spring Cloud 是分布式微服务架构的一站式解决方案，它提供了一套简单易用的编程模型，使我们能在 Spring Boot 的基础上轻松地实现微服务系统的构建。 Spring Cloud 提供以微服务为核心的分布式系统构建标准。\n"><title>SpringCloud Alibaba 入门实战</title><link rel=canonical href=https://farb.github.io/p/springcloudalibaba_01_introduction/><link rel=stylesheet href=/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css><meta property='og:title' content="SpringCloud Alibaba 入门实战"><meta property='og:description' content="源码链接： https://gitee.com/farb/architect-practicer-code\n单体架构、SOA与微服务 单体架构 一个系统的所有模块在一个工程中开发，部署时将所有代码打包。\n优点：业务初期，功能简单，开发成本低，效率高。\n缺点：随着业务量不断增大，会出现如下问题：\n代码复杂度高：所有代码杂糅在一起，依赖紧密，修改一处可能导致其他地方出现问题。 体积大，部署慢：假设一个完整的包是500M，如果只改了一行代码，也需要重新部署整个包。 程序出错影响服务稳定性：某个功能的bug可能导致整个进程的崩溃，影响服务可用性。 阻碍技术的更新：一般来说单体架构只能使用同一个技术栈，比如纯java或纯c#。 集群扩容不合理：因为单体架构所有模块一起部署，假如只是用户模块需要扩容，但是其他模块也跟着扩容，造成资源浪费，而且扩容时间较长。 SOA （Service Oriented Architecture） 微服务是SOA体系结构不断演进的结果。SOA和微服务本质上都在拆分服务，为了降低耦合，提升代码的复用性。但微服务更突出服务的独立性，是更细粒度地划分服务。拆分粒度没有统一标准，需要自己权衡利弊。\n微服务 微服务是一种架构风格，它把一个复杂的系统拆分成多个小的服务，每个服务只做一件事情，服务之间互相调用。\n优点：\n代码复杂度低：根据业务细粒度拆分成多个小服务，业务功能清晰，代码体积小，便于理解维护。 技术选型不受限：单个服务可以根据自身业务选择合适的技术栈。 独立部署：如果修改一个后台服务，修改完毕后只需要部署这一个服务即可，其他服务不动，影响范围小，也减少了测试和部署的时间。 服务的可伸缩性：根据业务发展，哪个服务承载量到达了上限，就多部署一些节点，反之，哪些业务量不大，就减少一些节点。 错误隔离：当某个服务出现故障时，不会影响其他服务，不会影响整个系统。比如后台管理服务出现故障，不会影响用户服务。 容易分库：每个服务独立部署，也可以独立连接一个数据库，省去单体架构的分库成本。 缺点：\n万事万物都是一分为二的，有好必然有坏。\n构建微服务系统复杂：构建微服务系统需要很多技术，比如注册中心、配置中心、服务调用、服务网关、消息总线、监控中心、分布式事务等。需要考虑网络延迟和网络故障的影响。 服务依赖：假如三个服务A、B、C,A调用B,B调用C，如果C不得已必须修改，可能B要修改，A可能也因为B的修改也要修改。 数据一致性问题：各个服务都是独立的进程，传统的数据库事务失效，假设A调用B，恰好遇到网络延迟或网络抖动等网络故障，A服务数据回滚，而B数据可能已经修改保存。 排除故障困难：微服务调用链较长，可能涉及跨多个服务，因此要定位线上问题，不得不同时查看多个服务问题。 运维和部署：要检查和监控多个服务的健康状态，快速部署多个服务，以及根据服务的负载情况进行动态伸缩，都是不小的挑战。 微服务所需要的技术栈 服务注册与发现：当调用接口服务时，首先从服务注册中心获取被调用服务的真实地址，然后调用具体某个服务，调用方不需要知道真实地址。这样很容易实现目标服务的负载均衡，服务之间也实现了解耦。 服务调用：调用方真正调用目标服务的技术（HTTP,RPC） 服务熔断、限流、降级：保证服务的稳定性。 负载均衡：决定调用服务集群中的哪个服务。 配置中心：集中式管理项目的配置，方便修改，解决重复配置，实时生效。 消息队列：服务之间可以异步、解耦，减少调用链路。 服务网关：可以用来做认证，灰度发布等。 服务监控：监控服务的健康状态 消息总线：事件传播与通知，解耦微服务依赖关系，数据一致性维护，异步通信等 分布式链路追踪：查看接口调用链路，排除故障 自动化构建部署：CI/CD Spring Cloud Alibaba是什么？ 引用官网的一段话：https://sca.aliyun.com/docs/2023/overview/what-is-sca\nSpring Cloud Alibaba 致力于提供微服务开发的一站式解决方案。此项目包含开发分布式应用服务的必需组件，方便开发者通过 Spring Cloud 编程模型轻松使用这些组件来开发分布式应用服务。\n依托 Spring Cloud Alibaba，您只需要添加一些注解和少量配置，就可以将 Spring Cloud 应用接入阿里分布式应用解决方案，通过阿里中间件来迅速搭建分布式应用系统。\nSpring Cloud Alibaba 提供的主要组件包括：\nNacos：服务注册中心、配置中心、服务元数据存储中心。 Sentinel：流量控制、熔断降级、系统负载保护。 Seata：分布式事务解决方案。 dubbo：远程调用RPC框架。 RocketMQ：阿里的开源分布式消息中间件，高性能、高可用、高吞吐量的金融级消息中间件。 OSS(收费): 文件存储服务 ScheduleX(收费)：分布式任务调度。 SMS(收费): 短信服务。 Spring Cloud 微服务体系 Spring Cloud 是分布式微服务架构的一站式解决方案，它提供了一套简单易用的编程模型，使我们能在 Spring Boot 的基础上轻松地实现微服务系统的构建。 Spring Cloud 提供以微服务为核心的分布式系统构建标准。\n"><meta property='og:url' content='https://farb.github.io/p/springcloudalibaba_01_introduction/'><meta property='og:site_name' content="Farb's Blog"><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='SpringCloudAlibaba'><meta property='article:published_time' content='2024-12-07T00:00:00+00:00'><meta property='article:modified_time' content='2024-12-07T00:00:00+00:00'><meta name=twitter:title content="SpringCloud Alibaba 入门实战"><meta name=twitter:description content="源码链接： https://gitee.com/farb/architect-practicer-code\n单体架构、SOA与微服务 单体架构 一个系统的所有模块在一个工程中开发，部署时将所有代码打包。\n优点：业务初期，功能简单，开发成本低，效率高。\n缺点：随着业务量不断增大，会出现如下问题：\n代码复杂度高：所有代码杂糅在一起，依赖紧密，修改一处可能导致其他地方出现问题。 体积大，部署慢：假设一个完整的包是500M，如果只改了一行代码，也需要重新部署整个包。 程序出错影响服务稳定性：某个功能的bug可能导致整个进程的崩溃，影响服务可用性。 阻碍技术的更新：一般来说单体架构只能使用同一个技术栈，比如纯java或纯c#。 集群扩容不合理：因为单体架构所有模块一起部署，假如只是用户模块需要扩容，但是其他模块也跟着扩容，造成资源浪费，而且扩容时间较长。 SOA （Service Oriented Architecture） 微服务是SOA体系结构不断演进的结果。SOA和微服务本质上都在拆分服务，为了降低耦合，提升代码的复用性。但微服务更突出服务的独立性，是更细粒度地划分服务。拆分粒度没有统一标准，需要自己权衡利弊。\n微服务 微服务是一种架构风格，它把一个复杂的系统拆分成多个小的服务，每个服务只做一件事情，服务之间互相调用。\n优点：\n代码复杂度低：根据业务细粒度拆分成多个小服务，业务功能清晰，代码体积小，便于理解维护。 技术选型不受限：单个服务可以根据自身业务选择合适的技术栈。 独立部署：如果修改一个后台服务，修改完毕后只需要部署这一个服务即可，其他服务不动，影响范围小，也减少了测试和部署的时间。 服务的可伸缩性：根据业务发展，哪个服务承载量到达了上限，就多部署一些节点，反之，哪些业务量不大，就减少一些节点。 错误隔离：当某个服务出现故障时，不会影响其他服务，不会影响整个系统。比如后台管理服务出现故障，不会影响用户服务。 容易分库：每个服务独立部署，也可以独立连接一个数据库，省去单体架构的分库成本。 缺点：\n万事万物都是一分为二的，有好必然有坏。\n构建微服务系统复杂：构建微服务系统需要很多技术，比如注册中心、配置中心、服务调用、服务网关、消息总线、监控中心、分布式事务等。需要考虑网络延迟和网络故障的影响。 服务依赖：假如三个服务A、B、C,A调用B,B调用C，如果C不得已必须修改，可能B要修改，A可能也因为B的修改也要修改。 数据一致性问题：各个服务都是独立的进程，传统的数据库事务失效，假设A调用B，恰好遇到网络延迟或网络抖动等网络故障，A服务数据回滚，而B数据可能已经修改保存。 排除故障困难：微服务调用链较长，可能涉及跨多个服务，因此要定位线上问题，不得不同时查看多个服务问题。 运维和部署：要检查和监控多个服务的健康状态，快速部署多个服务，以及根据服务的负载情况进行动态伸缩，都是不小的挑战。 微服务所需要的技术栈 服务注册与发现：当调用接口服务时，首先从服务注册中心获取被调用服务的真实地址，然后调用具体某个服务，调用方不需要知道真实地址。这样很容易实现目标服务的负载均衡，服务之间也实现了解耦。 服务调用：调用方真正调用目标服务的技术（HTTP,RPC） 服务熔断、限流、降级：保证服务的稳定性。 负载均衡：决定调用服务集群中的哪个服务。 配置中心：集中式管理项目的配置，方便修改，解决重复配置，实时生效。 消息队列：服务之间可以异步、解耦，减少调用链路。 服务网关：可以用来做认证，灰度发布等。 服务监控：监控服务的健康状态 消息总线：事件传播与通知，解耦微服务依赖关系，数据一致性维护，异步通信等 分布式链路追踪：查看接口调用链路，排除故障 自动化构建部署：CI/CD Spring Cloud Alibaba是什么？ 引用官网的一段话：https://sca.aliyun.com/docs/2023/overview/what-is-sca\nSpring Cloud Alibaba 致力于提供微服务开发的一站式解决方案。此项目包含开发分布式应用服务的必需组件，方便开发者通过 Spring Cloud 编程模型轻松使用这些组件来开发分布式应用服务。\n依托 Spring Cloud Alibaba，您只需要添加一些注解和少量配置，就可以将 Spring Cloud 应用接入阿里分布式应用解决方案，通过阿里中间件来迅速搭建分布式应用系统。\nSpring Cloud Alibaba 提供的主要组件包括：\nNacos：服务注册中心、配置中心、服务元数据存储中心。 Sentinel：流量控制、熔断降级、系统负载保护。 Seata：分布式事务解决方案。 dubbo：远程调用RPC框架。 RocketMQ：阿里的开源分布式消息中间件，高性能、高可用、高吞吐量的金融级消息中间件。 OSS(收费): 文件存储服务 ScheduleX(收费)：分布式任务调度。 SMS(收费): 短信服务。 Spring Cloud 微服务体系 Spring Cloud 是分布式微服务架构的一站式解决方案，它提供了一套简单易用的编程模型，使我们能在 Spring Boot 的基础上轻松地实现微服务系统的构建。 Spring Cloud 提供以微服务为核心的分布式系统构建标准。\n"><link rel="shortcut icon" href=/favicon.png><meta name=baidu-site-verification content="codeva-XtyrR4VjKV"></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://s3.bmp.ovh/imgs/2024/04/25/1e5e17f5abe2b80d.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>Farb's Blog</a></h1><h2 class=site-description>像水一样努力，终会水滴石穿</h2></div></header><ol class=menu-social><li><a href=https://gitee.com/farb target=_blank title=Gitee rel=me><!doctype html><svg t="1713884778674" class="icon" viewBox="0 0 1024 1024" p-id="10647" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 1024A512 512 0 11512 0a512 512 0 010 1024zm259.2-568.896H480.32a25.28 25.28.0 00-25.28 25.28v63.232c0 13.952 11.328 25.28 25.28 25.28h177.024c13.952.0 25.28 11.328 25.28 25.28v12.672c0 41.856-33.92 75.84-75.84 75.84H366.592a25.28 25.28.0 01-25.28-25.28V417.216c0-41.92 33.92-75.84 75.84-75.84h353.92a25.28 25.28.0 0025.28-25.344l.064-63.168a25.28 25.28.0 00-25.216-25.28H417.152A189.632 189.632.0 00227.52 417.216v353.92c0 14.016 11.328 25.28 25.28 25.28h372.992a170.624 170.624.0 00170.624-170.624V480.384a25.28 25.28.0 00-25.28-25.28z" fill="#C71D23" p-id="10648"/></svg></a></li><li><a href=https://github.com/farb target=_blank title=GitHub rel=me><!doctype html><svg t="1713884694671" class="icon" viewBox="0 0 1024 1024" p-id="9399" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M64 512c0 195.2 124.8 361.6 300.8 422.4 22.4 6.4 19.2-9.6 19.2-22.4v-76.8c-134.4 16-140.8-73.6-150.4-89.6-19.2-32-60.8-38.4-48-54.4 32-16 64 3.2 99.2 57.6 25.6 38.4 76.8 32 105.6 25.6 6.4-22.4 19.2-44.8 35.2-60.8C281.6 691.2 224 604.8 224 502.4c0-48 16-96 48-131.2-22.4-60.8.0-115.2 3.2-121.6 57.6-6.4 118.4 41.6 124.8 44.8 32-9.6 70.4-12.8 112-12.8s80 6.4 112 12.8c12.8-9.6 67.2-48 121.6-44.8 3.2 6.4 25.6 57.6 6.4 118.4 32 38.4 48 83.2 48 131.2.0 102.4-57.6 188.8-201.6 214.4 22.4 22.4 38.4 54.4 38.4 92.8v112c0 9.6.0 19.2 16 19.2C832 876.8 960 710.4 960 512c0-246.4-201.6-448-448-448S64 265.6 64 512z" fill="#040000" p-id="9400"/></svg></a></li><li><a href=https://leetcode.cn/u/int2147483647 target=_blank title=力扣 rel=me><!doctype html><svg t="1713884461345" class="icon" viewBox="0 0 1024 1024" p-id="4333" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M701.28 766.86a58.9 58.9.0 0183.1 83.52l-102.24 102c-94.3 94.16-248 95.52-344 3.16-.56-.52-43.26-42.4-184.12-180.54-93.72-92-103.06-238.94-14.88-333.36l164.44-176C391.12 172 552.46 161.68 652.54 242.6l149.34 120.78a58.92 58.92.0 01-74 91.76L578.54 334.36c-52.34-42.34-144-36.52-189.06 11.84l-164.44 176c-42.94 46-38.22 120 11.26 168.54l183.26 179.7c49.86 48 130.48 47.3 179.42-1.58z" fill="#FFA116" p-id="4334"/><path d="M452.94 664.7a58.96 58.96.0 010-118h434a58.96 58.96.0 010 118z" fill="#B3B3B3" p-id="4335"/><path d="M534.22 18.68a58.9 58.9.0 1186 80.56L225.1 522.28c-42.92 46-38.22 120 11.24 168.54l182.46 178.9A58.92 58.92.0 01336.46 954L154.06 775.08c-93.7-92-103.04-238.94-14.84-333.36z" p-id="4336"/></svg></a></li><li><a href=https://www.cnblogs.com/farb target=_blank title=博客园 rel=me><!doctype html><svg t="1713884612994" class="icon" viewBox="0 0 1024 1024" p-id="8439" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M851.40363594 172.59636406c-187.46181844-187.46181844-491.34545437-187.46181844-678.80727188.0-187.46181844 187.46181844-187.46181844 491.34545437.0 678.80727188 187.46181844 187.46181844 491.34545437 187.46181844 678.80727188.0 187.46181844-187.46181844 187.46181844-491.34545437.0-678.80727188zM387.33090875 728.08727281a47.08363594 47.08363594.0 11-66.63272719-66.50181843 47.08363594 47.08363594.0 0166.63272719 66.50181843zm205.52727281 1.39636313a38.74909125 38.74909125.0 01-76.62545437-11.52h-.04363594a6.54545437 6.54545437.0 00-.04363688.30545531V717.92c.30545438-2.61818156 2.05090875-20.72727281-2.96727281-44.98909125a174.24 174.24.0 00-48.56727281-89.28 172.10181844 172.10181844.0 00-88.8-48.30545438 156.69818156 156.69818156.0 00-42.45818156-2.92363593 38.66181844 38.66181844.0 01-35.38909125-65.32363688 38.61818156 38.61818156.0 0121.12-10.8218175v-.2181825c4.45090875-.74181844 111.14181844-16.45090875 200.33454562 72.74181844 89.01818156 89.01818156 74.18181844 196.14545438 73.44 200.72727281zm175.2 7.59272812a38.74909125 38.74909125.0 01-65.67272719 21.3818175 39.49090875 39.49090875.0 01-11.65090875-33.73090875c.08727281-.34909125 5.10545437-37.48363594-5.06181843-88.97454562C672.36363594 568.37818157 640.37818156 508.85818156 590.72 458.85090875c-50.00727281-49.70181844-109.52727281-81.64363594-176.94545438-94.95272719-51.49090875-10.16727281-88.58181844-5.19272719-89.01818156-5.14909031h.21818156-.04363687a39.92727281 39.92727281.0 01-44.68363594-32.90181844 38.83636406 38.83636406.0 0132.20363594-44.37818156c1.92-.30545438 47.86909125-7.33090875 111.27272719 4.36363594a411.75272719 411.75272719.0 01106.25454562 34.95272718A425.76 425.76.0 01644.61090875 403.04l.91636406.96.96.87272719a425.89090875 425.89090875.0 0182.25454563 114.72c16.40727281 33.6 28.14545437 69.29454562 34.99636312 106.21090875 11.65090875 63.40363594 4.66909125 109.35272719 4.32 111.27272812z" fill="#1296db" p-id="8440"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>主页</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>搜索</span></a></li><li><a href=/%E9%93%BE%E6%8E%A5/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>链接</span></a></li><li class=menu-bottom-section><ol class=menu><li id=i18n-switch><svg class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/></svg>
+<select name=language title=language onchange="window.location.href=this.selectedOptions[0].value"><option value=https://farb.github.io/ selected>English</option><option value=https://farb.github.io/zh-cn/>中文</option></select></li><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#单体架构soa与微服务>单体架构、SOA与微服务</a><ol><li><a href=#单体架构>单体架构</a></li><li><a href=#soa-service-oriented-architecture>SOA （Service Oriented Architecture）</a></li><li><a href=#微服务>微服务</a></li></ol></li><li><a href=#微服务所需要的技术栈>微服务所需要的技术栈</a></li><li><a href=#spring-cloud-alibaba是什么>Spring Cloud Alibaba是什么？</a></li><li><a href=#spring-cloud-微服务体系>Spring Cloud 微服务体系</a></li><li><a href=#spring-cloud-alibaba-定位>Spring Cloud Alibaba 定位</a></li><li><a href=#关于spring-cloud-alibaba各个组件的版本兼容问题>关于Spring Cloud Alibaba各个组件的版本兼容问题</a></li><li><a href=#spring-cloud-alibaba-快速开始>Spring Cloud Alibaba 快速开始</a><ol><li><a href=#安装运行nacos服务>安装运行Nacos服务</a></li><li><a href=#创建微服务>创建微服务</a></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/springcloud/>SpringCloud
+</a><a href=/categories/springcloudalibaba/>SpringCloudAlibaba</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/springcloudalibaba_01_introduction/>SpringCloud Alibaba 入门实战</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>2024-12-07</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>4 minute read</time></div></footer></div></header><section class=article-content><p>源码链接： <a class=link href=https://gitee.com/farb/architect-practicer-code target=_blank rel=noopener>https://gitee.com/farb/architect-practicer-code</a></p><h2 id=单体架构soa与微服务>单体架构、SOA与微服务</h2><h3 id=单体架构>单体架构</h3><p>一个系统的所有模块在一个工程中开发，部署时将所有代码打包。</p><p>优点：业务初期，功能简单，开发成本低，效率高。</p><p>缺点：随着业务量不断增大，会出现如下问题：</p><ol><li>代码复杂度高：所有代码杂糅在一起，依赖紧密，修改一处可能导致其他地方出现问题。</li><li>体积大，部署慢：假设一个完整的包是500M，如果只改了一行代码，也需要重新部署整个包。</li><li>程序出错影响服务稳定性：某个功能的bug可能导致整个进程的崩溃，影响服务可用性。</li><li>阻碍技术的更新：一般来说单体架构只能使用同一个技术栈，比如纯java或纯c#。</li><li>集群扩容不合理：因为单体架构所有模块一起部署，假如只是用户模块需要扩容，但是其他模块也跟着扩容，造成资源浪费，而且扩容时间较长。</li></ol><h3 id=soa-service-oriented-architecture>SOA （Service Oriented Architecture）</h3><p>微服务是SOA体系结构不断演进的结果。SOA和微服务本质上都在拆分服务，为了降低耦合，提升代码的复用性。但微服务更突出服务的独立性，是更细粒度地划分服务。拆分粒度没有统一标准，需要自己权衡利弊。</p><h3 id=微服务>微服务</h3><p>微服务是一种架构风格，它把一个复杂的系统拆分成多个小的服务，每个服务只做一件事情，服务之间互相调用。</p><p>优点：</p><ol><li>代码复杂度低：根据业务细粒度拆分成多个小服务，业务功能清晰，代码体积小，便于理解维护。</li><li>技术选型不受限：单个服务可以根据自身业务选择合适的技术栈。</li><li>独立部署：如果修改一个后台服务，修改完毕后只需要部署这一个服务即可，其他服务不动，影响范围小，也减少了测试和部署的时间。</li><li>服务的可伸缩性：根据业务发展，哪个服务承载量到达了上限，就多部署一些节点，反之，哪些业务量不大，就减少一些节点。</li><li>错误隔离：当某个服务出现故障时，不会影响其他服务，不会影响整个系统。比如后台管理服务出现故障，不会影响用户服务。</li><li>容易分库：每个服务独立部署，也可以独立连接一个数据库，省去单体架构的分库成本。</li></ol><p>缺点：</p><p>万事万物都是一分为二的，有好必然有坏。</p><ol><li>构建微服务系统复杂：构建微服务系统需要很多技术，比如注册中心、配置中心、服务调用、服务网关、消息总线、监控中心、分布式事务等。需要考虑网络延迟和网络故障的影响。</li><li>服务依赖：假如三个服务A、B、C,A调用B,B调用C，如果C不得已必须修改，可能B要修改，A可能也因为B的修改也要修改。</li><li>数据一致性问题：各个服务都是独立的进程，传统的数据库事务失效，假设A调用B，恰好遇到网络延迟或网络抖动等网络故障，A服务数据回滚，而B数据可能已经修改保存。</li><li>排除故障困难：微服务调用链较长，可能涉及跨多个服务，因此要定位线上问题，不得不同时查看多个服务问题。</li><li>运维和部署：要检查和监控多个服务的健康状态，快速部署多个服务，以及根据服务的负载情况进行动态伸缩，都是不小的挑战。</li></ol><h2 id=微服务所需要的技术栈>微服务所需要的技术栈</h2><ol><li>服务注册与发现：当调用接口服务时，首先从服务注册中心获取被调用服务的真实地址，然后调用具体某个服务，调用方不需要知道真实地址。这样很容易实现目标服务的负载均衡，服务之间也实现了解耦。</li><li>服务调用：调用方真正调用目标服务的技术（HTTP,RPC）</li><li>服务熔断、限流、降级：保证服务的稳定性。</li><li>负载均衡：决定调用服务集群中的哪个服务。</li><li>配置中心：集中式管理项目的配置，方便修改，解决重复配置，实时生效。</li><li>消息队列：服务之间可以异步、解耦，减少调用链路。</li><li>服务网关：可以用来做认证，灰度发布等。</li><li>服务监控：监控服务的健康状态</li><li>消息总线：事件传播与通知，解耦微服务依赖关系，数据一致性维护，异步通信等</li><li>分布式链路追踪：查看接口调用链路，排除故障</li><li>自动化构建部署：CI/CD</li></ol><h2 id=spring-cloud-alibaba是什么>Spring Cloud Alibaba是什么？</h2><p>引用官网的一段话：https://sca.aliyun.com/docs/2023/overview/what-is-sca</p><p>Spring Cloud Alibaba 致力于提供微服务开发的一站式解决方案。此项目包含开发分布式应用服务的必需组件，方便开发者通过 Spring Cloud 编程模型轻松使用这些组件来开发分布式应用服务。</p><p>依托 Spring Cloud Alibaba，您只需要添加一些注解和少量配置，就可以将 Spring Cloud 应用接入阿里分布式应用解决方案，通过阿里中间件来迅速搭建分布式应用系统。</p><p>Spring Cloud Alibaba 提供的主要组件包括：</p><ol><li>Nacos：服务注册中心、配置中心、服务元数据存储中心。</li><li>Sentinel：流量控制、熔断降级、系统负载保护。</li><li>Seata：分布式事务解决方案。</li><li>dubbo：远程调用RPC框架。</li><li>RocketMQ：阿里的开源分布式消息中间件，高性能、高可用、高吞吐量的金融级消息中间件。</li><li>OSS(收费): 文件存储服务</li><li>ScheduleX(收费)：分布式任务调度。</li><li>SMS(收费): 短信服务。</li></ol><h2 id=spring-cloud-微服务体系>Spring Cloud 微服务体系</h2><p>Spring Cloud 是分布式微服务架构的一站式解决方案，它提供了一套简单易用的编程模型，使我们能在 Spring Boot 的基础上轻松地实现微服务系统的构建。 Spring Cloud 提供以微服务为核心的分布式系统构建标准。</p><p>Spring Cloud 本身并不是一个开箱即用的框架，它是一套微服务规范，共有两代实现。</p><ol><li>Spring Cloud Netflix 是 Spring Cloud 的第一代实现，主要由 Eureka、Ribbon、Feign、Hystrix 等组件组成。</li><li>Spring Cloud Alibaba 是 Spring Cloud 的第二代实现，主要由 Nacos、Sentinel、Seata 等组件组成。</li></ol><p><a class=link href=https://imgse.com/i/pA78O91 target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/07/pA78O91.png loading=lazy alt=pA78O91.png></a></p><h2 id=spring-cloud-alibaba-定位>Spring Cloud Alibaba 定位</h2><p><a class=link href=https://imgse.com/i/pA7Gi4A target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/07/pA7Gi4A.png loading=lazy alt=pA7Gi4A.png></a></p><p>Spring Cloud Alibaba 是阿里巴巴结合自身丰富的微服务实践而推出的微服务开发的一站式解决方案，是 Spring Cloud 第二代实现的主要组成部分。吸收了 Spring Cloud Netflix 微服务框架的核心架构思想，并进行了高性能改进。自 Spring Cloud Netflix 进入停更维护后，Spring Cloud Alibaba 逐渐代替它成为主流的微服务框架。</p><p>同时 Spring Cloud Alibaba 也是国内首个进入 Spring 社区的开源项目。2018 年 7 月，Spring Cloud Alibaba 正式开源，并进入 Spring Cloud 孵化器中孵化；2019 年 7 月，Spring Cloud 官方宣布 Spring Cloud Alibaba 毕业，并将仓库迁移到 Alibaba Github OSS 下。</p><p><a class=link href=https://imgse.com/i/pA74NUe target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/08/pA74NUe.png loading=lazy alt=pA74NUe.png></a></p><h2 id=关于spring-cloud-alibaba各个组件的版本兼容问题>关于Spring Cloud Alibaba各个组件的版本兼容问题</h2><p><a class=link href=https://sca.aliyun.com/docs/2023/overview/version-explain target=_blank rel=noopener>https://sca.aliyun.com/docs/2023/overview/version-explain</a></p><p><a class=link href=https://imgse.com/i/pA7GA3t target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/07/pA7GA3t.png loading=lazy alt=pA7GA3t.png></a></p><h2 id=spring-cloud-alibaba-快速开始>Spring Cloud Alibaba 快速开始</h2><h3 id=安装运行nacos服务>安装运行Nacos服务</h3><p>根据官网文档，下载压缩包或者直接使用docker镜像都可以。 <a class=link href=https://nacos.io/download/nacos-server/ target=_blank rel=noopener>https://nacos.io/download/nacos-server/</a></p><p>然后以standalone的方式运行Nacos服务，我这里以官方bat脚本运行，传入参数standalone，运行成功如下所示：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>D:<span class=se>\A</span>rchitectPracticer<span class=se>\M</span>icroServiceTools<span class=se>\n</span>acos-server-2.4.3<span class=se>\n</span>acos<span class=se>\b</span>in&gt;startup.cmd -m standalone
+</span></span><span class=line><span class=cl><span class=s2>&#34;nacos is starting with standalone&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>         ,--.
+</span></span><span class=line><span class=cl>       ,--.<span class=s1>&#39;|
+</span></span></span><span class=line><span class=cl><span class=s1>   ,--,:  : |                                           Nacos 2.4.3
+</span></span></span><span class=line><span class=cl><span class=s1>,`--.&#39;</span><span class=sb>`</span><span class=p>|</span>  <span class=s1>&#39; :                       ,---.               Running in stand alone mode, All function modules
+</span></span></span><span class=line><span class=cl><span class=s1>|   :  :  | |                      &#39;</span>   ,<span class=s1>&#39;\   .--.--.    Port: 8848
+</span></span></span><span class=line><span class=cl><span class=s1>:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    &#39;</span>   Pid: <span class=m>22544</span>
+</span></span><span class=line><span class=cl><span class=p>|</span>   : <span class=s1>&#39;  &#39;</span><span class=p>;</span> <span class=p>|</span> /       <span class=se>\ </span>  /     <span class=se>\.</span>   <span class=p>;</span> ,. :<span class=p>|</span>  :  /<span class=sb>`</span>./   Console: http://192.168.31.227:8848/nacos/index.html
+</span></span><span class=line><span class=cl><span class=s1>&#39;   &#39;</span> <span class=p>;</span>.    <span class=p>;</span>.--.  .-. <span class=p>|</span> /    / <span class=s1>&#39;&#39;</span>   <span class=p>|</span> <span class=p>|</span>: :<span class=p>|</span>  :  <span class=p>;</span>_
+</span></span><span class=line><span class=cl><span class=p>|</span>   <span class=p>|</span> <span class=p>|</span> <span class=se>\ </span>  <span class=p>|</span> <span class=se>\_</span>_<span class=se>\/</span>: . ..    <span class=s1>&#39; / &#39;</span>   <span class=p>|</span> .<span class=p>;</span> : <span class=se>\ </span> <span class=se>\ </span>   <span class=sb>`</span>.      https://nacos.io
+</span></span><span class=line><span class=cl><span class=s1>&#39;   : |  ; .&#39;</span> ,<span class=s2>&#34; .--.; |&#39;   ; :__|   :    |  `----.   \
+</span></span></span><span class=line><span class=cl><span class=s2>|   | &#39;`--&#39;  /  /  ,.  |&#39;   | &#39;.&#39;|\   \  /  /  /`--&#39;  /
+</span></span></span><span class=line><span class=cl><span class=s2>&#39;   : |     ;  :   .&#39;   \   :    : `----&#39;  &#39;--&#39;.     /
+</span></span></span><span class=line><span class=cl><span class=s2>;   |.&#39;     |  ,     .-./\   \  /            `--&#39;---&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>&#39;---&#39;        `--`---&#39;     `----&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:26,565 INFO Tomcat initialized with port(s): 8848 (http)
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:26,977 INFO Root WebApplicationContext: initialization completed in 3424 ms
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,041 INFO Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@4cad79bc, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2c63762b, org.springframework.security.web.context.SecurityContextPersistenceFilter@726934e2, org.springframework.security.web.header.HeaderWriterFilter@1163a27, org.springframework.security.web.csrf.CsrfFilter@3b55dd15, org.springframework.security.web.authentication.logout.LogoutFilter@3f6bf8aa, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@e280403, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@42f85fa4, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@7a9eccc4, org.springframework.security.web.session.SessionManagementFilter@92d1782, org.springframework.security.web.access.ExceptionTranslationFilter@28a9494b]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,288 INFO Adding welcome page: class path resource [static/index.html]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,783 INFO Exposing 1 endpoint(s) beneath base path &#39;/actuator&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,789 WARN You are asking Spring Security to ignore Ant [pattern=&#39;/**&#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 INFO Will not secure Ant [pattern=&#39;/**&#39;]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&#39;/prometheus&#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&#39;/prometheus&#39;]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&#39;/prometheus/namespaceId/{namespaceId}&#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&#39;/prometheus/namespaceId/{namespaceId}&#39;]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 WARN You are asking Spring Security to ignore Mvc [pattern=&#39;/prometheus/namespaceId/{namespaceId}/service/{service}&#39;]. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,805 INFO Will not secure Mvc [pattern=&#39;/prometheus/namespaceId/{namespaceId}/service/{service}&#39;]
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,867 INFO Tomcat started on port(s): 8848 (http) with context path &#39;/nacos&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,867 INFO No TaskScheduler/ScheduledExecutorService bean found for scheduled processing
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:31,901 INFO Nacos started successfully in stand alone mode. use embedded storage
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:42,783 INFO Initializing Servlet &#39;dispatcherServlet&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>2024-12-06 21:27:42,785 INFO Completed initialization in 1 ms
+</span></span></span></code></pre></td></tr></table></div></div><p>然后可以浏览器中打开 http://192.168.31.227:8848/nacos或localhost:8848/nacos 查看Nacos管理界面是否可以查看。</p><p><a class=link href=https://imgse.com/i/pA70w5T target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/07/pA70w5T.png loading=lazy alt=pA70w5T.png></a></p><h3 id=创建微服务>创建微服务</h3><p>接下来就是创建微服务，启动，查看服务是否注册。</p><p>我这里使用的是当前最新的SpringCloudAlibaba依赖版本2023.0.3.2，支持的springboot版本是3.2.4。</p><p>创建一个父模块SpringCloudAlibabaPractice，只管理公共pom配置，如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=cp>&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;project</span> <span class=na>xmlns=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0&#34;</span> <span class=na>xmlns:xsi=</span><span class=s>&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span>
+</span></span><span class=line><span class=cl>         <span class=na>xsi:schemaLocation=</span><span class=s>&#34;http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd&#34;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;modelVersion&gt;</span>4.0.0<span class=nt>&lt;/modelVersion&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;groupId&gt;</span>top.farb<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;artifactId&gt;</span>SpringCloudAlibabaPractice<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;version&gt;</span>0.0.1-SNAPSHOT<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;name&gt;</span>SpringCloudAlibabaPractice<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;description&gt;</span>SpringCloudAlibabaPractice<span class=nt>&lt;/description&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;packaging&gt;</span>pom<span class=nt>&lt;/packaging&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;properties&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;java.version&gt;</span>17<span class=nt>&lt;/java.version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;project.build.sourceEncoding&gt;</span>UTF-8<span class=nt>&lt;/project.build.sourceEncoding&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;project.reporting.outputEncoding&gt;</span>UTF-8<span class=nt>&lt;/project.reporting.outputEncoding&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;spring-boot.version&gt;</span>3.2.4<span class=nt>&lt;/spring-boot.version&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;spring-cloud-alibaba.version&gt;</span>2023.0.3.2<span class=nt>&lt;/spring-cloud-alibaba.version&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/properties&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=c>&lt;!-- 后面所有演示模块都会以子模块的形式加入--&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;modules&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;module&gt;</span>FirstServiceDemo<span class=nt>&lt;/module&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/modules&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=c>&lt;!-- 这里加一下子模块基本都会使用的依赖，避免子模块重复添加--&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;artifactId&gt;</span>spring-boot-starter-web<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;dependencies&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.springframework.boot<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-boot-dependencies<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>${spring-boot.version}<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;type&gt;</span>pom<span class=nt>&lt;/type&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;scope&gt;</span>import<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;dependency&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>com.alibaba.cloud<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>spring-cloud-alibaba-dependencies<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>2023.0.3.2<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;type&gt;</span>pom<span class=nt>&lt;/type&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;scope&gt;</span>import<span class=nt>&lt;/scope&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/dependency&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/dependencies&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/dependencyManagement&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;build&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;plugins&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;plugin&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;groupId&gt;</span>org.apache.maven.plugins<span class=nt>&lt;/groupId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;artifactId&gt;</span>maven-compiler-plugin<span class=nt>&lt;/artifactId&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;version&gt;</span>3.8.1<span class=nt>&lt;/version&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;configuration&gt;</span>
+</span></span><span class=line><span class=cl>                    <span class=nt>&lt;source&gt;</span>17<span class=nt>&lt;/source&gt;</span>
+</span></span><span class=line><span class=cl>                    <span class=nt>&lt;target&gt;</span>17<span class=nt>&lt;/target&gt;</span>
+</span></span><span class=line><span class=cl>                    <span class=nt>&lt;encoding&gt;</span>UTF-8<span class=nt>&lt;/encoding&gt;</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&lt;/configuration&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;/plugin&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&lt;/plugins&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/build&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/project&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>然后，创建一个子模块，例如FirstServiceDemo，只有一个Springboot启动类就行，再加一个application.yml如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yml data-lang=yml><span class=line><span class=cl><span class=nt>server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class=m>8080</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spring</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>application</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>first-service</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>cloud</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>nacos</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>discovery</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>server-addr</span><span class=p>:</span><span class=w> </span><span class=l>localhost:8848</span><span class=w> </span><span class=c># nacos注册中心地址</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>namespace</span><span class=p>:</span><span class=w> </span><span class=c># 如果为空，则使用public命名空间，否则需要配置nacos的命名空间id</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>启动应用，可以到nacos控制台页面看到服务已经注册成功。</p><p><a class=link href=https://imgse.com/i/pA70w5T target=_blank rel=noopener><img src=https://s21.ax1x.com/2024/12/07/pA70w5T.png loading=lazy alt=pA70w5T.png></a></p><p>至此，基本的框架就搭建好了。后面的实战会以这个作为基础。</p></section><footer class=article-footer><section class=article-tags><a href=/tags/springcloudalibaba/>SpringCloudAlibaba</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section>页面浏览量<span id=busuanzi_value_page_pv>Loading</span></section><section><strong>如果觉得我的博客能帮助到你，欢迎点击右侧的赞助进行投喂。如有技术咨询，也可以加本人好友。</strong></section></footer></article><script src=//unpkg.com/@waline/client@v2/dist/waline.js></script><link href=//unpkg.com/@waline/client@v2/dist/waline.css rel=stylesheet><div id=waline class=waline-container></div><style>.waline-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding);--waline-font-size:var(--article-font-size)}.waline-container .wl-count{color:var(--card-text-color-main)}</style><script>Waline.init({avatar:"",dark:'html[data-scheme="dark"]',el:"#waline",emoji:["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"],lang:"zh-cn",locale:{admin:"Admin",placeholder:null},placeholder:"",requiredMeta:["name","email"],serverURL:"https://blog.comment.farb.top",visitor:""})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 Farb's Blog</section><section class=powerby>总访客数：<span id=busuanzi_value_site_uv style=margin-right:10px>Loading</span> 总访问量：<span id=busuanzi_value_site_pv style=margin-right:10px>Loading</span>
+<a href=https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io style=color:blue target=_blank>实时统计</a><br><span id=span_show_age style=margin-right:30px><br>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script><script src=https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js></script><script>new tctip({top:"20%",button:{id:8,type:"zanzhu"},list:[{type:"alipay",qrImg:"https://github.com/user-attachments/assets/3ac3da80-aa15-4ab7-bee7-7292a08fcda1"},{type:"wechat",qrImg:"https://github.com/user-attachments/assets/efc07320-351b-45f3-9a89-a938050da4ef"},{type:"weixin",name:"加好友",icon:"https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png",qrImg:"https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg",desc:"微信:beingBetterSelf"}]}).init()</script><script defer src=https://cn.vercount.one/js></script><script defer src=https://analytics.eu.umami.is/script.js data-website-id=0a12e949-0500-4ff1-872c-b8969b376add></script><script defer language=javascript>var uptime_1="本站已经开心运行 ",uptime_2=" 天 ",uptime_3=" 小时 ",uptime_4=" 分 ",uptime_5=" 秒";function show_date_time(){window.setTimeout(show_date_time,1e3),BirthDay=new Date("4/08/2024 22:54:23"),today=new Date,timeold=today.getTime()-BirthDay.getTime(),sectimeold=timeold/1e3,secondsold=Math.floor(sectimeold),msPerDay=24*60*60*1e3,e_daysold=timeold/msPerDay,daysold=Math.floor(e_daysold),e_hrsold=(e_daysold-daysold)*24,hrsold=Math.floor(e_hrsold),e_minsold=(e_hrsold-hrsold)*60,minsold=Math.floor((e_hrsold-hrsold)*60),seconds=Math.floor((e_minsold-minsold)*60),document.getElementById("span_show_age").innerHTML=uptime_1+daysold+uptime_2+hrsold+uptime_3+minsold+uptime_4+seconds+uptime_5}show_date_time()</script></body></html>

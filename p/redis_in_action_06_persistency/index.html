@@ -1,0 +1,689 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="Redis持久化机制概述 对于Redis而言，持久化机制是指把内存中的数据存为硬盘文件，当Redis重启或服务器故障时，能根据持久化的硬盘文件恢复数据。Redis有两种持久化方式，分别是AOF(Append Only File,只追加文件)和RDB（Redis database,基于Redis数据库）\n基于AOF的持久化机制 AOF会以日志的方式记录每个Redis的写命令，并在Redis服务器重启时重新执行AOF日志文件中的命令，从而恢复数据。 AOF持久化默认配置关闭，如果打开，每当发生写的命令，该命令就会被记录到AOF缓冲区里，AOF缓冲区会根据事先配置的策略定期与硬盘文件进行同步操作。 当AOF文件大到一定程度后会被重写，在不影响持久化结果的前提下进行压缩。\nAOF重写：随着持久化数据的增多，对应的AOF文件会越来越大，可能会影响性能，此时Redis会创建新的AOF文件替代现有的，在数据恢复时，效果相同，但新文件不会包含冗余命令，所以文件会比原来的小。 当Redis发生故障重启时，根据AOF日志文件恢复数据的过程如下：\n创建一个伪客户端（fake client）,不连接任何网络，除此之外和真实的客户端都一样； 该伪客户端从AOF日志文件中依次读取命令并执行，直到完成所有命令。 AOF的持久化机制具有实时存储的特性，因此可以在读写关键数据时开启。\n基于RDB的持久化机制 Redis默认的持久化机制就RDB，RDB的持久化方式会把当前内存中的所有Redis键值对数据以快照的方式保存到硬盘文件，如果需要恢复数据，就把快照文件读取到内存。 RDB快照文件是经压缩的二进制文件，它的存储路径可以在redis.conf中指定，也可以在redis运行时通过命令设置。 Redis的RDB持久化机制触发机制有两种：\nsave和bgsave等命令手动触发； 通过redis.conf配置文件里设置的方式定期把数据写入快照。 基于RDB的持久化方式适合数据备份和灾备场景，但RDB无法实现即使备份，两次备份之间必然会丢数据。\nAOF持久化机制实践 AOF配置文件的说明 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 # 开启AOF功能，默认是关闭的 appendonly yes # 开启aof功能后，通过appendfsync设置持久化策略 appendfsync always/everysec/no # always: 每次写命令时都会触发持久化动作，这种方式可能影响Redis性能。 # everysec: 每秒触发一次持久化动作，平衡了持久化需求和性能，一般取这个值。 # no: 由操作系统决定持久化的频率，这种性能最好，但每次持久化操作的间隔可能较长，当故障发生时可能会丢失数据。 dir aofDir # dir指定保存持久化文件的目录 appendfilename aofFileName # 指定持久化文件的名称，默认文件名为appendonly.aof auto-load-truncated # 定义aof文件的加载策略。当AOF持久化文件损坏时启动Redis是否会自动加载，默认为yes no-appendfsync-on-rewrite yes/no # 平衡性能和安全性。字面意思是：AOF重写时是否禁用AOF追加。默认为no # 如果为yes,则会提高重写性能，但可能会丢失写的数据。 # 如果为no，则不会丢失数据，但重写性能可能会降低。 auto-aof-rewrite-percentage # 指定自动重写的条件。默认是100，即如果当前的AOF文件比上次执行重写时的文件大100%时会再次触发重写操作。如果为0，则不触发。 auto-aof-rewrite-min-size # 指定自动AOF重写的AOF文件的最低要求大小。默认为64MB # 注意： auto-aof-rewrite-percentage 和 auto-aof-rewrite-min-size 必须同时满足条件才会触发。 注意：也可以通过bgrewriteaof命令手动触发AOF重写\n"><title>基于Docker的Redis实战--Redis数据持久化操作</title><link rel=canonical href=https://farb.github.io/p/redis_in_action_06_persistency/><link rel=stylesheet href=/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css><meta property='og:title' content="基于Docker的Redis实战--Redis数据持久化操作"><meta property='og:description' content="Redis持久化机制概述 对于Redis而言，持久化机制是指把内存中的数据存为硬盘文件，当Redis重启或服务器故障时，能根据持久化的硬盘文件恢复数据。Redis有两种持久化方式，分别是AOF(Append Only File,只追加文件)和RDB（Redis database,基于Redis数据库）\n基于AOF的持久化机制 AOF会以日志的方式记录每个Redis的写命令，并在Redis服务器重启时重新执行AOF日志文件中的命令，从而恢复数据。 AOF持久化默认配置关闭，如果打开，每当发生写的命令，该命令就会被记录到AOF缓冲区里，AOF缓冲区会根据事先配置的策略定期与硬盘文件进行同步操作。 当AOF文件大到一定程度后会被重写，在不影响持久化结果的前提下进行压缩。\nAOF重写：随着持久化数据的增多，对应的AOF文件会越来越大，可能会影响性能，此时Redis会创建新的AOF文件替代现有的，在数据恢复时，效果相同，但新文件不会包含冗余命令，所以文件会比原来的小。 当Redis发生故障重启时，根据AOF日志文件恢复数据的过程如下：\n创建一个伪客户端（fake client）,不连接任何网络，除此之外和真实的客户端都一样； 该伪客户端从AOF日志文件中依次读取命令并执行，直到完成所有命令。 AOF的持久化机制具有实时存储的特性，因此可以在读写关键数据时开启。\n基于RDB的持久化机制 Redis默认的持久化机制就RDB，RDB的持久化方式会把当前内存中的所有Redis键值对数据以快照的方式保存到硬盘文件，如果需要恢复数据，就把快照文件读取到内存。 RDB快照文件是经压缩的二进制文件，它的存储路径可以在redis.conf中指定，也可以在redis运行时通过命令设置。 Redis的RDB持久化机制触发机制有两种：\nsave和bgsave等命令手动触发； 通过redis.conf配置文件里设置的方式定期把数据写入快照。 基于RDB的持久化方式适合数据备份和灾备场景，但RDB无法实现即使备份，两次备份之间必然会丢数据。\nAOF持久化机制实践 AOF配置文件的说明 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 # 开启AOF功能，默认是关闭的 appendonly yes # 开启aof功能后，通过appendfsync设置持久化策略 appendfsync always/everysec/no # always: 每次写命令时都会触发持久化动作，这种方式可能影响Redis性能。 # everysec: 每秒触发一次持久化动作，平衡了持久化需求和性能，一般取这个值。 # no: 由操作系统决定持久化的频率，这种性能最好，但每次持久化操作的间隔可能较长，当故障发生时可能会丢失数据。 dir aofDir # dir指定保存持久化文件的目录 appendfilename aofFileName # 指定持久化文件的名称，默认文件名为appendonly.aof auto-load-truncated # 定义aof文件的加载策略。当AOF持久化文件损坏时启动Redis是否会自动加载，默认为yes no-appendfsync-on-rewrite yes/no # 平衡性能和安全性。字面意思是：AOF重写时是否禁用AOF追加。默认为no # 如果为yes,则会提高重写性能，但可能会丢失写的数据。 # 如果为no，则不会丢失数据，但重写性能可能会降低。 auto-aof-rewrite-percentage # 指定自动重写的条件。默认是100，即如果当前的AOF文件比上次执行重写时的文件大100%时会再次触发重写操作。如果为0，则不触发。 auto-aof-rewrite-min-size # 指定自动AOF重写的AOF文件的最低要求大小。默认为64MB # 注意： auto-aof-rewrite-percentage 和 auto-aof-rewrite-min-size 必须同时满足条件才会触发。 注意：也可以通过bgrewriteaof命令手动触发AOF重写\n"><meta property='og:url' content='https://farb.github.io/p/redis_in_action_06_persistency/'><meta property='og:site_name' content="Farb's Blog"><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='redis'><meta property='article:tag' content='docker'><meta property='article:published_time' content='2024-07-27T00:00:00+00:00'><meta property='article:modified_time' content='2024-07-27T00:00:00+00:00'><meta name=twitter:title content="基于Docker的Redis实战--Redis数据持久化操作"><meta name=twitter:description content="Redis持久化机制概述 对于Redis而言，持久化机制是指把内存中的数据存为硬盘文件，当Redis重启或服务器故障时，能根据持久化的硬盘文件恢复数据。Redis有两种持久化方式，分别是AOF(Append Only File,只追加文件)和RDB（Redis database,基于Redis数据库）\n基于AOF的持久化机制 AOF会以日志的方式记录每个Redis的写命令，并在Redis服务器重启时重新执行AOF日志文件中的命令，从而恢复数据。 AOF持久化默认配置关闭，如果打开，每当发生写的命令，该命令就会被记录到AOF缓冲区里，AOF缓冲区会根据事先配置的策略定期与硬盘文件进行同步操作。 当AOF文件大到一定程度后会被重写，在不影响持久化结果的前提下进行压缩。\nAOF重写：随着持久化数据的增多，对应的AOF文件会越来越大，可能会影响性能，此时Redis会创建新的AOF文件替代现有的，在数据恢复时，效果相同，但新文件不会包含冗余命令，所以文件会比原来的小。 当Redis发生故障重启时，根据AOF日志文件恢复数据的过程如下：\n创建一个伪客户端（fake client）,不连接任何网络，除此之外和真实的客户端都一样； 该伪客户端从AOF日志文件中依次读取命令并执行，直到完成所有命令。 AOF的持久化机制具有实时存储的特性，因此可以在读写关键数据时开启。\n基于RDB的持久化机制 Redis默认的持久化机制就RDB，RDB的持久化方式会把当前内存中的所有Redis键值对数据以快照的方式保存到硬盘文件，如果需要恢复数据，就把快照文件读取到内存。 RDB快照文件是经压缩的二进制文件，它的存储路径可以在redis.conf中指定，也可以在redis运行时通过命令设置。 Redis的RDB持久化机制触发机制有两种：\nsave和bgsave等命令手动触发； 通过redis.conf配置文件里设置的方式定期把数据写入快照。 基于RDB的持久化方式适合数据备份和灾备场景，但RDB无法实现即使备份，两次备份之间必然会丢数据。\nAOF持久化机制实践 AOF配置文件的说明 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 # 开启AOF功能，默认是关闭的 appendonly yes # 开启aof功能后，通过appendfsync设置持久化策略 appendfsync always/everysec/no # always: 每次写命令时都会触发持久化动作，这种方式可能影响Redis性能。 # everysec: 每秒触发一次持久化动作，平衡了持久化需求和性能，一般取这个值。 # no: 由操作系统决定持久化的频率，这种性能最好，但每次持久化操作的间隔可能较长，当故障发生时可能会丢失数据。 dir aofDir # dir指定保存持久化文件的目录 appendfilename aofFileName # 指定持久化文件的名称，默认文件名为appendonly.aof auto-load-truncated # 定义aof文件的加载策略。当AOF持久化文件损坏时启动Redis是否会自动加载，默认为yes no-appendfsync-on-rewrite yes/no # 平衡性能和安全性。字面意思是：AOF重写时是否禁用AOF追加。默认为no # 如果为yes,则会提高重写性能，但可能会丢失写的数据。 # 如果为no，则不会丢失数据，但重写性能可能会降低。 auto-aof-rewrite-percentage # 指定自动重写的条件。默认是100，即如果当前的AOF文件比上次执行重写时的文件大100%时会再次触发重写操作。如果为0，则不触发。 auto-aof-rewrite-min-size # 指定自动AOF重写的AOF文件的最低要求大小。默认为64MB # 注意： auto-aof-rewrite-percentage 和 auto-aof-rewrite-min-size 必须同时满足条件才会触发。 注意：也可以通过bgrewriteaof命令手动触发AOF重写\n"><link rel="shortcut icon" href=/favicon.png><meta name=baidu-site-verification content="codeva-XtyrR4VjKV"></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://s3.bmp.ovh/imgs/2024/04/25/1e5e17f5abe2b80d.jpg width=300 height=300 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>Farb's Blog</a></h1><h2 class=site-description>像水一样努力，终会水滴石穿</h2></div></header><ol class=menu-social><li><a href=https://gitee.com/farb target=_blank title=Gitee rel=me><!doctype html><svg t="1713884778674" class="icon" viewBox="0 0 1024 1024" p-id="10647" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 1024A512 512 0 11512 0a512 512 0 010 1024zm259.2-568.896H480.32a25.28 25.28.0 00-25.28 25.28v63.232c0 13.952 11.328 25.28 25.28 25.28h177.024c13.952.0 25.28 11.328 25.28 25.28v12.672c0 41.856-33.92 75.84-75.84 75.84H366.592a25.28 25.28.0 01-25.28-25.28V417.216c0-41.92 33.92-75.84 75.84-75.84h353.92a25.28 25.28.0 0025.28-25.344l.064-63.168a25.28 25.28.0 00-25.216-25.28H417.152A189.632 189.632.0 00227.52 417.216v353.92c0 14.016 11.328 25.28 25.28 25.28h372.992a170.624 170.624.0 00170.624-170.624V480.384a25.28 25.28.0 00-25.28-25.28z" fill="#C71D23" p-id="10648"/></svg></a></li><li><a href=https://github.com/farb target=_blank title=GitHub rel=me><!doctype html><svg t="1713884694671" class="icon" viewBox="0 0 1024 1024" p-id="9399" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M64 512c0 195.2 124.8 361.6 300.8 422.4 22.4 6.4 19.2-9.6 19.2-22.4v-76.8c-134.4 16-140.8-73.6-150.4-89.6-19.2-32-60.8-38.4-48-54.4 32-16 64 3.2 99.2 57.6 25.6 38.4 76.8 32 105.6 25.6 6.4-22.4 19.2-44.8 35.2-60.8C281.6 691.2 224 604.8 224 502.4c0-48 16-96 48-131.2-22.4-60.8.0-115.2 3.2-121.6 57.6-6.4 118.4 41.6 124.8 44.8 32-9.6 70.4-12.8 112-12.8s80 6.4 112 12.8c12.8-9.6 67.2-48 121.6-44.8 3.2 6.4 25.6 57.6 6.4 118.4 32 38.4 48 83.2 48 131.2.0 102.4-57.6 188.8-201.6 214.4 22.4 22.4 38.4 54.4 38.4 92.8v112c0 9.6.0 19.2 16 19.2C832 876.8 960 710.4 960 512c0-246.4-201.6-448-448-448S64 265.6 64 512z" fill="#040000" p-id="9400"/></svg></a></li><li><a href=https://leetcode.cn/u/int2147483647 target=_blank title=力扣 rel=me><!doctype html><svg t="1713884461345" class="icon" viewBox="0 0 1024 1024" p-id="4333" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M701.28 766.86a58.9 58.9.0 0183.1 83.52l-102.24 102c-94.3 94.16-248 95.52-344 3.16-.56-.52-43.26-42.4-184.12-180.54-93.72-92-103.06-238.94-14.88-333.36l164.44-176C391.12 172 552.46 161.68 652.54 242.6l149.34 120.78a58.92 58.92.0 01-74 91.76L578.54 334.36c-52.34-42.34-144-36.52-189.06 11.84l-164.44 176c-42.94 46-38.22 120 11.26 168.54l183.26 179.7c49.86 48 130.48 47.3 179.42-1.58z" fill="#FFA116" p-id="4334"/><path d="M452.94 664.7a58.96 58.96.0 010-118h434a58.96 58.96.0 010 118z" fill="#B3B3B3" p-id="4335"/><path d="M534.22 18.68a58.9 58.9.0 1186 80.56L225.1 522.28c-42.92 46-38.22 120 11.24 168.54l182.46 178.9A58.92 58.92.0 01336.46 954L154.06 775.08c-93.7-92-103.04-238.94-14.84-333.36z" p-id="4336"/></svg></a></li><li><a href=https://www.cnblogs.com/farb target=_blank title=博客园 rel=me><!doctype html><svg t="1713884612994" class="icon" viewBox="0 0 1024 1024" p-id="8439" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M851.40363594 172.59636406c-187.46181844-187.46181844-491.34545437-187.46181844-678.80727188.0-187.46181844 187.46181844-187.46181844 491.34545437.0 678.80727188 187.46181844 187.46181844 491.34545437 187.46181844 678.80727188.0 187.46181844-187.46181844 187.46181844-491.34545437.0-678.80727188zM387.33090875 728.08727281a47.08363594 47.08363594.0 11-66.63272719-66.50181843 47.08363594 47.08363594.0 0166.63272719 66.50181843zm205.52727281 1.39636313a38.74909125 38.74909125.0 01-76.62545437-11.52h-.04363594a6.54545437 6.54545437.0 00-.04363688.30545531V717.92c.30545438-2.61818156 2.05090875-20.72727281-2.96727281-44.98909125a174.24 174.24.0 00-48.56727281-89.28 172.10181844 172.10181844.0 00-88.8-48.30545438 156.69818156 156.69818156.0 00-42.45818156-2.92363593 38.66181844 38.66181844.0 01-35.38909125-65.32363688 38.61818156 38.61818156.0 0121.12-10.8218175v-.2181825c4.45090875-.74181844 111.14181844-16.45090875 200.33454562 72.74181844 89.01818156 89.01818156 74.18181844 196.14545438 73.44 200.72727281zm175.2 7.59272812a38.74909125 38.74909125.0 01-65.67272719 21.3818175 39.49090875 39.49090875.0 01-11.65090875-33.73090875c.08727281-.34909125 5.10545437-37.48363594-5.06181843-88.97454562C672.36363594 568.37818157 640.37818156 508.85818156 590.72 458.85090875c-50.00727281-49.70181844-109.52727281-81.64363594-176.94545438-94.95272719-51.49090875-10.16727281-88.58181844-5.19272719-89.01818156-5.14909031h.21818156-.04363687a39.92727281 39.92727281.0 01-44.68363594-32.90181844 38.83636406 38.83636406.0 0132.20363594-44.37818156c1.92-.30545438 47.86909125-7.33090875 111.27272719 4.36363594a411.75272719 411.75272719.0 01106.25454562 34.95272718A425.76 425.76.0 01644.61090875 403.04l.91636406.96.96.87272719a425.89090875 425.89090875.0 0182.25454563 114.72c16.40727281 33.6 28.14545437 69.29454562 34.99636312 106.21090875 11.65090875 63.40363594 4.66909125 109.35272719 4.32 111.27272812z" fill="#1296db" p-id="8440"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>主页</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>归档</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>搜索</span></a></li><li><a href=/%E9%93%BE%E6%8E%A5/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>链接</span></a></li><li class=menu-bottom-section><ol class=menu><li id=i18n-switch><svg class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/></svg>
+<select name=language title=language onchange="window.location.href=this.selectedOptions[0].value"><option value=https://farb.github.io/ selected>English</option><option value=https://farb.github.io/zh-cn/>中文</option></select></li><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><ol><li><a href=#redis持久化机制概述>Redis持久化机制概述</a><ol><li><a href=#基于aof的持久化机制>基于AOF的持久化机制</a></li><li><a href=#基于rdb的持久化机制>基于RDB的持久化机制</a></li></ol></li><li><a href=#aof持久化机制实践>AOF持久化机制实践</a><ol><li><a href=#aof配置文件的说明>AOF配置文件的说明</a></li><li><a href=#实践aof持久化>实践AOF持久化</a></li><li><a href=#观察重写aof的文件的效果>观察重写AOF的文件的效果</a></li><li><a href=#模拟数据恢复的流程>模拟数据恢复的流程</a></li><li><a href=#修复aof文件>修复AOF文件</a></li></ol></li><li><a href=#rdb持久化机制实践>RDB持久化机制实践</a><ol><li><a href=#编写配置文件生成drb快照>编写配置文件，生成DRB快照</a></li><li><a href=#用快照文件恢复数据>用快照文件恢复数据</a></li><li><a href=#save-和-bgsave>save 和 bgsave</a></li></ol></li><li><a href=#如何选用持久化方式>如何选用持久化方式</a><ol><li><a href=#对比两种持久化方式>对比两种持久化方式</a></li><li><a href=#综合使用两种持久化方式>综合使用两种持久化方式</a></li><li><a href=#查看持久化状态的命令>查看持久化状态的命令</a></li></ol></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/redis/ style=background-color:#2a9d8f;color:#fff>Redis</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/redis_in_action_06_persistency/>基于Docker的Redis实战--Redis数据持久化操作</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>2024-07-27</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>6 minute read</time></div></footer></div></header><section class=article-content><h3 id=redis持久化机制概述>Redis持久化机制概述</h3><p><strong>对于Redis而言，持久化机制是指把内存中的数据存为硬盘文件，当Redis重启或服务器故障时，能根据持久化的硬盘文件恢复数据。Redis有两种持久化方式，分别是AOF(Append Only File,只追加文件)和RDB（Redis database,基于Redis数据库）</strong></p><h4 id=基于aof的持久化机制>基于AOF的持久化机制</h4><p>AOF会以日志的方式记录每个Redis的写命令，并在Redis服务器重启时重新执行AOF日志文件中的命令，从而恢复数据。
+AOF持久化默认配置关闭，如果打开，每当发生写的命令，该命令就会被记录到AOF缓冲区里，AOF缓冲区会根据事先配置的策略定期与硬盘文件进行同步操作。
+当AOF文件大到一定程度后会被重写，在不影响持久化结果的前提下进行压缩。</p><p><strong>AOF重写：随着持久化数据的增多，对应的AOF文件会越来越大，可能会影响性能，此时Redis会创建新的AOF文件替代现有的，在数据恢复时，效果相同，但新文件不会包含冗余命令，所以文件会比原来的小。</strong>
+当Redis发生故障重启时，根据AOF日志文件恢复数据的过程如下：</p><ol><li>创建一个伪客户端（fake client）,不连接任何网络，除此之外和真实的客户端都一样；</li><li>该伪客户端从AOF日志文件中依次读取命令并执行，直到完成所有命令。</li></ol><p>AOF的持久化机制具有实时存储的特性，因此可以在读写关键数据时开启。</p><h4 id=基于rdb的持久化机制>基于RDB的持久化机制</h4><p>Redis默认的持久化机制就RDB，RDB的持久化方式会把当前内存中的所有Redis键值对数据以快照的方式保存到硬盘文件，如果需要恢复数据，就把快照文件读取到内存。
+RDB快照文件是经压缩的二进制文件，它的存储路径可以在redis.conf中指定，也可以在redis运行时通过命令设置。
+Redis的RDB持久化机制触发机制有两种：</p><ol><li>save和bgsave等命令手动触发；</li><li>通过redis.conf配置文件里设置的方式定期把数据写入快照。</li></ol><p>基于RDB的持久化方式适合数据备份和灾备场景，但RDB无法实现即使备份，两次备份之间必然会丢数据。</p><h3 id=aof持久化机制实践>AOF持久化机制实践</h3><h4 id=aof配置文件的说明>AOF配置文件的说明</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 开启AOF功能，默认是关闭的</span>
+</span></span><span class=line><span class=cl>appendonly yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 开启aof功能后，通过appendfsync设置持久化策略</span>
+</span></span><span class=line><span class=cl>appendfsync always/everysec/no
+</span></span><span class=line><span class=cl><span class=c1># always: 每次写命令时都会触发持久化动作，这种方式可能影响Redis性能。</span>
+</span></span><span class=line><span class=cl><span class=c1># everysec: 每秒触发一次持久化动作，平衡了持久化需求和性能，一般取这个值。</span>
+</span></span><span class=line><span class=cl><span class=c1># no: 由操作系统决定持久化的频率，这种性能最好，但每次持久化操作的间隔可能较长，当故障发生时可能会丢失数据。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>dir aofDir
+</span></span><span class=line><span class=cl><span class=c1># dir指定保存持久化文件的目录</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>appendfilename aofFileName
+</span></span><span class=line><span class=cl><span class=c1># 指定持久化文件的名称，默认文件名为appendonly.aof</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>auto-load-truncated
+</span></span><span class=line><span class=cl><span class=c1># 定义aof文件的加载策略。当AOF持久化文件损坏时启动Redis是否会自动加载，默认为yes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>no-appendfsync-on-rewrite yes/no
+</span></span><span class=line><span class=cl><span class=c1># 平衡性能和安全性。字面意思是：AOF重写时是否禁用AOF追加。默认为no</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果为yes,则会提高重写性能，但可能会丢失写的数据。</span>
+</span></span><span class=line><span class=cl><span class=c1># 如果为no，则不会丢失数据，但重写性能可能会降低。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>auto-aof-rewrite-percentage
+</span></span><span class=line><span class=cl><span class=c1># 指定自动重写的条件。默认是100，即如果当前的AOF文件比上次执行重写时的文件大100%时会再次触发重写操作。如果为0，则不触发。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>auto-aof-rewrite-min-size
+</span></span><span class=line><span class=cl><span class=c1># 指定自动AOF重写的AOF文件的最低要求大小。默认为64MB </span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 注意： auto-aof-rewrite-percentage 和 auto-aof-rewrite-min-size 必须同时满足条件才会触发。</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>注意：也可以通过bgrewriteaof命令手动触发AOF重写</strong></p><h4 id=实践aof持久化>实践AOF持久化</h4><p>Redis 7 中引入的 Multi-Part AOF (MP-AOF) 是一种改进的持久化机制，旨在优化 AOF (Append Only File) 的性能和效率，尤其是在高并发写入场景下。传统的 AOF 机制在主进程处理客户端请求的同时，还需要负责 AOF 日志的写入和重写，这可能导致性能瓶颈。</p><p>MP-AOF 的主要目标是减少主进程的负担，通过将 AOF 日志的写入和重写操作分离到独立的后台线程中，从而提高整体的系统吞吐量。MP-AOF 将 AOF 文件分为两部分：</p><p>Base RDB 文件：这部分是数据库的快照，类似于 RDB 文件，用于快速恢复数据集的基本状态。
+Incremental AOF 文件：这部分包含自上次快照以来的所有写操作，用于增量更新数据库状态。
+appendonly.aof.1.incr.aof 文件就是 MP-AOF 架构下的 Incremental AOF 文件的一个实例。这个文件包含了自上次 RDB 快照之后的所有写入操作。</p><p>以下是 MP-AOF 的几个关键特点：</p><ul><li>分离写操作：MP-AOF 将写操作的记录和重写任务分配给单独的线程，减少了主进程的负载。</li><li>异步重写：AOF 的重写操作不再阻塞主进程，而是由后台线程异步完成。</li><li>高效恢复：在服务器启动时，首先加载 Base RDB 文件来快速恢复大部分数据，然后应用 Incremental AOF 文件中的操-作来更新数据集，这种分阶段的恢复过程比传统 AOF 更高效。</li><li>减少磁盘 I/O：通过减少主进程的磁盘 I/O 操作，提高了系统的整体响应速度。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 创建redis-server 容器，使用-v参数将宿主机的路径绑定为配置文件路径，rw指定有对配置目录的读写权限</span>
+</span></span><span class=line><span class=cl> docker run -itd --name redis-server -v D:/ArchitectPracticer/Redis/RedisConf:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> <span class=c1># 进入容器并启动redis-cli，执行set和get命令，然后查看AOF的文件</span>
+</span></span><span class=line><span class=cl> PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redis-server bash
+</span></span><span class=line><span class=cl>root@74551bec3ecc:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> name farb
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> age <span class=m>18</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> height <span class=m>180</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get name
+</span></span><span class=line><span class=cl><span class=s2>&#34;farb&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在Redis 7.2.5中可以看到AOF文件生成了3个，默认在appendonlydir目录。其中incr.aof文件是增量文件，base.rdb文件是基础文件。</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\a</span>ppendonlydir&gt; ls
+</span></span><span class=line><span class=cl>    目录: D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\a</span>ppendonlydir
+</span></span><span class=line><span class=cl>Mode                 LastWriteTime         Length Name
+</span></span><span class=line><span class=cl>----                 -------------         ------ ----
+</span></span><span class=line><span class=cl>-a----         2024/7/28     22:43             <span class=m>88</span> appendonly.aof.1.base.rdb
+</span></span><span class=line><span class=cl>-a----         2024/7/28     22:45            <span class=m>120</span> appendonly.aof.1.incr.aof
+</span></span><span class=line><span class=cl>-a----         2024/7/28     22:43             <span class=m>88</span> appendonly.aof.manifest
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 打开appendonly.aof.1.incr.aof，可以看到写入的命令，get命令没有记录。</span>
+</span></span><span class=line><span class=cl>*2
+</span></span><span class=line><span class=cl><span class=nv>$6</span>
+</span></span><span class=line><span class=cl>SELECT
+</span></span><span class=line><span class=cl><span class=nv>$1</span>
+</span></span><span class=line><span class=cl><span class=m>0</span>
+</span></span><span class=line><span class=cl>*3
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span>
+</span></span><span class=line><span class=cl><span class=nv>$4</span>
+</span></span><span class=line><span class=cl>name
+</span></span><span class=line><span class=cl><span class=nv>$4</span>
+</span></span><span class=line><span class=cl>farb
+</span></span><span class=line><span class=cl>*3
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span>
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl>age
+</span></span><span class=line><span class=cl><span class=nv>$2</span>
+</span></span><span class=line><span class=cl><span class=m>18</span>
+</span></span><span class=line><span class=cl>*3
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span>
+</span></span><span class=line><span class=cl><span class=nv>$6</span>
+</span></span><span class=line><span class=cl>height
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl><span class=m>180</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=观察重写aof的文件的效果>观察重写AOF的文件的效果</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 向list中写入数据</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; rpush namelist alice
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; rpush namelist bob
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; rpush namelist candy
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>3</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 观察aof文件如下</span>
+</span></span><span class=line><span class=cl>rpush
+</span></span><span class=line><span class=cl><span class=nv>$8</span>
+</span></span><span class=line><span class=cl>namelist
+</span></span><span class=line><span class=cl><span class=nv>$3</span>
+</span></span><span class=line><span class=cl>bob
+</span></span><span class=line><span class=cl>*3
+</span></span><span class=line><span class=cl><span class=nv>$5</span>
+</span></span><span class=line><span class=cl>rpush
+</span></span><span class=line><span class=cl><span class=nv>$8</span>
+</span></span><span class=line><span class=cl>namelist
+</span></span><span class=line><span class=cl><span class=nv>$5</span>
+</span></span><span class=line><span class=cl>candy
+</span></span></code></pre></td></tr></table></div></div><p><strong>手动执行bgrewriteaof命令，再次查看aof日志文件,可以看到之前的appendonly.aof.1.incr.aof已经删除，而appendonly.aof.2.incr.aof文件生成了，并且是空的，打开appendonly.aof.2.base.rdb可以看到重写的内容。一般不会使用bgrewriteaof命令，而是通过auto-aof-rewrite-percentage和auto-aof-rewrite-min-size两个参数控制AOF重写策略。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>PS D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\a</span>ppendonlydir&gt; ls
+</span></span><span class=line><span class=cl>    目录: D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf<span class=se>\a</span>ppendonlydir
+</span></span><span class=line><span class=cl>Mode                 LastWriteTime         Length Name
+</span></span><span class=line><span class=cl>----                 -------------         ------ ----
+</span></span><span class=line><span class=cl>-a----         2024/7/29      0:09            <span class=m>132</span> appendonly.aof.2.base.rdb
+</span></span><span class=line><span class=cl>-a----         2024/7/29      0:09              <span class=m>0</span> appendonly.aof.2.incr.aof
+</span></span><span class=line><span class=cl>-a----         2024/7/29      0:09             <span class=m>88</span> appendonly.aof.manifest
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>REDIS0011�	redis-ver7.2.5�
+</span></span><span class=line><span class=cl>redis-bits�@�ctime�2m�f�used-mem°�namelist�alice�bob�candy
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># appendonly.aof.manifest文件内容变成：</span>
+</span></span><span class=line><span class=cl>file appendonly.aof.2.base.rdb seq <span class=m>2</span> <span class=nb>type</span> b
+</span></span><span class=line><span class=cl>file appendonly.aof.2.incr.aof seq <span class=m>2</span> <span class=nb>type</span> i
+</span></span><span class=line><span class=cl><span class=c1># 也就是说这个清单文件记录了base和incr两个文件名，并记录了这两个文件的顺序号和类型。当前是第二个序列，且b是base,i是incr。</span>
+</span></span></code></pre></td></tr></table></div></div><p>再次向list中写入一条数据，然后查看aof日志文件</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; rpush namelist hugh
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>4</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; bgrewriteaof
+</span></span><span class=line><span class=cl>Background append only file rewriting started
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 观察appendonly.aof.manifest文件如下</span>
+</span></span><span class=line><span class=cl>file appendonly.aof.3.base.rdb seq <span class=m>3</span> <span class=nb>type</span> b
+</span></span><span class=line><span class=cl>file appendonly.aof.3.incr.aof seq <span class=m>3</span> <span class=nb>type</span> i
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 观察appendonly.aof.3.incr.aof文件为空</span>
+</span></span><span class=line><span class=cl><span class=c1># 观察appendonly.aof.3.base.rdb文件如下:</span>
+</span></span><span class=line><span class=cl>REDIS0011�	redis-ver7.2.5�
+</span></span><span class=line><span class=cl>redis-bits�@�ctime�C��f�used-mem��T�aof-base��namelist�alice�bob�candy�hugh
+</span></span></code></pre></td></tr></table></div></div><p><strong>经过上面的实践和观察，发现Redis7之前AOF重写都是在同一个文件名中进行的，而Redis7之后，AOF重写是分离到独立的3个文件，appendonly.aof.manifest文件记录了rdb和incr文件的名称、序列号和类型，incr文件记录了写入的命令，而rdb文件记录了重写的内容，且incr和rdb每次重写后序列号都会自增。</strong></p><h4 id=模拟数据恢复的流程>模拟数据恢复的流程</h4><p>上面redis中已经创建了一个namelist，现在模拟一下数据恢复的流程，先通过flushall命令清空redis数据库，模拟宕机，然后在incr的aof文件中删除最后的flushall命令（如果不删除，恢复数据时会执行flushall,把之前恢复的数据再次清空），然后删除旧的容器redis-server,并重新创建启动redis-server，然后查看namelist，发现namelist已经恢复，说明数据已经恢复。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 清空数据库并查看aof文件</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; flushall
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; keys *
+</span></span><span class=line><span class=cl><span class=o>(</span>empty array<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 观察appendonly.aof.3.incr.aof文件如下：</span>
+</span></span><span class=line><span class=cl>*2
+</span></span><span class=line><span class=cl><span class=nv>$6</span>
+</span></span><span class=line><span class=cl>SELECT
+</span></span><span class=line><span class=cl><span class=nv>$1</span>
+</span></span><span class=line><span class=cl><span class=m>0</span>
+</span></span><span class=line><span class=cl>*1
+</span></span><span class=line><span class=cl><span class=nv>$8</span>
+</span></span><span class=line><span class=cl>flushall
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 删除flushall的相关命令并保存文件</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 退出redis-cli</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>exit</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 退出容器</span>
+</span></span><span class=line><span class=cl>root@f501aa313152:/data# <span class=nb>exit</span>
+</span></span><span class=line><span class=cl><span class=nb>exit</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 强制删除容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker rm -f redis-server  
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>redis-server
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 创建redis-server容器并运行</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redis-server -p 6379:6379 -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConf:/redisConfig:rw redis:latest redis-server /redisConfig/redis.conf
+</span></span><span class=line><span class=cl>2b939fe1c091990c6755770078c45fb37637ce89c7d6baa441d4d818dc17647d
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 进入redis-server容器，运行bash</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redis-server bash
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 进入redis-cli，可以看到之前aof中的数据已经恢复了</span>
+</span></span><span class=line><span class=cl>root@2b939fe1c091:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; lrange namelist <span class=m>0</span> -1
+</span></span><span class=line><span class=cl>1<span class=o>)</span> <span class=s2>&#34;alice&#34;</span>
+</span></span><span class=line><span class=cl>2<span class=o>)</span> <span class=s2>&#34;bob&#34;</span>
+</span></span><span class=line><span class=cl>3<span class=o>)</span> <span class=s2>&#34;candy&#34;</span>
+</span></span><span class=line><span class=cl>4<span class=o>)</span> <span class=s2>&#34;hugh&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=修复aof文件>修复AOF文件</h4><p>数据恢复时，如果AOF文件损坏，可以通过以下步骤修复AOF文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>redis-check-aof <span class=o>[</span>--fix<span class=p>|</span>--truncate-to-timestamp <span class=nv>$timestamp</span><span class=o>]</span> &lt;file.manifest<span class=p>|</span>file.aof&gt;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># redis7之前，直接指定appendonlyfile.aof文件即可；Redis7之后，需要指定appendonly.aof.manifest文件，默认目录为appendonlydir</span>
+</span></span><span class=line><span class=cl>root@2b939fe1c091:/data# redis-check-aof --fix /redisConfig/appendonlydir/appendonly.aof.manifest
+</span></span><span class=line><span class=cl>Start checking Multi Part AOF
+</span></span><span class=line><span class=cl>Start to check BASE AOF <span class=o>(</span>RDB format<span class=o>)</span>.
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 0<span class=o>]</span> Checking RDB file /redisConfig/appendonlydir/appendonly.aof.3.base.rdb
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 26<span class=o>]</span> AUX FIELD redis-ver <span class=o>=</span> <span class=s1>&#39;7.2.5&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 40<span class=o>]</span> AUX FIELD redis-bits <span class=o>=</span> <span class=s1>&#39;64&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 52<span class=o>]</span> AUX FIELD <span class=nv>ctime</span> <span class=o>=</span> <span class=s1>&#39;1722262595&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 67<span class=o>]</span> AUX FIELD used-mem <span class=o>=</span> <span class=s1>&#39;939216&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 79<span class=o>]</span> AUX FIELD aof-base <span class=o>=</span> <span class=s1>&#39;1&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 81<span class=o>]</span> Selecting DB ID <span class=m>0</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 138<span class=o>]</span> Checksum OK
+</span></span><span class=line><span class=cl><span class=o>[</span>offset 138<span class=o>]</span> <span class=se>\o</span>/ RDB looks OK! <span class=se>\o</span>/
+</span></span><span class=line><span class=cl><span class=o>[</span>info<span class=o>]</span> <span class=m>1</span> keys <span class=nb>read</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>info<span class=o>]</span> <span class=m>0</span> expires
+</span></span><span class=line><span class=cl><span class=o>[</span>info<span class=o>]</span> <span class=m>0</span> already expired
+</span></span><span class=line><span class=cl>RDB preamble is OK, proceeding with AOF tail...
+</span></span><span class=line><span class=cl>AOF analyzed: <span class=nv>filename</span><span class=o>=</span>appendonly.aof.3.base.rdb, <span class=nv>size</span><span class=o>=</span>138, <span class=nv>ok_up_to</span><span class=o>=</span>138, <span class=nv>ok_up_to_line</span><span class=o>=</span>1, <span class=nv>diff</span><span class=o>=</span><span class=m>0</span>
+</span></span><span class=line><span class=cl>BASE AOF appendonly.aof.3.base.rdb is valid
+</span></span><span class=line><span class=cl>Start to check INCR files.
+</span></span><span class=line><span class=cl>INCR AOF appendonly.aof.3.incr.aof is empty
+</span></span><span class=line><span class=cl>All AOF files and manifest are valid
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 从上面的输出可以看到，先检查rdb是否有效，再检查增量文件是否有效</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=rdb持久化机制实践>RDB持久化机制实践</h3><h4 id=编写配置文件生成drb快照>编写配置文件，生成DRB快照</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 创建配置文件redis.conf，并配置以下内容：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>600</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=c1># 600s内有&gt;=1个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>300</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl><span class=c1># 300s内有&gt;=100个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>60</span> <span class=m>1000</span>
+</span></span><span class=line><span class=cl><span class=c1># 60s内有&gt;=1000个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># save 600 1 300 100 60 1000  这种写法等同</span>
+</span></span><span class=line><span class=cl><span class=c1># 注意：以上三个条件是或的关系，RDB持久化文件只是当条件满足就生成快照，因此无法即时保存当前状态的内存数据，可能会丢失数据。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>dbfilename dump.rdb
+</span></span><span class=line><span class=cl>dir /redisConfig
+</span></span><span class=line><span class=cl><span class=c1># 默认的RDB文件保存路径和文件名</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>stop-writes-on-bgsave-error yes/no
+</span></span><span class=line><span class=cl><span class=c1># 当RDB持久化执行bgsave失败时，是否停止写入操作,默认为yes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>rdbcompression yes/no
+</span></span><span class=line><span class=cl><span class=c1># 是否压缩RDB文件，默认为yes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>rdbchecksum yes/no
+</span></span><span class=line><span class=cl><span class=c1># 用rdb快照文件恢复数据时是否开启对快照文件的校验。默认是yes,如果是no,就无法确保文件是否正确</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>创建并运行容器</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker rm redis-server
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redis-server -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+</span></span><span class=line><span class=cl>440981babaef495ceae188f98e962d764c5130669bfdaf112538c48391b9a201
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redis-server bash
+</span></span><span class=line><span class=cl>root@440981babaef:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> name farb
+</span></span><span class=line><span class=cl>OK
+</span></span></code></pre></td></tr></table></div></div><h4 id=用快照文件恢复数据>用快照文件恢复数据</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># 删除之前包含数据的redis-server容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker rm redis-server redis-server
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 重新创建并运行容器，配置指向之前包含快照文件的目录</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redis-server -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+</span></span><span class=line><span class=cl>f2221a4c78afaa6e3c122f9cc026b48f89153ffc0e153bc42133fb0f9b33db80
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 进入redis-server容器</span>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redis-server bash
+</span></span><span class=line><span class=cl>                                                                                                              
+</span></span><span class=line><span class=cl><span class=c1># 可以看到有数据存在，说明恢复了数据</span>
+</span></span><span class=line><span class=cl>root@f2221a4c78af:/data# redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get name
+</span></span><span class=line><span class=cl><span class=s2>&#34;farb&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=save-和-bgsave>save 和 bgsave</h4><p>save命令用于立即生成RDB快照，而bgsave命令用于后台生成RDB快照，两者的区别在于，save命令会阻塞Redis服务器，直到快照生成完毕，而bgsave命令不会阻塞Redis服务器，当bgsave命令执行时，Redis服务器仍然可以接受其他命令。
+save命令和bgsave命令的调用方式如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; save
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; bgsave
+</span></span><span class=line><span class=cl>Background saving started
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#  lastsave命令用于获取最近一次成功生成RDB快照的时间戳，由此可知bgsave是否执行完成</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; lastsave
+</span></span><span class=line><span class=cl><span class=o>(</span>integer<span class=o>)</span> <span class=m>1722355373</span>
+</span></span></code></pre></td></tr></table></div></div><blockquote><p>注意：实际项目中，如果Redis内存数据很多，那么一旦执行save命令，Redis服务器就会长时间暂停执行命令，造成大量连接阻塞，直到快照生成完毕，从而导致线上问题。当用户输入bgsave命令时，Redis会创建一个新的进程，在该进程里把内存里的数据写入快照，在写的过程中，Redis服务器仍然可以接受其他客户端的命令，因此，bgsave命令可以减少Redis服务器的阻塞，从而提高Redis性能。</p></blockquote><h3 id=如何选用持久化方式>如何选用持久化方式</h3><h4 id=对比两种持久化方式>对比两种持久化方式</h4><p>AOF：</p><ul><li>优点： 可采用一秒写一次持久化文件，数据持久化更及时，文件末尾追加的方式性能更好</li><li>缺点：AOF持久化的文件一般比RDB快照体积大，恢复数据比快照慢</li></ul><p>RDB：</p><ul><li>优点：快照体积小，恢复数据快，bgsave创建快照可以不阻塞其他客户端命令的执行</li><li>缺点：无法即时持久化数据，需要满足条件或手动创建快照</li></ul><p><strong>一般项目里会同时使用这两种持久化方式。当出现数据误删时，可以使用AOF持久化文件恢复数据，一般情况下，可以使用RDB快照文件恢复数据。</strong></p><h4 id=综合使用两种持久化方式>综合使用两种持久化方式</h4><p>一般可以如下设置redis.conf配置文件</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>save <span class=m>600</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=c1># 600s内有&gt;=1个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>300</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl><span class=c1># 300s内有&gt;=100个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>60</span> <span class=m>1000</span>
+</span></span><span class=line><span class=cl><span class=c1># 60s内有&gt;=1000个键被修改就会生成快照</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 注意：以上三个条件是或的关系，RDB持久化文件只是当条件满足就生成快照，因此无法即时保存当前状态的内存数据，可能会丢失数据。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>dbfilename dump.rdb
+</span></span><span class=line><span class=cl>dir /redisConfig
+</span></span><span class=line><span class=cl><span class=c1># 默认的RDB文件保存路径和文件名</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 开启AOF功能，默认是关闭的</span>
+</span></span><span class=line><span class=cl>appendonly yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 开启aof功能后，通过appendfsync设置持久化策略</span>
+</span></span><span class=line><span class=cl>appendfsync everysec
+</span></span></code></pre></td></tr></table></div></div><p>如上设置redis.conf之后，重新创建并运行容器</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker rm redis-server
+</span></span><span class=line><span class=cl>redis-server
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker run -itd --name redis-server -v D:<span class=se>\A</span>rchitectPracticer<span class=se>\R</span>edis<span class=se>\R</span>edisConfRdb:/redisConfig:rw -p 6379:6379 redis:latest redis-server /redisConfig/redis.conf
+</span></span><span class=line><span class=cl>807be71c3f456b0490c5e50c880d7b3e313e3813fe94ea523b538864d618605c
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PS D:<span class=se>\c</span>ode<span class=se>\b</span>logs<span class=se>\f</span>arb.github.io&gt; docker <span class=nb>exec</span> -it redis-server bash                  
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>root@807be71c3f45:/data# redis-cli 
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> name farb
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; bgsave
+</span></span><span class=line><span class=cl>Background saving started
+</span></span></code></pre></td></tr></table></div></div><p>执行完毕之后，可以看到，redisConfig目录下既生成了dump.db快照文件，也生成了appendonlydir目录，该目录下包含3个aof相关的文件。两种持久化方式都开启的情况下，默认会使用AOF持久化文件恢复数据。</p><h4 id=查看持久化状态的命令>查看持久化状态的命令</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>127.0.0.1:6379&gt; info persistence
+</span></span><span class=line><span class=cl><span class=c1># Persistence</span>
+</span></span><span class=line><span class=cl>loading:0
+</span></span><span class=line><span class=cl>async_loading:0
+</span></span><span class=line><span class=cl>current_cow_peak:0
+</span></span><span class=line><span class=cl>current_cow_size:0
+</span></span><span class=line><span class=cl>current_cow_size_age:0
+</span></span><span class=line><span class=cl>current_fork_perc:0.00
+</span></span><span class=line><span class=cl>current_save_keys_processed:0
+</span></span><span class=line><span class=cl>current_save_keys_total:0
+</span></span><span class=line><span class=cl>rdb_changes_since_last_save:0
+</span></span><span class=line><span class=cl>rdb_bgsave_in_progress:0
+</span></span><span class=line><span class=cl><span class=c1># rdb上次保存时间</span>
+</span></span><span class=line><span class=cl>rdb_last_save_time:1722357138
+</span></span><span class=line><span class=cl>rdb_last_bgsave_status:ok
+</span></span><span class=line><span class=cl>rdb_last_bgsave_time_sec:0
+</span></span><span class=line><span class=cl>rdb_current_bgsave_time_sec:-1
+</span></span><span class=line><span class=cl>rdb_saves:1
+</span></span><span class=line><span class=cl>rdb_last_cow_size:307200
+</span></span><span class=line><span class=cl>rdb_last_load_keys_expired:0
+</span></span><span class=line><span class=cl>rdb_last_load_keys_loaded:0
+</span></span><span class=line><span class=cl><span class=c1># 启用了aof</span>
+</span></span><span class=line><span class=cl>aof_enabled:1
+</span></span><span class=line><span class=cl>aof_rewrite_in_progress:0
+</span></span><span class=line><span class=cl>aof_rewrite_scheduled:0
+</span></span><span class=line><span class=cl>aof_last_rewrite_time_sec:-1
+</span></span><span class=line><span class=cl>aof_current_rewrite_time_sec:-1
+</span></span><span class=line><span class=cl><span class=c1># aof上次后台重写状态成功</span>
+</span></span><span class=line><span class=cl>aof_last_bgrewrite_status:ok
+</span></span><span class=line><span class=cl>aof_rewrites:0
+</span></span><span class=line><span class=cl>aof_rewrites_consecutive_failures:0
+</span></span><span class=line><span class=cl><span class=c1># aof上次写入数据成功</span>
+</span></span><span class=line><span class=cl>aof_last_write_status:ok
+</span></span><span class=line><span class=cl>aof_last_cow_size:0
+</span></span><span class=line><span class=cl>module_fork_in_progress:0
+</span></span><span class=line><span class=cl>module_fork_last_cow_size:0
+</span></span><span class=line><span class=cl>aof_current_size:56
+</span></span><span class=line><span class=cl>aof_base_size:0
+</span></span><span class=line><span class=cl>aof_pending_rewrite:0
+</span></span><span class=line><span class=cl>aof_buffer_length:0
+</span></span><span class=line><span class=cl>aof_pending_bio_fsync:0
+</span></span><span class=line><span class=cl>aof_delayed_fsync:0
+</span></span></code></pre></td></tr></table></div></div></section><footer class=article-footer><section class=article-tags><a href=/tags/redis/>Redis</a>
+<a href=/tags/docker/>Docker</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section>页面浏览量<span id=busuanzi_value_page_pv>Loading</span></section><section><strong>如果觉得我的博客能帮助到你，欢迎点击右侧的赞助进行投喂。如有技术咨询，也可以加本人好友。</strong></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/redis_in_action_13_redis_springcloud/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringCloud微服务整合</h2></div></a></article><article><a href=/p/redis_in_action_12_redis_springboot/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis与SpringBoot整合</h2></div></a></article><article><a href=/p/redis_in_action_11_lua/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Lua脚本</h2></div></a></article><article><a href=/p/redis_in_action_10_mysql_mycat/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis整合Mysql集群和MyCat分库分表组件</h2></div></a></article><article><a href=/p/redis_in_action_09_redis_practical_cases/><div class=article-details><h2 class=article-title>基于Docker的Redis实战-Redis消息队列、分布式锁、限流、压力测试综合实践案例</h2></div></a></article></div></div></aside><script src=//unpkg.com/@waline/client@v2/dist/waline.js></script><link href=//unpkg.com/@waline/client@v2/dist/waline.css rel=stylesheet><div id=waline class=waline-container></div><style>.waline-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding);--waline-font-size:var(--article-font-size)}.waline-container .wl-count{color:var(--card-text-color-main)}</style><script>Waline.init({avatar:"",dark:'html[data-scheme="dark"]',el:"#waline",emoji:["https://cdn.jsdelivr.net/gh/walinejs/emojis/weibo"],lang:"zh-cn",locale:{admin:"Admin",placeholder:null},placeholder:"",requiredMeta:["name","email"],serverURL:"https://blog.comment.farb.top",visitor:""})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 Farb's Blog</section><section class=powerby>总访客数：<span id=busuanzi_value_site_uv style=margin-right:10px>Loading</span> 总访问量：<span id=busuanzi_value_site_pv style=margin-right:10px>Loading</span>
+<a href=https://eu.umami.is/share/y6kXo4CE3oYHXQ37/farb.github.io style=color:blue target=_blank>实时统计</a><br><span id=span_show_age style=margin-right:30px><br>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script><script src=https://cdn.jsdelivr.net/npm/tctip@1.0.4/dist/tctip-1.0.3.min.js></script><script>new tctip({top:"20%",button:{id:8,type:"zanzhu"},list:[{type:"alipay",qrImg:"https://github.com/user-attachments/assets/3ac3da80-aa15-4ab7-bee7-7292a08fcda1"},{type:"wechat",qrImg:"https://github.com/user-attachments/assets/efc07320-351b-45f3-9a89-a938050da4ef"},{type:"weixin",name:"加好友",icon:"https://s3.bmp.ovh/imgs/2024/04/24/6feafb7f63995dfe.png",qrImg:"https://s3.bmp.ovh/imgs/2024/04/24/e2ae8bd59da6e3a8.jpg",desc:"微信:beingBetterSelf"}]}).init()</script><script defer src=https://cn.vercount.one/js></script><script defer src=https://analytics.eu.umami.is/script.js data-website-id=0a12e949-0500-4ff1-872c-b8969b376add></script><script defer language=javascript>var uptime_1="本站已经开心运行 ",uptime_2=" 天 ",uptime_3=" 小时 ",uptime_4=" 分 ",uptime_5=" 秒";function show_date_time(){window.setTimeout(show_date_time,1e3),BirthDay=new Date("4/08/2024 22:54:23"),today=new Date,timeold=today.getTime()-BirthDay.getTime(),sectimeold=timeold/1e3,secondsold=Math.floor(sectimeold),msPerDay=24*60*60*1e3,e_daysold=timeold/msPerDay,daysold=Math.floor(e_daysold),e_hrsold=(e_daysold-daysold)*24,hrsold=Math.floor(e_hrsold),e_minsold=(e_hrsold-hrsold)*60,minsold=Math.floor((e_hrsold-hrsold)*60),seconds=Math.floor((e_minsold-minsold)*60),document.getElementById("span_show_age").innerHTML=uptime_1+daysold+uptime_2+hrsold+uptime_3+minsold+uptime_4+seconds+uptime_5}show_date_time()</script></body></html>
