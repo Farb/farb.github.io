@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>AI on Farb's Blog</title><link>https://farb.github.io/categories/ai/</link><description>Recent content in AI on Farb's Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sat, 04 Jul 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://farb.github.io/categories/ai/index.xml" rel="self" type="application/rss+xml"/><item><title>淘宝的木鱼小程序下架后，我自己用 uniapp 写了一个</title><link>https://farb.github.io/p/sleepmuyu_share/</link><pubDate>Sat, 04 Jul 2026 00:00:00 +0000</pubDate><guid>https://farb.github.io/p/sleepmuyu_share/</guid><description>&lt;ol&gt;
+&lt;li&gt;零 - 博客园老人回归&lt;/li&gt;
+&lt;li&gt;一 - 真实背景（淘宝木鱼下架）&lt;/li&gt;
+&lt;li&gt;二 - 技术选型与架构&lt;/li&gt;
+&lt;li&gt;三 - uniapp 五大踩坑&lt;/li&gt;
+&lt;li&gt;四 - 后端架构（基于真实代码）&lt;/li&gt;
+&lt;li&gt;五 - App 上架与备案&lt;/li&gt;
+&lt;li&gt;六 - AI 话题&lt;/li&gt;
+&lt;li&gt;七 - 真心话&lt;/li&gt;
+&lt;li&gt;八 - 体验入口 + 微信群&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr&gt;
+&lt;h2 id="零先跟大家打个招呼"&gt;零、先跟大家打个招呼
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://s3.bmp.ovh/2026/07/05/Mawv7KWc.png"
+loading="lazy"
+alt="image.png"
+&gt;&lt;/p&gt;
+&lt;p&gt;打开博客园后台看了一眼，上次发文章已经是9年以前了，见上图，有几篇文章还是草稿状态。&lt;/p&gt;
+&lt;p&gt;这几年经历了不少事。换过城市，换过方向，唯一没变的是还在写代码。偶尔深夜翻翻园子里的文章，看到很多老朋友还在坚持分享，心里挺感慨的。&lt;/p&gt;
+&lt;p&gt;这些年没冒泡，不是因为离开了技术圈，恰恰相反——一直在闷头做事。写业务、做架构、带团队，也终于鼓起勇气，自己从零到一做出了一个完整的产品。&lt;/p&gt;
+&lt;p&gt;这次回来发文章，一是想跟大家分享这段经历，二是觉得 AI 时代对程序员来说，真的是一次难得的机会。一个人 + AI，能做到的事情比几年前多太多了。&lt;/p&gt;
+&lt;p&gt;园子里都是搞技术的，我就不整虚的了。下面是我做「睡眠木鱼」这个产品的完整复盘——技术选型、uniapp 踩坑、后端架构、上架备案、AI 提效、国际化……一条一条说清楚。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="一缘起一个下架的小程序"&gt;一、缘起：一个下架的小程序
+&lt;/h2&gt;&lt;p&gt;事情的起因其实很简单。&lt;/p&gt;
+&lt;p&gt;去年有段时间，我午休和晚上睡前习惯打开淘宝上的一个小程序——一个木鱼应用，可以手动敲木鱼，也有颂钵禅音，听着&amp;quot;笃、笃、笃&amp;quot;的节奏慢慢就睡着了。效果出乎意料地好，成了我每天助眠的必备工具。&lt;/p&gt;
+&lt;p&gt;但它有两个致命问题：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一，不支持后台播放。&lt;/strong&gt; 切到别的 App 或者锁屏，声音就断了。这对一个助眠应用来说基本等于废了一半——你没法定时关闭后安心睡，也不能一边听一边刷别的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二，某一天我再打开，发现它下架了。&lt;/strong&gt; 没有任何替代品可用。&lt;/p&gt;
+&lt;p&gt;那一刻的想法很简单也很程序员：&lt;strong&gt;既然没有，那我自己写一个好了。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;就这样，「睡眠木鱼」这个项目开始了。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="二选型与架构"&gt;二、选型与架构
+&lt;/h2&gt;&lt;p&gt;前端技术栈在flutter和uniapp之间选了 &lt;strong&gt;uni-app 3.0&lt;/strong&gt;（基于 Vue 3）：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一套代码同时出微信小程序和 Android App，维护成本低&lt;/li&gt;
+&lt;li&gt;Vue 生态我熟，Composition API + TypeScript，上手快&lt;/li&gt;
+&lt;li&gt;社区还算活跃，常见问题能找到参考&lt;/li&gt;
+&lt;li&gt;理论上支持 10+ 平台（微信、支付宝、抖音、H5、鸿蒙等），未来扩展空间大&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;后端选型多说两句。很多人问我为什么用 &lt;strong&gt;.NET&lt;/strong&gt; 而不是 Java / Go / Node，答案很简单：&lt;strong&gt;效率优先。&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;写了很多年 C#，ASP.NET Core + Kestrel 是我最舒服的技术栈&lt;/li&gt;
+&lt;li&gt;性能足够，到我这个用户量级绰绰有余&lt;/li&gt;
+&lt;li&gt;.NET 10 开发生态已经很成熟：依赖注入、中间件管道、健康检查都是开箱即用&lt;/li&gt;
+&lt;li&gt;一个人维护，不存在团队协作的语言选型问题&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;选什么语言不重要，关键是你能用最熟的工具快速把东西做出来。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;目前产品覆盖：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;✅ 微信小程序（直接搜索【睡眠木鱼】可用）&lt;/li&gt;
+&lt;li&gt;✅ Android App（还未已上架，蓝凑云有下载链接）&lt;/li&gt;
+&lt;li&gt;🚧 iOS / 鸿蒙（开发中）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id="三uniapp-开发的真实踩坑记录"&gt;三、uniapp 开发的真实踩坑记录
+&lt;/h2&gt;&lt;p&gt;下面这些坑都是我在这个项目中实际遇到的，分享出来希望能帮到同样在用 uniapp 做产品的朋友。&lt;/p&gt;
+&lt;h3 id="坑-1音频播放--最大的技术挑战"&gt;坑 1：音频播放 —— 最大的技术挑战
+&lt;/h3&gt;&lt;p&gt;这是整个项目最核心的功能，也是耗时最长、踩坑最多的模块。核心矛盾是：&lt;strong&gt;用户需要的&amp;quot;后台播放 + 定时关闭&amp;quot;，在不同平台上的实现完全不一样。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;微信小程序端：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;InnerAudioContext&lt;/code&gt; 切后台就暂停，iOS 和 Android 表现还不一致&lt;/li&gt;
+&lt;li&gt;要后台播放只能用 &lt;code&gt;BackgroundAudioManager&lt;/code&gt;，但这个 API 同时只能管理一个音频实例，跟多音频切换的需求天然冲突&lt;/li&gt;
+&lt;li&gt;两个 API 之间切换需要专门维护播放状态机，否则会出现&amp;quot;正在播放却显示暂停&amp;quot;&amp;ldquo;切换音频后进度归零&amp;quot;等各种诡异 Bug&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;App 端（Android）：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;uniapp 的音频 API 封装了原生播放器，但兼容性一般，部分低端机型解码 .mp3 时会直接报错&lt;/li&gt;
+&lt;li&gt;锁屏后系统省电策略杀进程 → 音频中断，需要写原生前台服务保活&lt;/li&gt;
+&lt;li&gt;音频资源最终做了双格式兼容（MP3 + OGG），配合条件编译分别加载&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;我最终的方案：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;封装统一的 AudioManager 类，内部根据平台自动选择音频 API&lt;/li&gt;
+&lt;li&gt;小程序用 &lt;code&gt;BackgroundAudioManager&lt;/code&gt; 保后台，App 用原生前台服务&lt;/li&gt;
+&lt;li&gt;播放状态用单向数据流管理，所有状态变更通过事件总线通知 UI&lt;/li&gt;
+&lt;li&gt;音频资源一律走 对象存储，本地不打包任何音频文件&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;教训：&lt;/strong&gt; 如果你的项目重度依赖音频，第一天就去真机上测试后台播放 + 锁屏场景，别等开发完了再踩坑。&lt;/p&gt;
+&lt;h3 id="坑-2小程序包体积--差点没上线成功"&gt;坑 2：小程序包体积 —— 差点没上线成功
+&lt;/h3&gt;&lt;p&gt;uniapp 编译出来的初始包轻松破 2MB，而微信小程序主包限制就是 2MB。这个问题不解决，连审核都过不了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;我做了什么：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;所有音频，图片资源走 对象存储 在线加载，本地零音频图片文件&lt;/li&gt;
+&lt;li&gt;部分 UI 改 CSS 绘制减少图片依赖&lt;/li&gt;
+&lt;li&gt;uniapp 分包加载：主包只放首页 + 核心框架，非核心页面全部丢子包&lt;/li&gt;
+&lt;li&gt;uniapp 自带的三方库能删的删，能按需引入的绝不全量导入&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;一顿操作之后，主包压缩到了 1.8MB 以内，刚好卡线过审。&lt;/p&gt;
+&lt;h3 id="坑-3国际化i18n的隐形工作量"&gt;坑 3：国际化（i18n）的隐形工作量
+&lt;/h3&gt;&lt;p&gt;一开始只想做中文版，后来考虑海外用户，加了英文切换。用了 vue-i18n，本以为是&amp;quot;把文案翻译一遍&amp;quot;的事，结果发现远不止如此。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;真正遇到的麻烦：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;文案长度差异&lt;/strong&gt;：中文一行能说完的，英文可能要两行。UI 布局大量硬编码了宽度，切英文后按钮溢出、文字截断，改了一轮 CSS&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;动态内容翻译&lt;/strong&gt;：签到提示、课程分类标签、系统通知……这些不是静态文案，是后端返回的，需要前端做映射翻译&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;tabbar的文案切换语言没有生效&lt;/strong&gt;：暂时还没解决。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;建议：&lt;/strong&gt; i18n 最好从项目第一天就做，至少架构上预留好。后期补的代价远大于一开始就规划。&lt;/p&gt;
+&lt;h3 id="坑-4条件编译的代码腐化"&gt;坑 4：条件编译的代码腐化
+&lt;/h3&gt;&lt;p&gt;uniapp 的 &lt;code&gt;#ifdef&lt;/code&gt; / &lt;code&gt;#ifndef&lt;/code&gt; 很好用，但当横跨小程序和 App 两端时，代码很容易变成这样：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-javascript" data-lang="javascript"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// #ifdef MP-WEIXIN
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 微信登录、支付、分享逻辑……
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// #endif
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// #ifdef APP-PLUS
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// App 端登录、原生插件调用……
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// #endif
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;业务逻辑里散落着大量条件编译块，三个月后回头看，自己都分不清哪个分支对应哪个平台。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;我的教训：&lt;/strong&gt; 后面重构时把所有平台差异抽到了 adapter 层，业务代码只调 adapter 接口。不要让条件编译侵入业务逻辑。&lt;/p&gt;
+&lt;h3 id="坑-5uniapp-内置组件的兼容性问题"&gt;坑 5：uniapp 内置组件的兼容性问题
+&lt;/h3&gt;&lt;p&gt;项目中用了不少 uniapp 内置组件（scroll-view、swiper 等），在小程序端表现良好，但 App 端渲染效果经常不一致。比如 &lt;code&gt;scroll-view&lt;/code&gt; 在 App 端的惯性滚动行为和小程序不一样，&lt;code&gt;swiper&lt;/code&gt; 的循环模式在部分安卓设备上有闪烁，在IOS上显示有问题等各种兼容问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;解决方式：&lt;/strong&gt; 关键交互组件能使用三方成熟组件优先使用。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="四后端架构一个人搞定的全栈设计"&gt;四、后端架构：一个人搞定的全栈设计
+&lt;/h2&gt;&lt;p&gt;这一节好好聊。前端是敲门砖，后端才是真功夫。&lt;/p&gt;
+&lt;h3 id="整体技术栈"&gt;整体技术栈
+&lt;/h3&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;层&lt;/th&gt;
+&lt;th&gt;技术&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;运行时&lt;/td&gt;
+&lt;td&gt;.NET 10 + ASP.NET Core Web API&lt;/td&gt;
+&lt;td&gt;Kestrel 服务器，高性能够用&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ORM&lt;/td&gt;
+&lt;td&gt;SqlSugarCore&lt;/td&gt;
+&lt;td&gt;国产 ORM，CodeFirst 自动建表&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;数据库&lt;/td&gt;
+&lt;td&gt;PostgreSQL 16 / MySQL 8.0&lt;/td&gt;
+&lt;td&gt;双数据库兼容，一行配置切换&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;缓存&lt;/td&gt;
+&lt;td&gt;Redis 7 + 内存自动降级&lt;/td&gt;
+&lt;td&gt;StackExchange.Redis&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;认证&lt;/td&gt;
+&lt;td&gt;JWT + Token 黑名单&lt;/td&gt;
+&lt;td&gt;120 分钟有效期 + 7 天 RefreshToken&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;日志&lt;/td&gt;
+&lt;td&gt;Serilog&lt;/td&gt;
+&lt;td&gt;三路输出：控制台 + 文件 + 数据库&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;存储&lt;/td&gt;
+&lt;td&gt;策略模式&lt;/td&gt;
+&lt;td&gt;本地 / 阿里云 OSS / 腾讯云 COS 无缝切换&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;部署&lt;/td&gt;
+&lt;td&gt;Docker Compose&lt;/td&gt;
+&lt;td&gt;5 个服务一键编排&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="五层-ddd-分层"&gt;五层 DDD 分层
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;MuyuBackend/
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;├── Api/ # 表现层：Controllers + 中间件 + 后台任务
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;├── Application/ # 应用服务层：31 个 Service + DTOs
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;├── Domain/ # 领域层：29 个实体 + 枚举定义
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;├── Infrastructure/ # 基础设施层：DbContext + 仓储 + 缓存 + 存储
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;└── Common/ # 公共工具：JSON 配置 + 扩展方法
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;32 个 Controller（17 个前台 + 15 个 Admin 后台），31 个业务 Service，28 张数据库表。&lt;/p&gt;
+&lt;p&gt;说人话就是：功能模块比你想象的要多得多——用户认证、功德系统、签到、任务、成就、反馈、微信客服、自动回复、资源管理、系统配置、日志审计……麻雀虽小，五脏俱全。&lt;/p&gt;
+&lt;p&gt;分层的好处是改一处不影响全局。比如后来从 PostgreSQL 切换到腾讯云 MySQL，只改 Infrastructure 层的数据库配置，业务代码一行不动。&lt;/p&gt;
+&lt;h3 id="为什么选-sqlsugar-而不是-entity-framework-core"&gt;为什么选 SqlSugar 而不是 Entity Framework Core
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;更轻量&lt;/strong&gt;：不需要 DbContext 那套复杂的变更追踪，心里有数&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网上说SqlSugar性能更好&lt;/strong&gt;:其实我也是第一次用，哈哈&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="redis-缓存但不强依赖"&gt;Redis 缓存，但不强依赖
+&lt;/h3&gt;&lt;p&gt;缓存架构有一个我特别满意的设计：&lt;strong&gt;Redis 不可用时自动降级到 ConcurrentDictionary 内存缓存。&lt;/strong&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;请求 → 查 Redis → 命中：返回
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; → 未命中：查数据库 → 写 Redis → 返回
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; → 如果 Redis 挂了：查数据库 → 写内存缓存 → 返回
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;之后加了：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;每分钟健康检查，Redis 恢复后自动回切&lt;/li&gt;
+&lt;li&gt;缓存过期时间加随机偏移，避免缓存雪崩&lt;/li&gt;
+&lt;li&gt;Castle DynamicProxy 实现 AOP 拦截，Service 层加个 &lt;code&gt;[Cache]&lt;/code&gt; 特性就完事，不需要在业务代码里手写缓存逻辑&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;这个自动降级方案强烈推荐给做独立产品的朋友。&lt;/strong&gt; 用户量不大的时候，自建 Docker Redis 的稳定性其实没有想象中高，有个兜底方案会安心很多。&lt;/p&gt;
+&lt;h3 id="审计日志吃过亏才知道重要"&gt;审计日志：吃过亏才知道重要
+&lt;/h3&gt;&lt;p&gt;上线初期为了赶进度，用户操作没有记日志。有一次数据异常——用户反馈功德值对不上——我没有任何线索排查。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;后来补上了完整的日志体系：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;AuditLogMiddleware&lt;/code&gt;：记录所有 &lt;code&gt;/api&lt;/code&gt; 请求，包括请求体、响应状态、耗时&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ExceptionLogMiddleware&lt;/code&gt;：全局异常捕获，记录完整堆栈&lt;/li&gt;
+&lt;li&gt;登录日志：每次登录的时间、平台、IP、设备信息&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;慢 SQL 日志&lt;/strong&gt;：SqlSugar AOP 自动捕获 &amp;gt;1s 的查询，异步写入 &lt;code&gt;slow_sql_logs&lt;/code&gt; 表&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Serilog 三路输出：开发环境看控制台，生产环境落文件（按日滚动保留 30 天），关键数据入库方便管理后台直接查。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;给你一个忠告：审计日志从第一天就做。&lt;/strong&gt; 不是为了应付合规，是为了出问题时你能快速定位。这是为自己写的代码。&lt;/p&gt;
+&lt;h3 id="后台任务生产者-消费者解耦"&gt;后台任务：生产者-消费者解耦
+&lt;/h3&gt;&lt;p&gt;有些操作不需要等——比如用户敲完木鱼后同步功德值、清理过期 Token、发送通知邮件。这些耗时操作如果阻塞主线程，用户体验会明显下降。&lt;/p&gt;
+&lt;p&gt;实现了一个简单的 &lt;code&gt;BackgroundTaskQueue&lt;/code&gt; + &lt;code&gt;QueuedHostedService&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Controller 把耗时任务丢进队列，立刻返回&lt;/li&gt;
+&lt;li&gt;后台线程依次消费队列，不影响接口响应速度&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;没有用消息队列（RabbitMQ / Kafka），因为用户量没到那个级别。一个内存队列 + 后台线程就搞定了。&lt;/p&gt;
+&lt;h3 id="文件存储三种方案随时切"&gt;文件存储：三种方案随时切
+&lt;/h3&gt;&lt;p&gt;音频文件和图片的存储，搞了策略模式：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-csharp" data-lang="csharp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 配置一行切换&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;&amp;#34;Storage&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="s"&gt;&amp;#34;Provider&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s"&gt;&amp;#34;AliyunOss&amp;#34;&lt;/span&gt; &lt;span class="c1"&gt;// 或 &amp;#34;TencentCos&amp;#34; 或 &amp;#34;Local&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;三种方案实现同一个 &lt;code&gt;IFileStorage&lt;/code&gt; 接口，业务代码完全不感知底层用的是哪个云。甚至能同时启用多个，管理后台在页面上选。音频文件走 对象存储 加速，设置了一年缓存时间，因为音频资源很少变动。&lt;/p&gt;
+&lt;h3 id="部署docker-compose-一把梭"&gt;部署：docker-compose 一把梭
+&lt;/h3&gt;&lt;p&gt;5 个服务用一个 &lt;code&gt;docker-compose.yml&lt;/code&gt; 编排：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;services&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;postgres &lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# PostgreSQL 16 (带健康检查)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;redis &lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# Redis 7 (带健康检查)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;backend &lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# .NET 10 Web API (依赖 postgres + redis 健康)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;admin-frontend &lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# Vue 3 管理后台 (Nginx)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;miniapp-frontend&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c"&gt;# uni-app H5 (Nginx)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;启动：&lt;code&gt;docker-compose up -d&lt;/code&gt;，健康检查确保 backend 在 postgres 和 redis 都就绪后才启动，避免启动顺序导致的连接失败。&lt;/p&gt;
+&lt;h3 id="为什么没选微信云开发"&gt;为什么没选微信云开发
+&lt;/h3&gt;&lt;p&gt;一开始考虑过微信云开发（CloudBase），开箱即用，省掉运维。但最终没选：&lt;/p&gt;
+&lt;p&gt;原因：&lt;strong&gt;都是费用啊&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;最终选择了自建后端 + Docker 部署。虽然多了运维工作，但长期可控性更好。&lt;/p&gt;
+&lt;h3 id="监控与告警"&gt;监控与告警
+&lt;/h3&gt;&lt;p&gt;没有上 Prometheus + Grafana 全家桶，用户量没到那个级别。但几个关键监控做了：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;健康检查端点&lt;/strong&gt;：&lt;code&gt;/health&lt;/code&gt; 接口返回数据库和 Redis 连接状态&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;慢 SQL 监控&lt;/strong&gt;：自动记录 + 管理后台可视化查看&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API 调用统计&lt;/strong&gt;：管理后台有专门页面看接口调用趋势&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;告警通知&lt;/strong&gt;：系统异常通过管理后台 + 邮件通知&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;小而美，够用就行。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="五app-上架与备案--比写代码更磨人的事"&gt;五、App 上架与备案 —— 比写代码更磨人的事
+&lt;/h2&gt;&lt;p&gt;代码写完了不算完，真正的心累从「上架」开始。&lt;/p&gt;
+&lt;h3 id="微信小程序备案"&gt;微信小程序备案
+&lt;/h3&gt;&lt;p&gt;小程序上线前必须完成备案，流程大概是：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;提交主体信息（企业或个体户营业执照）&lt;/li&gt;
+&lt;li&gt;填写小程序基本信息 + 服务类目&lt;/li&gt;
+&lt;li&gt;提交审核，等待 1~3 个工作日&lt;/li&gt;
+&lt;li&gt;如果类目选错 → 驳回重来 → 再等 1~3 个工作日&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="android-app-上架"&gt;Android App 上架
+&lt;/h3&gt;&lt;p&gt;这更是一场修行。国内安卓应用市场大大小小十个左右，每个市场的审核标准、隐私政策要求、软著要求都不一样：&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://s3.bmp.ovh/2026/07/05/VoNazaGX.png"
+loading="lazy"
+alt="image.png"
+&gt;&lt;/p&gt;
+&lt;p&gt;光是准备材料、填写各家表单、应对驳回就花了我好长时间。&lt;strong&gt;建议同步准备软著申请&lt;/strong&gt;，这个周期最长（1~3 个月），一定要提前启动。&lt;/p&gt;
+&lt;h3 id="网站小程序app-icp-备案"&gt;网站/小程序/APP ICP 备案
+&lt;/h3&gt;&lt;p&gt;如果有配套官网，域名也需要 ICP 备案，又是一个独立流程。从提交到审核通过，顺利的话 1~2 周，不顺利反复驳回的话一个月起步。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;一句话总结：&lt;/strong&gt; 做独立产品，开发只占 40% 的时间，剩下的都是合规、上架、运营。心理预期要先建立好。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="六聊聊-ai水平拉平了但虎还是虎高手ai就是强强联合"&gt;六、聊聊 AI：水平拉平了，但虎还是虎，高手+AI就是强强联合
+&lt;/h2&gt;&lt;p&gt;这部分本来没有，但既然是跟园子里的老朋友们聊天，就多聊几句。&lt;/p&gt;
+&lt;h3 id="ai-真的拉平了程序员的水平差距"&gt;AI 真的拉平了程序员的水平差距
+&lt;/h3&gt;&lt;p&gt;这是我的真实感受。&lt;/p&gt;
+&lt;p&gt;三年前，一个熟练后端和一个初级前端的差距是肉眼可见的——前者知道怎么调性能、怎么设计接口、怎么处理边界情况；后者可能连 Promise 链都绕不明白。&lt;/p&gt;
+&lt;p&gt;现在呢？AI 让初级程序员也能写出看起来&amp;quot;还行&amp;quot;的代码。复杂查询让 AI 写、页面布局让 AI 生成、甚至单元测试都能一键出。&lt;strong&gt;表面上，大家的产出差距在缩小。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这对行业来说是好事——门槛低了，更多人能参与到创造中来。但对每个个体来说，这也意味着：&lt;strong&gt;只靠&amp;quot;会写代码&amp;quot;已经不够了。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;以前你比同事多会一个框架、多懂一个中间件，那就是实打实的竞争力。现在 AI 几秒钟就能给你讲清楚一个框架的用法。纯技能层面的领先优势，正在被快速抹平。&lt;/p&gt;
+&lt;h3 id="但前提你得是虎"&gt;但前提：你得是虎
+&lt;/h3&gt;&lt;p&gt;有一句话我特别认同——&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;AI 可以如虎添翼，但前提你得是虎。&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;什么意思？&lt;/p&gt;
+&lt;p&gt;AI 能把你的效率翻倍、甚至翻三倍。但如果你本来就是个空壳——不懂需求分析、没有架构思维、不会做技术判断——那 AI 只会帮你更快地产出一堆垃圾。&lt;/p&gt;
+&lt;p&gt;真正的「虎」是什么？&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;能独立判断一个需求值不值得做。&lt;/strong&gt; AI 不会告诉你&amp;quot;这个功能用户根本不需要&amp;rdquo;，但你会。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;能看出 AI 生成的代码哪里有问题。&lt;/strong&gt; AI 写出来的代码看起来没 Bug，但性能瓶颈、安全漏洞、扩展性问题，它不会主动提醒你。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;知道&amp;quot;为什么这么做&amp;quot;而不只是&amp;quot;怎么做&amp;quot;。&lt;/strong&gt; AI 能给你方案，但选哪个方案、为什么选这个，是你的判断。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;有产品思维。&lt;/strong&gt; 技术是为产品服务的，AI 能在技术上帮你，但它不知道你的用户是谁、痛点在哪。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;所以我的建议很简单：&lt;strong&gt;把 AI 当最强的副驾驶，但方向盘永远握在自己手里。&lt;/strong&gt; 用它来放大你的优势，别指望它替你补齐短板。&lt;/p&gt;
+&lt;h3 id="我是怎么用-ai-的说点实际的"&gt;我是怎么用 AI 的（说点实际的）
+&lt;/h3&gt;&lt;p&gt;在这个项目中，AI 帮我做了这些事：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;音频处理脚本&lt;/strong&gt; —— 上百个音频文件批量转码、压缩、统一采样率。描述需求 → AI 出 Python + ffmpeg 脚本 → 微调 → 跑通。这种体力活太适合 AI 了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;界面实现&lt;/strong&gt; —— 渐变、动画、暗色模式适配、6 套主题皮肤的 CSS。以前反复调样式半小时，现在描述效果让 AI 出代码，几分钟一版，不行就 refine。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;文案与英文本地化&lt;/strong&gt; —— 英文版的产品描述、功能说明、隐私政策，AI 翻译 + 人工校对。&lt;strong&gt;前提是，我得有能力判断翻译质量。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;后端增删改查&lt;/strong&gt; —— 接口模板、数据校验逻辑、SQL 语句，这类重复性工作丢给 AI 写初版，我 review 和调优。比自己从零写快太多了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;刻意没让 AI 做的事：&lt;/strong&gt; 整体架构设计（五层 DDD 怎么分层）、数据库表设计（28 张表之间的关系）、技术选型决策（为什么用 SqlSugar 而不是 EF Core）、用户体验打磨（什么样的敲击反馈最舒服）。这些需要判断力的核心环节，目前 AI 还不够格。&lt;/p&gt;
+&lt;h3 id="总结一句话"&gt;总结一句话
+&lt;/h3&gt;&lt;p&gt;AI 正在把程序员的「技能红利」变成「判断力红利」。未来拉开差距的，不再是你会几个框架，而是——你能看到什么需求、做出什么判断、创造什么价值。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;如虎添翼的前提：你得先是虎。是狼是羊都得先练成虎。&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="七几点真心话"&gt;七、几点真心话
+&lt;/h2&gt;&lt;h3 id="1-解决问题比技术炫技重要"&gt;1. 解决问题比技术炫技重要
+&lt;/h3&gt;&lt;p&gt;睡眠木鱼的技术栈并不复杂，uniapp + .NET + SqlSugar + PostgreSQL，没有任何黑科技。但它解决的「助眠」需求是真实存在的，用户是真的在用。&lt;/p&gt;
+&lt;p&gt;别陷入「我要用最新技术」的陷阱。&lt;strong&gt;用什么技术不重要，解决什么问题才重要。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id="2-敢上线比完美更重要"&gt;2. 敢上线比完美更重要
+&lt;/h3&gt;&lt;p&gt;第一个版本只有一个功能：敲木鱼。没有排行榜，没有音频库，没有个人中心，连英文版都没有。&lt;/p&gt;
+&lt;p&gt;他们的反馈才让我知道接下来该做什么。&lt;strong&gt;如果等我把它做&amp;quot;完美&amp;quot;再上线，可能现在还没发布。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id="3-独立开发是一场持久战"&gt;3. 独立开发是一场持久战
+&lt;/h3&gt;&lt;p&gt;开发占 40%，上架合规占 30%，运营推广占 30%。不要指望一夜爆火，做好长期投入的准备。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="八欢迎体验--一起交流"&gt;八、欢迎体验 &amp;amp; 一起交流
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;体验入口：&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;👉 微信小程序搜索 &lt;strong&gt;「睡眠木鱼」&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://s3.bmp.ovh/2026/07/05/Mawv7KWc.png"
+loading="lazy"
+alt="image.png"
+&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;strong&gt;技术交流群：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;我自己在做 uniapp 开发、.NET 后端、小程序上架、独立产品运营的过程中，踩了太多坑。建了一个群，欢迎同样在做独立开发的朋友加入，聊技术、聊产品、聊踩坑，互相取经。&lt;/p&gt;
+&lt;p&gt;获取路径：睡眠木鱼小程序-&amp;gt;我的-&amp;gt;微信客服-&amp;gt;按照关键词回复即可。&lt;/p&gt;
+&lt;hr&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;代码是冷的，产品是有温度的。做点别人真正用得上的东西，是一个程序员最大的浪漫。&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;</description></item></channel></rss>
