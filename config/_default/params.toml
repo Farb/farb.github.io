@@ -18,7 +18,8 @@ lastUpdated = "2006-01-02 15:04:05"
 
 [sidebar]
 emoji = ""
-subtitle = "像水一样努力，终会水滴石穿"
+subtitle = """曾经：像水一样努力，终会水滴石穿；
+现在：像水一样灵活"""
 
 [sidebar.avatar]
 enabled = true

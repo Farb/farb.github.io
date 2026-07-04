@@ -1,3 +1,7 @@
-/*
-    You can add your own custom styles here.
-*/
+.widget--toc #TableOfContents ol li a:first-of-type::before {
+    content: none;
+}
+
+.site-description {
+    white-space: pre-line;
+}
