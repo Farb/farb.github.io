@@ -28,7 +28,7 @@ weight: 1       # You can add weight to some posts to override the default sorti
 
 ## 零、先跟大家打个招呼
 
-![image](https://img2024.cnblogs.com/blog/577014/202607/577014-20260704233454423-823973069.png)
+![image.png](https://s3.bmp.ovh/2026/07/05/Mawv7KWc.png)
 
 打开博客园后台看了一眼，上次发文章已经是9年以前了，见上图，有几篇文章还是草稿状态。
 
@@ -167,16 +167,16 @@ uniapp 的 `#ifdef` / `#ifndef` 很好用，但当横跨小程序和 App 两端�
 
 ### 整体技术栈
 
-| 层 | 技术 | 说明 |
-|---|------|------|
-| 运行时 | .NET 10 + ASP.NET Core Web API | Kestrel 服务器，高性能够用 |
-| ORM | SqlSugarCore | 国产 ORM，CodeFirst 自动建表 |
-| 数据库 | PostgreSQL 16 / MySQL 8.0 | 双数据库兼容，一行配置切换 |
-| 缓存 | Redis 7 + 内存自动降级 | StackExchange.Redis |
-| 认证 | JWT + Token 黑名单 | 120 分钟有效期 + 7 天 RefreshToken |
-| 日志 | Serilog | 三路输出：控制台 + 文件 + 数据库 |
-| 存储 | 策略模式 | 本地 / 阿里云 OSS / 腾讯云 COS 无缝切换 |
-| 部署 | Docker Compose | 5 个服务一键编排 |
+| 层     | 技术                           | 说明                                    |
+| ------ | ------------------------------ | --------------------------------------- |
+| 运行时 | .NET 10 + ASP.NET Core Web API | Kestrel 服务器，高性能够用              |
+| ORM    | SqlSugarCore                   | 国产 ORM，CodeFirst 自动建表            |
+| 数据库 | PostgreSQL 16 / MySQL 8.0      | 双数据库兼容，一行配置切换              |
+| 缓存   | Redis 7 + 内存自动降级         | StackExchange.Redis                     |
+| 认证   | JWT + Token 黑名单             | 120 分钟有效期 + 7 天 RefreshToken      |
+| 日志   | Serilog                        | 三路输出：控制台 + 文件 + 数据库        |
+| 存储   | 策略模式                       | 本地 / 阿里云 OSS / 腾讯云 COS 无缝切换 |
+| 部署   | Docker Compose                 | 5 个服务一键编排                        |
 
 ### 五层 DDD 分层
 
@@ -310,7 +310,7 @@ services:
 
 这更是一场修行。国内安卓应用市场大大小小十个左右，每个市场的审核标准、隐私政策要求、软著要求都不一样：
 
-![image](https://img2024.cnblogs.com/blog/577014/202607/577014-20260705001933939-813869924.png)
+![image.png](https://s3.bmp.ovh/2026/07/05/VoNazaGX.png)
 
 
 光是准备材料、填写各家表单、应对驳回就花了我好长时间。**建议同步准备软著申请**，这个周期最长（1~3 个月），一定要提前启动。
@@ -407,7 +407,7 @@ AI 正在把程序员的「技能红利」变成「判断力红利」。未来�
 
 > 👉 微信小程序搜索 **「睡眠木鱼」**
 >
-> *![小程序二维码](https://img2024.cnblogs.com/blog/577014/202607/577014-20260705002516070-1279427549.png)*
+> ![image.png](https://s3.bmp.ovh/2026/07/05/Mawv7KWc.png)
 
 **技术交流群：**
 
